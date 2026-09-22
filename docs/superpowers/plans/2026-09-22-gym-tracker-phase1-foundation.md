@@ -1326,17 +1326,14 @@ Expected: PASS.
 Replace `src/proxy.ts`:
 
 ```ts
-import NextAuth from "next-auth"
 import createIntlMiddleware from "next-intl/middleware"
 import { NextResponse } from "next/server"
 
-import { authConfig } from "@/lib/auth.config"
+import { auth } from "@/lib/auth"
 import { isPublicPath, stripLocale } from "@/lib/route-access"
 import { routing } from "@/i18n/routing"
 
 const intlMiddleware = createIntlMiddleware(routing)
-
-const { auth } = NextAuth(authConfig)
 
 export default auth((request) => {
   const { pathname } = request.nextUrl
@@ -1361,7 +1358,7 @@ export default auth((request) => {
 export const config = { matcher: ["/((?!api|_next|.*\\..*).*)"] }
 ```
 
-Split the NextAuth config so the proxy does not import Prisma: create `src/lib/auth.config.ts` exporting `authConfig` with providers (env-based), `pages`, and empty callbacks; `src/lib/auth.ts` imports `authConfig` and adds the adapter + session callback. This keeps `proxy.ts` on the Node runtime without pulling the DB client into every request.
+Import the **adapter-backed** `auth` from `@/lib/auth` directly — do NOT create a separate `auth.config.ts` with a second `NextAuth` instance. Next.js 16's `proxy.ts` runs on the Node.js runtime, so it may use Prisma. A split config without the adapter defaults to the JWT strategy, which mismatches our database sessions and clears live session cookies (verified during execution). This keeps the single source of truth for the session strategy (spec §9: database sessions).
 
 - [ ] **Step 6: Run tests, lint, typecheck, build**
 
