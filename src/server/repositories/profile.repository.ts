@@ -35,6 +35,8 @@ const profileSelect = {
   daysPerWeek: true,
   notificationsEnabled: true,
   onboardedAt: true,
+  location: true,
+  equipment: true,
   onboardingSkippedAt: true,
 } as const
 
