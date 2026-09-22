@@ -21,10 +21,16 @@ function weekdayName(weekday: number, locale: string): string {
 export function RoutinePreview({ routine }: { routine: RoutineDTO }) {
   const t = useTranslations("dashboard")
   const locale = useLocale()
+  const routineName =
+    locale === "es" ? (routine.nameEs ?? routine.name) : routine.name
+  const exerciseName = (exercise: {
+    name: string
+    nameEs: string | null
+  }): string => (locale === "es" ? (exercise.nameEs ?? exercise.name) : exercise.name)
 
   return (
     <section className="flex flex-col gap-4" aria-label={t("activeRoutine")}>
-      <h2 className="font-heading text-xl font-bold">{routine.name}</h2>
+      <h2 className="font-heading text-xl font-bold">{routineName}</h2>
 
       <ul className="flex flex-col gap-3">
         {routine.days.map((day) => (
@@ -42,7 +48,11 @@ export function RoutinePreview({ routine }: { routine: RoutineDTO }) {
                       key={item.id}
                       className="flex items-baseline justify-between gap-3"
                     >
-                      <span>{item.exercise?.name ?? item.customName ?? ""}</span>
+                      <span>
+                        {item.exercise
+                          ? exerciseName(item.exercise)
+                          : (item.customName ?? "")}
+                      </span>
                       <span className="text-muted-foreground shrink-0 text-sm">
                         {item.targetSets} × {item.targetReps}
                       </span>

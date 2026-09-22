@@ -105,7 +105,10 @@
     "templates": {
       "loading": "Loading routines…",
       "recommended": "Recommended",
-      "pick": "Pick a routine to get started"
+      "pick": "Pick a routine to get started",
+      "error": "Couldn't load routines",
+      "errorDescription": "Check your connection and try again.",
+      "empty": "No routines are available right now."
     }
   },
   "dashboard": {

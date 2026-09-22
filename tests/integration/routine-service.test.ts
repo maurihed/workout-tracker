@@ -42,6 +42,8 @@ describe("routine service", () => {
     const routine = await createRoutineFromTemplate(user.id, "full-body-3x")
     expect(routine.days).toHaveLength(3)
     expect(routine.source).toBe("template")
+    expect(routine.nameEs).toBe("Cuerpo Completo 3x")
+    expect(routine.descriptionEs).toBeTruthy()
     const active = await getActiveRoutine(user.id)
     expect(active?.id).toBe(routine.id)
     const profile = await prisma.profile.findUniqueOrThrow({ where: { userId: user.id } })

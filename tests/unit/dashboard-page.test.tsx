@@ -17,7 +17,9 @@ import type { RoutineDTO } from "@/features/routines/hooks/use-active-routine"
 const routine: RoutineDTO = {
   id: "r1",
   name: "Full Body 3x",
+  nameEs: null,
   description: null,
+  descriptionEs: null,
   goal: "general_fitness",
   source: "template",
   isActive: true,

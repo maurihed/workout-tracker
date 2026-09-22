@@ -7,7 +7,9 @@ import { routineKeys } from "./query-keys"
 export type RoutineDTO = {
   id: string
   name: string
+  nameEs: string | null
   description: string | null
+  descriptionEs: string | null
   goal: "lose_weight" | "build_muscle" | "get_stronger" | "endurance" | "general_fitness" | null
   source: "manual" | "ai" | "template"
   isActive: boolean

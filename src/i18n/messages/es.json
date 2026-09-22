@@ -105,7 +105,10 @@
     "templates": {
       "loading": "Cargando rutinas…",
       "recommended": "Recomendada",
-      "pick": "Elige una rutina para empezar"
+      "pick": "Elige una rutina para empezar",
+      "error": "No se pudieron cargar las rutinas",
+      "errorDescription": "Comprueba tu conexión e inténtalo de nuevo.",
+      "empty": "No hay rutinas disponibles ahora mismo."
     }
   },
   "dashboard": {

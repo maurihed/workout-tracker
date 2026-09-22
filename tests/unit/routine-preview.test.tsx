@@ -1,10 +1,16 @@
 import { render, screen } from "@testing-library/react"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
+
+const localeMock = vi.hoisted(() => ({ value: "en" }))
 
 vi.mock("next-intl", () => ({
   useTranslations: () => (k: string) => k,
-  useLocale: () => "en",
+  useLocale: () => localeMock.value,
 }))
+
+afterEach(() => {
+  localeMock.value = "en"
+})
 
 import { RoutinePreview } from "@/features/routines/components/routine-preview"
 import type { RoutineDTO } from "@/features/routines/hooks/use-active-routine"
@@ -12,7 +18,9 @@ import type { RoutineDTO } from "@/features/routines/hooks/use-active-routine"
 const routine: RoutineDTO = {
   id: "r1",
   name: "Full Body 3x",
+  nameEs: "Cuerpo Completo 3x",
   description: null,
+  descriptionEs: null,
   goal: "general_fitness",
   source: "template",
   isActive: true,
@@ -39,7 +47,7 @@ const routine: RoutineDTO = {
           exercise: {
             id: "x1",
             name: "Barbell Squat",
-            nameEs: null,
+            nameEs: "Sentadilla con barra",
             images: [],
           },
         },
@@ -61,5 +69,13 @@ describe("RoutinePreview", () => {
     expect(screen.getByText("3 × 8-12")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /startWorkout/ })).toBeDisabled()
     expect(screen.getByText("comingSoon")).toBeInTheDocument()
+  })
+
+  it("renders Spanish routine and exercise names when the locale is es", () => {
+    localeMock.value = "es"
+    render(<RoutinePreview routine={routine} />)
+    expect(screen.getByText("Cuerpo Completo 3x")).toBeInTheDocument()
+    expect(screen.getByText("Sentadilla con barra")).toBeInTheDocument()
+    expect(screen.queryByText("Full Body 3x")).not.toBeInTheDocument()
   })
 })
