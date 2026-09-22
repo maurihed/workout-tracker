@@ -4,6 +4,7 @@
     "tagline": "Sigue tu rutina. Mira tu progreso."
   },
   "nav": {
+    "label": "Navegación principal",
     "dashboard": "Panel",
     "routines": "Rutinas",
     "workout": "Entrenamiento",

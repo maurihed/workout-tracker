@@ -29,7 +29,7 @@ export function BottomNav() {
 
   return (
     <nav
-      aria-label={t("dashboard")}
+      aria-label={t("label")}
       className="bg-background/95 supports-[backdrop-filter]:bg-background/80 fixed inset-x-0 bottom-0 z-40 border-t pt-[env(safe-area-inset-bottom)] backdrop-blur"
     >
       <ul className="mx-auto flex max-w-lg items-stretch justify-between px-2">

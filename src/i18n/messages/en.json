@@ -4,6 +4,7 @@
     "tagline": "Follow your routine. See your progress."
   },
   "nav": {
+    "label": "Main navigation",
     "dashboard": "Dashboard",
     "routines": "Routines",
     "workout": "Workout",
