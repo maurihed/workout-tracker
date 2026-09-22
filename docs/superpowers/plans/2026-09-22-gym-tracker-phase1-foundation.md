@@ -80,7 +80,7 @@ Add to `package.json` (keep existing fields):
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "e2e": "playwright test",
+    "e2e": "playwright test --pass-with-no-tests",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
@@ -123,12 +123,22 @@ Set `compilerOptions` to include (in addition to create-next-app defaults):
 Create `vitest.config.ts`:
 
 ```ts
+import { fileURLToPath } from "node:url"
 import { defineConfig } from "vitest/config"
 import react from "@vitejs/plugin-react"
 import tsconfigPaths from "vite-tsconfig-paths"
 
+// `server-only` throws when imported outside a React Server environment. Tests
+// import server modules directly, so alias it to an empty stub in tests only.
 export default defineConfig({
   plugins: [react(), tsconfigPaths()],
+  resolve: {
+    alias: {
+      "server-only": fileURLToPath(
+        new URL("./tests/stubs/server-only.ts", import.meta.url),
+      ),
+    },
+  },
   test: {
     environment: "jsdom",
     globals: true,
@@ -144,6 +154,14 @@ Create `tests/setup.ts`:
 ```ts
 import "@testing-library/jest-dom/vitest"
 ```
+
+Create `tests/stubs/server-only.ts`:
+
+```ts
+export {}
+```
+
+The integration Vitest config (created in Task 5) must include the same `resolve.alias` entry for `server-only`.
 
 - [ ] **Step 6: Write the first failing test**
 
@@ -250,19 +268,21 @@ Expected: `components.json` created; components under `src/components/ui/`.
 Create `tests/unit/theme.test.tsx`:
 
 ```tsx
-import { render, screen } from "@testing-library/react"
+import { render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import { ThemeProvider } from "@/components/theme-provider"
 
 describe("ThemeProvider", () => {
-  it("renders children with the dark class applied by default", () => {
+  it("renders children with the dark class applied by default", async () => {
     render(
       <ThemeProvider defaultTheme="dark">
         <span>hello</span>
       </ThemeProvider>,
     )
     expect(screen.getByText("hello")).toBeInTheDocument()
-    expect(document.documentElement.classList.contains("dark")).toBe(true)
+    await waitFor(() =>
+      expect(document.documentElement.classList.contains("dark")).toBe(true),
+    )
   })
 })
 ```
@@ -573,7 +593,7 @@ git commit -m "feat: add next-intl with en/es locale routing"
 ### Task 4: Domain + API conventions (errors, envelope, axios, React Query, Zustand)
 
 **Files:**
-- Create: `src/lib/api-error.ts`, `src/lib/api-response.ts`, `tests/unit/api-error.test.ts`, `src/lib/axios.ts`, `src/lib/query-client.ts`, `src/components/query-provider.tsx`, `src/features/exercises/hooks/use-exercises.ts` (placeholder-free real hook arrives in Task 10; this task creates the conventions + a smoke hook), `src/stores/ui-store.ts`
+- Create: `src/lib/api-error.ts`, `src/lib/api-response.ts`, `tests/unit/api-error.test.ts`, `src/lib/axios.ts`, `src/lib/query-client.ts`, `src/components/query-provider.tsx`, `src/stores/ui-store.ts`
 
 **Interfaces:**
 - Consumes: nothing (framework-level).
@@ -1807,6 +1827,9 @@ export function mapExercise(raw: RawExercise): ExerciseSeed {
 
 type UpsertClient = {
   exercise: {
+    findUnique: (args: {
+      where: { sourceId: string }
+    }) => Promise<{ id: string } | null>
     upsert: (args: {
       where: { sourceId: string }
       create: ExerciseSeed
