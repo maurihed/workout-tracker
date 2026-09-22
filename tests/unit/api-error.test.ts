@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import {
   ApiError,
   ConflictError,
@@ -8,6 +8,14 @@ import {
 } from "@/lib/api-error"
 
 describe("toApiError", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it("maps a known ApiError to its status and envelope", async () => {
     const res = toApiError(new NotFoundError("Routine not found"))
     expect(res.status).toBe(404)
