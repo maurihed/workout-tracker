@@ -22,5 +22,9 @@ export default defineConfig({
     globals: true,
     setupFiles: [],
     include: ["tests/integration/**/*.test.ts"],
+    // `next-auth`/`next-intl` import the extensionless `next/server`, which
+    // native Node ESM cannot resolve. Inline them so Vite resolves it while
+    // transforming.
+    server: { deps: { inline: ["next-auth", "@auth/core", "next-intl"] } },
   },
 })
