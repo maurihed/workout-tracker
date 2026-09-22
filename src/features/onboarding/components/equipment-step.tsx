@@ -72,7 +72,7 @@ export function EquipmentStep({
                 className={selected ? "size-5" : "size-5 opacity-0"}
                 aria-hidden="true"
               />
-              {item}
+              {t(`items.${item}`)}
             </Button>
           )
         })}

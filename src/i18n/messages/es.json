@@ -36,5 +36,84 @@
     "terms": "Términos del servicio",
     "privacyBody": "Gym Tracker almacena los datos de perfil, las métricas corporales y los registros de entrenamiento que introduces. Estos datos se usan únicamente para operar la aplicación y personalizar tus rutinas generadas por IA. Las funciones de IA se ejecutan en modelos autoalojados, por lo que tus datos no se envían a proveedores externos de IA. Conservamos tus datos mientras tu cuenta esté activa y los eliminamos tras el borrado. Puedes exportar una copia de tus datos o eliminar tu cuenta en cualquier momento desde la página de Perfil.",
     "termsBody": "Gym Tracker se proporciona tal cual, sin garantías de ningún tipo. Las rutinas, métricas y sugerencias de IA que muestra la aplicación son solo para el seguimiento general del ejercicio y no constituyen consejo médico. Consulta siempre a un profesional cualificado antes de empezar o cambiar un programa de entrenamiento."
+  },
+  "onboarding": {
+    "title": "Configura tu perfil",
+    "progress": "Paso {current} de {total}",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "skip": "Omitir",
+    "finish": "Finalizar",
+    "goals": {
+      "label": "¿Cuál es tu objetivo principal?",
+      "lose_weight": "Perder peso",
+      "build_muscle": "Ganar músculo",
+      "get_stronger": "Ser más fuerte",
+      "endurance": "Mejorar la resistencia",
+      "general_fitness": "Forma física general"
+    },
+    "experience": {
+      "label": "¿Cuánta experiencia tienes?",
+      "beginner": "Principiante",
+      "intermediate": "Intermedio",
+      "advanced": "Avanzado"
+    },
+    "equipment": {
+      "label": "¿Qué equipo puedes usar?",
+      "location": "¿Dónde entrenas?",
+      "gym": "Gimnasio",
+      "home": "Casa",
+      "both": "Ambos",
+      "items": {
+        "body only": "Peso corporal",
+        "barbell": "Barra",
+        "dumbbell": "Mancuerna",
+        "cable": "Polea",
+        "machine": "Máquina",
+        "kettlebells": "Pesas rusas",
+        "bands": "Bandas elásticas",
+        "medicine ball": "Balón medicinal",
+        "exercise ball": "Pelota de ejercicio",
+        "foam roll": "Rodillo de espuma",
+        "e-z curl bar": "Barra EZ",
+        "other": "Otro"
+      }
+    },
+    "schedule": {
+      "label": "¿Cuántos días por semana puedes entrenar?",
+      "days": "{count, plural, one {# día por semana} other {# días por semana}}"
+    },
+    "preferences": {
+      "label": "Preferencias",
+      "units": "Unidades preferidas",
+      "metric": "Métrico (kg, cm)",
+      "imperial": "Imperial (lb, in)",
+      "timezone": "Zona horaria"
+    },
+    "metrics": {
+      "label": "Métricas corporales",
+      "optional": "Opcional: nos ayuda a adaptar tu rutina",
+      "birthYear": "Año de nacimiento",
+      "height": "Altura (cm)",
+      "weight": "Peso (kg)",
+      "gender": "Género",
+      "male": "Hombre",
+      "female": "Mujer",
+      "other": "Otro",
+      "prefer_not_to_say": "Prefiero no decirlo"
+    },
+    "templates": {
+      "loading": "Cargando rutinas…",
+      "recommended": "Recomendada",
+      "pick": "Elige una rutina para empezar"
+    }
+  },
+  "dashboard": {
+    "activeRoutine": "Rutina activa",
+    "startWorkout": "Empezar entrenamiento",
+    "comingSoon": "Próximamente",
+    "noRoutine": "Aún no tienes rutina",
+    "pickRoutine": "Elegir una rutina",
+    "finishSetup": "Termina la configuración para obtener una rutina personalizada."
   }
 }
