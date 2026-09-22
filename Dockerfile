@@ -15,6 +15,13 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm exec prisma generate && pnpm build
 
+# Migration image for Coolify's pre-deploy/release command. Derived from the
+# build stage so the Prisma CLI (a devDependency), `prisma7.config.ts`, and the
+# `prisma/` schema + migrations are all present. The `runner` stage does not
+# ship the Prisma CLI, so `prisma migrate deploy` must run from this target.
+FROM build AS migrate
+CMD ["pnpm", "exec", "prisma", "migrate", "deploy"]
+
 FROM base AS runner
 ENV NODE_ENV=production
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
