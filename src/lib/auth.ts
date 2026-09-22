@@ -7,21 +7,12 @@ import Facebook from "next-auth/providers/facebook"
 import Google from "next-auth/providers/google"
 
 import { RateLimitError } from "@/lib/api-error"
+import { resolveClientIp } from "@/lib/client-ip"
 import { requireOAuthEnv } from "@/lib/env"
 import { prisma } from "@/lib/prisma"
 import { consumeRateLimit } from "@/lib/rate-limit"
 
 const AUTH_RATE_LIMIT = { limit: 20, windowMs: 60_000 } as const
-
-async function getClientIp(): Promise<string> {
-  const requestHeaders = await headers()
-  const forwarded = requestHeaders.get("x-forwarded-for")
-  return (
-    forwarded?.split(",")[0]?.trim() ||
-    requestHeaders.get("x-real-ip") ||
-    "unknown"
-  )
-}
 
 const googleEnv = requireOAuthEnv(["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"])
 const facebookEnv = requireOAuthEnv([
@@ -49,7 +40,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers,
   callbacks: {
     async signIn() {
-      const ip = await getClientIp()
+      const ip = resolveClientIp(await headers())
       const { allowed } = await consumeRateLimit({
         key: `auth:${ip}`,
         limit: AUTH_RATE_LIMIT.limit,
