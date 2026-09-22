@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 
 import "../globals.css"
 
+import { QueryProvider } from "@/components/query-provider"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { routing } from "@/i18n/routing"
@@ -30,7 +31,7 @@ export default async function LocaleLayout({
       <body className="bg-background text-foreground antialiased">
         <NextIntlClientProvider>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-            {children}
+            <QueryProvider>{children}</QueryProvider>
             <Toaster />
           </ThemeProvider>
         </NextIntlClientProvider>
