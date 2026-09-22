@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-const EQUIPMENT = [
+export const EQUIPMENT = [
   "body only",
   "barbell",
   "dumbbell",

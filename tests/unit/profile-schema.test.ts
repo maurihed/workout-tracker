@@ -19,3 +19,26 @@ describe("updateProfileSchema", () => {
     expect(updateProfileSchema.safeParse({}).success).toBe(true)
   })
 })
+
+describe("onboarding profile fields", () => {
+  it("accepts a valid location and equipment subset", () => {
+    expect(
+      updateProfileSchema.safeParse({ location: "home", equipment: ["dumbbell", "body only"] })
+        .success,
+    ).toBe(true)
+  })
+
+  it("rejects an unknown location", () => {
+    expect(updateProfileSchema.safeParse({ location: "moon" }).success).toBe(false)
+  })
+
+  it("rejects an equipment value outside the catalog set", () => {
+    expect(updateProfileSchema.safeParse({ equipment: ["jetpack"] }).success).toBe(false)
+  })
+
+  it("accepts onboardingSkippedAt as an ISO datetime", () => {
+    expect(
+      updateProfileSchema.safeParse({ onboardingSkippedAt: new Date().toISOString() }).success,
+    ).toBe(true)
+  })
+})

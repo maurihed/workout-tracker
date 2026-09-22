@@ -1,5 +1,6 @@
 import "server-only"
 import { NotFoundError } from "@/lib/api-error"
+import { logger } from "@/lib/logger"
 import type { UpdateProfileInput } from "@/features/profile/schemas/profile"
 import * as profileRepository from "@/server/repositories/profile.repository"
 
@@ -14,5 +15,17 @@ export async function getProfileOrNull(userId: string) {
 }
 
 export async function updateProfile(userId: string, input: UpdateProfileInput) {
-  return profileRepository.upsertForUser(userId, input)
+  const profile = await profileRepository.upsertForUser(userId, input)
+  if (input.onboardingSkippedAt) {
+    logger.info({ event: "onboarding.skipped", userId }, "onboarding skipped")
+  } else if (
+    input.goal ||
+    input.experience ||
+    input.location ||
+    input.equipment ||
+    input.daysPerWeek
+  ) {
+    logger.info({ event: "onboarding.step_saved", userId }, "onboarding step saved")
+  }
+  return profile
 }

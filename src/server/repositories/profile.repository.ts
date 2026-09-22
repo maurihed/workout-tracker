@@ -3,18 +3,22 @@ import { prisma } from "@/lib/prisma"
 import type { UpdateProfileInput } from "@/features/profile/schemas/profile"
 
 type ProfileWriteData = {
-  [K in keyof Omit<UpdateProfileInput, "onboardedAt">]-?: Exclude<
+  [K in keyof Omit<UpdateProfileInput, "onboardedAt" | "onboardingSkippedAt">]-?: Exclude<
     UpdateProfileInput[K],
     undefined
   >
 } & {
   onboardedAt?: Date | null
+  onboardingSkippedAt?: Date | null
 }
 
 function toPrismaData(input: UpdateProfileInput): ProfileWriteData {
   const converted = {
     ...input,
     onboardedAt: input.onboardedAt ? new Date(input.onboardedAt) : input.onboardedAt,
+    onboardingSkippedAt: input.onboardingSkippedAt
+      ? new Date(input.onboardingSkippedAt)
+      : input.onboardingSkippedAt,
   }
   return Object.fromEntries(
     Object.entries(converted).filter(([, value]) => value !== undefined),

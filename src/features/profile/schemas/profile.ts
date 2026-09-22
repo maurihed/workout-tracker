@@ -1,4 +1,7 @@
 import { z } from "zod"
+import { EQUIPMENT } from "@/features/exercises/schemas/exercise"
+
+const LOCATION = ["gym", "home", "both"] as const
 
 function isIanaTimezone(value: string): boolean {
   try {
@@ -25,6 +28,9 @@ export const profileSchema = z.object({
   daysPerWeek: z.number().int().min(1).max(7).nullable(),
   notificationsEnabled: z.boolean(),
   onboardedAt: z.string().datetime().nullable(),
+  location: z.enum(LOCATION).nullable(),
+  equipment: z.array(z.enum(EQUIPMENT)),
+  onboardingSkippedAt: z.string().datetime().nullable(),
 })
 
 export type ProfileDTO = z.infer<typeof profileSchema>
@@ -45,6 +51,9 @@ export const updateProfileSchema = z.object({
   daysPerWeek: z.number().int().min(1).max(7).nullable().optional(),
   notificationsEnabled: z.boolean().optional(),
   onboardedAt: z.string().datetime().nullable().optional(),
+  location: z.enum(LOCATION).nullable().optional(),
+  equipment: z.array(z.enum(EQUIPMENT)).max(20).optional(),
+  onboardingSkippedAt: z.string().datetime().nullable().optional(),
 })
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>
