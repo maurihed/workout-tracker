@@ -38,4 +38,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session
     },
   },
+  events: {
+    async createUser({ user }) {
+      if (!user.id) return
+      await prisma.profile.create({ data: { userId: user.id, timezone: "UTC" } })
+    },
+  },
 })
