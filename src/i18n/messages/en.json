@@ -27,6 +27,8 @@
   },
   "legal": {
     "privacy": "Privacy Policy",
-    "terms": "Terms of Service"
+    "terms": "Terms of Service",
+    "privacyBody": "Gym Tracker stores the profile details, body metrics, and workout records you enter. This data is used solely to operate the app and to personalize your AI-generated routines. AI features run on self-hosted models, so your data is not sent to third-party AI providers. We keep your data while your account is active and remove it after deletion. You can export a copy of your data or delete your account at any time from the Profile page.",
+    "termsBody": "Gym Tracker is provided as-is, without warranties of any kind. The routines, metrics, and AI suggestions shown in the app are for general fitness tracking only and are not medical advice. Always consult a qualified professional before starting or changing an exercise program."
   }
 }
