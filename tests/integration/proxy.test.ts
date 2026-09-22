@@ -5,7 +5,7 @@ import proxy from "@/proxy"
 import { prisma } from "@/lib/prisma"
 
 const SESSION_TOKEN = "it_proxy_session_token"
-const EMAIL = "proxy-test@test.local"
+const EMAIL = "proxy-test@proxy-test.local"
 
 async function cleanup() {
   await prisma.user.deleteMany({ where: { email: EMAIL } })

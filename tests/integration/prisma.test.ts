@@ -2,9 +2,13 @@ import { afterAll, describe, expect, it } from "vitest"
 
 import { prisma } from "@/lib/prisma"
 
+const EMAIL_DOMAIN = "@prisma-test.local"
+
 describe("prisma connection", () => {
   afterAll(async () => {
-    await prisma.user.deleteMany({ where: { email: { endsWith: "@test.local" } } })
+    await prisma.user.deleteMany({
+      where: { email: { endsWith: EMAIL_DOMAIN } },
+    })
   })
 
   it("creates a user with a nullable email and cascades sessions", async () => {
