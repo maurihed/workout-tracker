@@ -1,6 +1,10 @@
-import "dotenv/config"
+import dotenv from "dotenv"
 
 import { defineConfig, devices } from "@playwright/test"
+
+// Load `.env` silently: the session helper and webServer both need
+// DATABASE_URL/AUTH_SECRET, but dotenv's default banner would dirty test output.
+dotenv.config({ quiet: true })
 
 // E2E specs live only in `tests/e2e`; without this scoping Playwright defaults
 // `testDir` to the repo root and tries to load the Vitest unit/integration
@@ -16,11 +20,17 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   webServer: {
-    command: "pnpm build && pnpm start",
+    // Mirrors the Docker image: build, stage `public`/`.next/static` into the
+    // standalone output, then run the standalone server. `pnpm start` would
+    // warn because next.config.ts uses `output: "standalone"`.
+    command:
+      "pnpm build && rm -rf .next/standalone/public .next/standalone/.next/static && cp -r public .next/standalone/ && mkdir -p .next/standalone/.next && cp -r .next/static .next/standalone/.next/static && node .next/standalone/server.js",
     url: "http://127.0.0.1:3000/en",
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
     env: {
+      PORT: "3000",
+      HOSTNAME: "127.0.0.1",
       DATABASE_URL: process.env.DATABASE_URL ?? "",
       AUTH_SECRET: process.env.AUTH_SECRET ?? "e2e-secret",
       AUTH_URL: "http://127.0.0.1:3000",

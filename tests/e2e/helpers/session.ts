@@ -12,8 +12,12 @@ const prisma = new PrismaClient({
  * (database session strategy) authenticates subsequent requests.
  */
 export async function createTestSession(email: string) {
-  const user = await prisma.user.create({
-    data: { email, profile: { create: {} } },
+  // Upsert keeps retries idempotent: a retried test reuses its email, which
+  // would otherwise collide on the unique `User.email` constraint.
+  const user = await prisma.user.upsert({
+    where: { email },
+    update: {},
+    create: { email, profile: { create: {} } },
   })
   const token = `e2e_${user.id}_${Date.now()}`
   await prisma.session.create({
