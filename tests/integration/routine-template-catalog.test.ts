@@ -10,4 +10,26 @@ describe("template catalog references", () => {
     const missing = ids.filter((id) => !foundSet.has(id))
     expect(missing).toEqual([])
   })
+
+  it("every referenced exercise's equipment is covered by its template", async () => {
+    const ids = [...new Set(ROUTINE_TEMPLATES.flatMap((t) => t.days.flatMap((d) => d.exercises.map((e) => e.sourceId))))]
+    const found = await prisma.exercise.findMany({
+      where: { sourceId: { in: ids } },
+      select: { sourceId: true, equipment: true },
+    })
+    const equipmentById = new Map(found.map((f) => [f.sourceId, f.equipment]))
+    const violations: string[] = []
+    for (const t of ROUTINE_TEMPLATES) {
+      for (const d of t.days) {
+        for (const e of d.exercises) {
+          const equipment = equipmentById.get(e.sourceId)
+          if (equipment == null || equipment === "body only") continue
+          if (!t.equipment.includes(equipment)) {
+            violations.push(`${t.slug}: ${e.sourceId} (${equipment}) not in [${t.equipment.join(", ")}]`)
+          }
+        }
+      }
+    }
+    expect(violations).toEqual([])
+  })
 })

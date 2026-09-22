@@ -66,7 +66,7 @@ export const ROUTINE_TEMPLATES: RoutineTemplate[] = [
         exercises: [
           { sourceId: "Barbell_Full_Squat", sets: 3, reps: "8-12", restSeconds: 90 },
           { sourceId: "Barbell_Bench_Press_-_Medium_Grip", sets: 3, reps: "8-12", restSeconds: 90 },
-          { sourceId: "Alternating_Kettlebell_Row", sets: 3, reps: "10-12", restSeconds: 60 },
+          { sourceId: "One-Arm_Dumbbell_Row", sets: 3, reps: "10-12", restSeconds: 60 },
           { sourceId: "Air_Bike", sets: 3, reps: "15-20", restSeconds: 45 },
         ],
       },
@@ -205,7 +205,7 @@ export const ROUTINE_TEMPLATES: RoutineTemplate[] = [
           { sourceId: "Arnold_Dumbbell_Press", sets: 3, reps: "8-12", restSeconds: 90 },
           { sourceId: "Cable_Crossover", sets: 3, reps: "12-15", restSeconds: 60 },
           { sourceId: "Front_Dumbbell_Raise", sets: 3, reps: "12-15", restSeconds: 60 },
-          { sourceId: "EZ-Bar_Skullcrusher", sets: 3, reps: "10-12", restSeconds: 60 },
+          { sourceId: "Lying_Dumbbell_Tricep_Extension", sets: 3, reps: "10-12", restSeconds: 60 },
         ],
       },
       {
