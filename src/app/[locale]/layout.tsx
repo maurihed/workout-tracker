@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 
 import "../globals.css"
 
+import { AuthProvider } from "@/components/auth-provider"
 import { QueryProvider } from "@/components/query-provider"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
@@ -30,10 +31,12 @@ export default async function LocaleLayout({
     >
       <body className="bg-background text-foreground antialiased">
         <NextIntlClientProvider>
-          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-            <QueryProvider>{children}</QueryProvider>
-            <Toaster />
-          </ThemeProvider>
+          <AuthProvider>
+            <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+              <QueryProvider>{children}</QueryProvider>
+              <Toaster />
+            </ThemeProvider>
+          </AuthProvider>
         </NextIntlClientProvider>
       </body>
     </html>

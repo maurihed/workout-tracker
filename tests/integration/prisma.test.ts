@@ -26,4 +26,11 @@ describe("prisma connection", () => {
     const sessions = await prisma.session.count({ where: { userId: user.id } })
     expect(sessions).toBe(0)
   })
+
+  it("allows multiple users with a null email", async () => {
+    const a = await prisma.user.create({ data: { email: null } })
+    const b = await prisma.user.create({ data: { email: null } })
+    expect(a.id).not.toBe(b.id)
+    await prisma.user.deleteMany({ where: { id: { in: [a.id, b.id] } } })
+  })
 })
