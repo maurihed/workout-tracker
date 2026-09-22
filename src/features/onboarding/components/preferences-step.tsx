@@ -2,7 +2,7 @@
 
 import { Scales } from "@phosphor-icons/react"
 import { useTranslations } from "next-intl"
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,11 +22,23 @@ export function PreferencesStep({
   onTimezoneChange: (timezone: string) => void
 }) {
   const t = useTranslations("onboarding.preferences")
+  const autoDetected = useRef(false)
 
+  // The wizard always passes the untouched default `"UTC"` (stub profile and
+  // `EMPTY_ONBOARDING_PROFILE`), so detect whenever the field is unset or still
+  // at that default. Runs once on mount; the user can override afterwards.
   useEffect(() => {
-    if (timezone) return
-    const detected = Intl.DateTimeFormat().resolvedOptions().timeZone
-    if (detected) onTimezoneChange(detected)
+    if (autoDetected.current) return
+    autoDetected.current = true
+    if (timezone && timezone !== "UTC") return
+
+    let detected = "UTC"
+    try {
+      detected = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
+    } catch {
+      detected = "UTC"
+    }
+    if (detected !== timezone) onTimezoneChange(detected)
   }, [timezone, onTimezoneChange])
 
   return (
