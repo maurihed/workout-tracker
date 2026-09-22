@@ -21,8 +21,24 @@ function toPrismaData(input: UpdateProfileInput): ProfileWriteData {
   ) as ProfileWriteData
 }
 
+const profileSelect = {
+  id: true,
+  birthYear: true,
+  heightCm: true,
+  weightKg: true,
+  gender: true,
+  experience: true,
+  goal: true,
+  unitSystem: true,
+  timezone: true,
+  weekStartsOn: true,
+  daysPerWeek: true,
+  notificationsEnabled: true,
+  onboardedAt: true,
+} as const
+
 export function findByUserId(userId: string) {
-  return prisma.profile.findUnique({ where: { userId } })
+  return prisma.profile.findUnique({ where: { userId }, select: profileSelect })
 }
 
 export function upsertForUser(userId: string, input: UpdateProfileInput) {
@@ -31,5 +47,6 @@ export function upsertForUser(userId: string, input: UpdateProfileInput) {
     where: { userId },
     create: { userId, ...data },
     update: data,
+    select: profileSelect,
   })
 }

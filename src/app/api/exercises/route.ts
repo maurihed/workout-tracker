@@ -1,10 +1,18 @@
+import { auth } from "@/lib/auth"
 import { ok } from "@/lib/api-response"
-import { toApiError, ValidationError } from "@/lib/api-error"
+import {
+  toApiError,
+  UnauthorizedError,
+  ValidationError,
+} from "@/lib/api-error"
 import { exerciseListQuerySchema } from "@/features/exercises/schemas/exercise"
 import { listExercises } from "@/server/services/exercise.service"
 
 export async function GET(request: Request) {
   try {
+    const session = await auth()
+    if (!session?.user?.id) throw new UnauthorizedError()
+
     const url = new URL(request.url)
     const parsed = exerciseListQuerySchema.safeParse(
       Object.fromEntries(url.searchParams.entries()),
