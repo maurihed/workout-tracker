@@ -11,7 +11,7 @@ export async function list(input: ExerciseListInput) {
       ...(equipment ? { equipment } : {}),
       isCustom: false,
     },
-    orderBy: { name: "asc" },
+    orderBy: [{ name: "asc" }, { id: "asc" }],
     take: limit + 1,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     select: {

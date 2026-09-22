@@ -29,6 +29,20 @@ describe("listExercises", () => {
           equipment: "dumbbell",
           images: [],
         },
+        {
+          sourceId: "T_DupeA",
+          name: "T Duplicate",
+          primaryMuscles: ["T_dupe"],
+          equipment: "dumbbell",
+          images: [],
+        },
+        {
+          sourceId: "T_DupeB",
+          name: "T Duplicate",
+          primaryMuscles: ["T_dupe"],
+          equipment: "dumbbell",
+          images: [],
+        },
       ],
       skipDuplicates: true,
     })
@@ -55,5 +69,19 @@ describe("listExercises", () => {
   it("searches names case-insensitively", async () => {
     const page = await listExercises({ limit: 20, muscle: TEST_MUSCLE, q: "beta" })
     expect(page.items.map((item) => item.name)).toEqual(["Beta Row"])
+  })
+
+  it("pages deterministically across duplicate names without skips or duplicates", async () => {
+    const seen: string[] = []
+    let cursor: string | undefined
+    do {
+      const page = await listExercises({ limit: 1, muscle: "T_dupe", cursor })
+      expect(page.items).toHaveLength(1)
+      seen.push(...page.items.map((item) => item.sourceId))
+      cursor = page.nextCursor ?? undefined
+    } while (cursor)
+
+    expect([...seen].sort()).toEqual(["T_DupeA", "T_DupeB"])
+    expect(new Set(seen).size).toBe(seen.length)
   })
 })
