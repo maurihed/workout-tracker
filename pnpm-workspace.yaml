@@ -1,6 +1,7 @@
 allowBuilds:
   "@parcel/watcher": false
   "@prisma/engines": true
+  '@sentry/cli': false
   "@swc/core": false
   esbuild: true
   msgpackr-extract: false
