@@ -35,6 +35,7 @@ const profileSelect = {
   daysPerWeek: true,
   notificationsEnabled: true,
   onboardedAt: true,
+  onboardingSkippedAt: true,
 } as const
 
 export function findByUserId(userId: string) {

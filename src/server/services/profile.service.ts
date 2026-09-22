@@ -9,6 +9,10 @@ export async function getProfile(userId: string) {
   return profile
 }
 
+export async function getProfileOrNull(userId: string) {
+  return profileRepository.findByUserId(userId)
+}
+
 export async function updateProfile(userId: string, input: UpdateProfileInput) {
   return profileRepository.upsertForUser(userId, input)
 }

@@ -3,7 +3,9 @@ import { redirect } from "next/navigation"
 
 import { AppHeader } from "@/components/shared/app-header"
 import { BottomNav } from "@/components/shared/bottom-nav"
+import { needsOnboarding } from "@/features/onboarding/lib/onboarding"
 import { auth } from "@/lib/auth"
+import { getProfileOrNull } from "@/server/services/profile.service"
 
 export default async function AppLayout({
   children,
@@ -14,6 +16,9 @@ export default async function AppLayout({
 
   const session = await auth()
   if (!session?.user) redirect(`/${locale}/login`)
+
+  const profile = await getProfileOrNull(session.user.id)
+  if (!profile || needsOnboarding(profile)) redirect(`/${locale}/onboarding`)
 
   return (
     <div className="flex min-h-dvh flex-col">
