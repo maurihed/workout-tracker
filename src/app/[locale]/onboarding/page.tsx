@@ -5,7 +5,7 @@ import {
   SkipOnboardingButton,
   Wizard,
 } from "@/features/onboarding/components/wizard"
-import { needsOnboarding } from "@/features/onboarding/lib/onboarding"
+import { shouldLeaveOnboarding } from "@/features/onboarding/lib/onboarding"
 import {
   EMPTY_ONBOARDING_PROFILE,
   firstIncompleteStep,
@@ -23,7 +23,7 @@ export default async function OnboardingPage({
   if (!session?.user?.id) redirect(`/${locale}/login`)
 
   const profile = await getProfileOrNull(session.user.id)
-  if (profile && !needsOnboarding(profile)) redirect(`/${locale}/dashboard`)
+  if (shouldLeaveOnboarding(profile)) redirect(`/${locale}/dashboard`)
 
   const initialStep = firstIncompleteStep(profile ?? EMPTY_ONBOARDING_PROFILE)
 

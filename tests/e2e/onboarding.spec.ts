@@ -77,3 +77,24 @@ test("skip for now reaches the dashboard without a routine", async ({
     page.getByRole("link", { name: /Pick a routine|Elegir una rutina/i }),
   ).toBeVisible()
 })
+
+test("a skipped user can re-enter onboarding from the dashboard CTA", async ({
+  page,
+  context,
+}) => {
+  const { cookie } = await createTestSession(skippedEmail)
+  await context.addCookies([{ ...cookie, domain: "127.0.0.1", path: "/" }])
+
+  // Skipped user is not onboarded, so the dashboard shows the setup CTA.
+  await page.goto("/en/dashboard")
+  await expect(
+    page.getByRole("link", { name: /Pick a routine|Elegir una rutina/i }),
+  ).toBeVisible()
+
+  // Clicking it must land on the wizard, not bounce straight back.
+  await page.getByRole("link", { name: /Pick a routine|Elegir una rutina/i }).click()
+  await expect(page).toHaveURL(/\/en\/onboarding/)
+  await expect(
+    page.getByRole("heading", { name: "What is your main goal?" }),
+  ).toBeVisible()
+})

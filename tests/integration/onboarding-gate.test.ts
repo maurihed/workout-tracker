@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest"
 
-import { needsOnboarding } from "@/features/onboarding/lib/onboarding"
+import {
+  needsOnboarding,
+  shouldLeaveOnboarding,
+} from "@/features/onboarding/lib/onboarding"
 import { prisma } from "@/lib/prisma"
 import { getProfileOrNull } from "@/server/services/profile.service"
 
@@ -46,5 +49,28 @@ describe("onboarding gate", () => {
     const completed = await getProfileOrNull(user.id)
     expect(completed).not.toBeNull()
     expect(needsOnboarding(completed!)).toBe(false)
+  })
+
+  it("admits a skipped user to the onboarding route so they can finish", async () => {
+    const user = await prisma.user.create({
+      data: {
+        email: `gate_skip_${Date.now()}${EMAIL_DOMAIN}`,
+        profile: { create: { onboardingSkippedAt: new Date() } },
+      },
+    })
+
+    const skipped = await getProfileOrNull(user.id)
+    expect(skipped).not.toBeNull()
+    // The layout gate treats skipped as "not needing onboarding"...
+    expect(needsOnboarding(skipped!)).toBe(false)
+    // ...but the onboarding route must still admit them to complete it.
+    expect(shouldLeaveOnboarding(skipped!)).toBe(false)
+
+    await prisma.profile.update({
+      where: { userId: user.id },
+      data: { onboardedAt: new Date() },
+    })
+    const completed = await getProfileOrNull(user.id)
+    expect(shouldLeaveOnboarding(completed!)).toBe(true)
   })
 })
