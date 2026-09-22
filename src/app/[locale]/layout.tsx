@@ -34,7 +34,7 @@ export default async function LocaleLayout({
           <AuthProvider>
             <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
               <QueryProvider>{children}</QueryProvider>
-              <Toaster />
+              <Toaster richColors />
             </ThemeProvider>
           </AuthProvider>
         </NextIntlClientProvider>
