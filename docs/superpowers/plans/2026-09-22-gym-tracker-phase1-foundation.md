@@ -17,6 +17,7 @@
 - **TypeScript strict**, no `any`; enable `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` (see Task 1 note if a third-party type breaks).
 - **Client-first data flow** (spec §5.1): RSC for shells only; data via `app/api/*` Route Handlers + axios + TanStack Query. Do not call Prisma from pages.
 - **Layering (spec §5.2):** Route Handler (parse/validate/auth/error-map/status) → Service (business rules) → Repository (Prisma only). Repositories and services start with `import "server-only"`.
+- **Prisma 7 imports:** import `PrismaClient` and `Prisma` from `@/generated/prisma/client` (the `prisma-client` generator writes to `src/generated/prisma`), never from `@prisma/client`. The client uses the `@prisma/adapter-pg` driver adapter (see `src/lib/prisma.ts`). Prisma CLI config lives in `prisma7.config.ts`.
 - **API envelope (spec §10):** success `{ "data": <payload> }`; error `{ "error": { "code", "message", "details"? } }`. Never return raw Prisma models without `select`.
 - **Validation:** one shared Zod schema per input, used by both client and server. Never hand-roll body validation.
 - **Authorization:** every query/mutation is scoped by `userId` from the Auth.js session. Never trust ids sent by the client.
@@ -953,18 +954,26 @@ Create `src/lib/prisma.ts`:
 ```ts
 import "server-only"
 
-import { PrismaClient } from "@prisma/client"
+import { PrismaPg } from "@prisma/adapter-pg"
+
+import { PrismaClient } from "@/generated/prisma/client"
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient }
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
+function createPrismaClient() {
+  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
+  return new PrismaClient({
+    adapter,
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
   })
+}
+
+export const prisma = globalForPrisma.prisma ?? createPrismaClient()
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
 ```
+
+> Prisma 7 path (installed: 7.10.0): the generator is `prisma-client` with `output = "../src/generated/prisma"`, so import `PrismaClient` and `Prisma` from `@/generated/prisma/client` (NOT `@prisma/client`). The client uses the `@prisma/adapter-pg` driver adapter. All later tasks must follow this import path.
 
 - [ ] **Step 6: Write the integration test**
 
@@ -1013,9 +1022,14 @@ Expected: PASS (requires `docker compose up -d db`).
 Create `prisma/seed/index.ts`:
 
 ```ts
-import { PrismaClient } from "@prisma/client"
+import "dotenv/config"
 
-const prisma = new PrismaClient()
+import { PrismaPg } from "@prisma/adapter-pg"
+
+import { PrismaClient } from "../../src/generated/prisma/client"
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
+const prisma = new PrismaClient({ adapter })
 
 async function main() {
   console.log("seed: nothing to seed yet")
@@ -1878,10 +1892,15 @@ export async function importExercises(
 Replace `prisma/seed/index.ts`:
 
 ```ts
-import { PrismaClient } from "@prisma/client"
+import "dotenv/config"
+
+import { PrismaPg } from "@prisma/adapter-pg"
+
+import { PrismaClient } from "../../src/generated/prisma/client"
 import { importExercises, type RawExercise } from "./exercises"
 
-const prisma = new PrismaClient()
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
+const prisma = new PrismaClient({ adapter })
 const DATASET_URL =
   process.env.FREE_EXERCISE_DB_URL ??
   "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises.json"
