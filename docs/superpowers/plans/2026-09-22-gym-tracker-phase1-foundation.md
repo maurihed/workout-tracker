@@ -69,6 +69,7 @@ Add to `package.json` (keep existing fields):
 
 ```json
 {
+  "type": "module",
   "engines": { "node": ">=22", "pnpm": ">=9" },
   "packageManager": "pnpm@12.5.1",
   "scripts": {
@@ -77,7 +78,7 @@ Add to `package.json` (keep existing fields):
     "start": "next start",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test --pass-with-no-tests",
@@ -93,7 +94,7 @@ Add to `package.json` (keep existing fields):
 - [ ] **Step 3: Add dev dependencies**
 
 ```bash
-pnpm add -D vitest @vitejs/plugin-react vite-tsconfig-paths jsdom @testing-library/react @testing-library/jest-dom @testing-library/user-event msw @playwright/test prettier prettier-plugin-tailwindcss tsx dotenv-cli
+pnpm add -D vitest @vitejs/plugin-react jsdom @testing-library/react @testing-library/jest-dom @testing-library/user-event msw @playwright/test prettier prettier-plugin-tailwindcss tsx dotenv-cli @vitest/coverage-v8
 pnpm add zod axios @tanstack/react-query zustand next-intl
 ```
 
@@ -126,13 +127,13 @@ Create `vitest.config.ts`:
 import { fileURLToPath } from "node:url"
 import { defineConfig } from "vitest/config"
 import react from "@vitejs/plugin-react"
-import tsconfigPaths from "vite-tsconfig-paths"
 
 // `server-only` throws when imported outside a React Server environment. Tests
 // import server modules directly, so alias it to an empty stub in tests only.
 export default defineConfig({
-  plugins: [react(), tsconfigPaths()],
+  plugins: [react()],
   resolve: {
+    tsconfigPaths: true,
     alias: {
       "server-only": fileURLToPath(
         new URL("./tests/stubs/server-only.ts", import.meta.url),
