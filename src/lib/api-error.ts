@@ -59,7 +59,14 @@ export function toApiError(error: unknown): NextResponse {
     )
   }
 
-  console.error("Unhandled API error", error)
+  // Reported through a dynamic import so this module never statically pulls
+  // the server-only logger/Sentry graph into a client or edge bundle.
+  void import("@/lib/report-error")
+    .then(({ reportError }) => reportError(error))
+    .catch((reportingError) => {
+      console.error("Unhandled API error", error, reportingError)
+    })
+
   return NextResponse.json(
     { error: { code: "internal_error", message: "Something went wrong" } },
     { status: 500 },
