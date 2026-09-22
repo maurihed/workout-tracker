@@ -25,6 +25,12 @@
     "signInWithFacebook": "Continuar con Facebook",
     "signOut": "Cerrar sesión"
   },
+  "theme": {
+    "label": "Cambiar tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema"
+  },
   "legal": {
     "privacy": "Política de privacidad",
     "terms": "Términos del servicio",
