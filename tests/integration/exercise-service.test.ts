@@ -4,52 +4,56 @@ import { listExercises } from "@/server/services/exercise.service"
 
 const TEST_MUSCLE = "T_chest"
 
+// `_` is a single-character wildcard in SQL `LIKE`, so a `startsWith("T_")`
+// cleanup would also delete other suites' `Test_*` fixtures. Delete by explicit
+// source ids instead so test files stay isolated.
+const FIXTURES = [
+  {
+    sourceId: "T_Alpha",
+    name: "Alpha Press",
+    primaryMuscles: [TEST_MUSCLE],
+    equipment: "barbell",
+    images: [],
+  },
+  {
+    sourceId: "T_Beta",
+    name: "Beta Row",
+    primaryMuscles: [TEST_MUSCLE],
+    equipment: "dumbbell",
+    images: [],
+  },
+  {
+    sourceId: "T_Gamma",
+    name: "Gamma Curl",
+    primaryMuscles: [TEST_MUSCLE],
+    equipment: "dumbbell",
+    images: [],
+  },
+  {
+    sourceId: "T_DupeA",
+    name: "T Duplicate",
+    primaryMuscles: ["T_dupe"],
+    equipment: "dumbbell",
+    images: [],
+  },
+  {
+    sourceId: "T_DupeB",
+    name: "T Duplicate",
+    primaryMuscles: ["T_dupe"],
+    equipment: "dumbbell",
+    images: [],
+  },
+]
+
 describe("listExercises", () => {
   beforeAll(async () => {
-    await prisma.exercise.createMany({
-      data: [
-        {
-          sourceId: "T_Alpha",
-          name: "Alpha Press",
-          primaryMuscles: [TEST_MUSCLE],
-          equipment: "barbell",
-          images: [],
-        },
-        {
-          sourceId: "T_Beta",
-          name: "Beta Row",
-          primaryMuscles: [TEST_MUSCLE],
-          equipment: "dumbbell",
-          images: [],
-        },
-        {
-          sourceId: "T_Gamma",
-          name: "Gamma Curl",
-          primaryMuscles: [TEST_MUSCLE],
-          equipment: "dumbbell",
-          images: [],
-        },
-        {
-          sourceId: "T_DupeA",
-          name: "T Duplicate",
-          primaryMuscles: ["T_dupe"],
-          equipment: "dumbbell",
-          images: [],
-        },
-        {
-          sourceId: "T_DupeB",
-          name: "T Duplicate",
-          primaryMuscles: ["T_dupe"],
-          equipment: "dumbbell",
-          images: [],
-        },
-      ],
-      skipDuplicates: true,
-    })
+    await prisma.exercise.createMany({ data: FIXTURES, skipDuplicates: true })
   })
 
   afterAll(async () => {
-    await prisma.exercise.deleteMany({ where: { sourceId: { startsWith: "T_" } } })
+    await prisma.exercise.deleteMany({
+      where: { sourceId: { in: FIXTURES.map((f) => f.sourceId) } },
+    })
   })
 
   it("filters by muscle and paginates with a cursor", async () => {
