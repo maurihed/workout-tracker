@@ -31,6 +31,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec prisma generate
       - run: pnpm exec prisma migrate deploy
+      - run: pnpm db:seed
       - name: Create shadow database
         run: |
           node -e "const {Client}=require('pg');(async()=>{const c=new Client({connectionString:'postgresql://gym:gym@localhost:5432/postgres'});await c.connect();try{await c.query('CREATE DATABASE gym_shadow')}catch(e){if(e.code!=='42P04')throw e}await c.end()})().catch(e=>{console.error(e);process.exit(1)})"

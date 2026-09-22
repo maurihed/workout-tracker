@@ -1,8 +1,11 @@
-import { describe, expect, it } from "vitest"
+import { beforeAll, describe, expect, it } from "vitest"
 import { prisma } from "@/lib/prisma"
 import { ROUTINE_TEMPLATES } from "@/features/onboarding/templates/routine-templates"
+import { assertCatalogSeeded } from "./helpers/catalog"
 
 describe("template catalog references", () => {
+  beforeAll(assertCatalogSeeded)
+
   it("every template sourceId exists in the seeded catalog", async () => {
     const ids = [...new Set(ROUTINE_TEMPLATES.flatMap((t) => t.days.flatMap((d) => d.exercises.map((e) => e.sourceId))))]
     const found = await prisma.exercise.findMany({ where: { sourceId: { in: ids } }, select: { sourceId: true } })

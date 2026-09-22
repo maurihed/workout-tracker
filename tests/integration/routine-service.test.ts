@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import { prisma } from "@/lib/prisma"
 import type { RoutineTemplate } from "@/features/onboarding/templates/routine-templates"
 import { createRoutineFromTemplate, getActiveRoutine } from "@/server/services/routine.service"
+import { assertCatalogSeeded } from "./helpers/catalog"
 
 const override = vi.hoisted(() => ({ template: undefined as unknown }))
 
@@ -27,6 +28,8 @@ async function makeUser() {
 }
 
 describe("routine service", () => {
+  beforeAll(assertCatalogSeeded)
+
   afterEach(async () => {
     override.template = undefined
     await prisma.user.deleteMany({

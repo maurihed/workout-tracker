@@ -1,8 +1,11 @@
-import { afterAll, describe, expect, it } from "vitest"
+import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
 import { prisma } from "@/lib/prisma"
+import { assertCatalogSeeded } from "./helpers/catalog"
 
 describe("routine model", () => {
+  beforeAll(assertCatalogSeeded)
+
   afterAll(async () => {
     await prisma.user.deleteMany({
       where: { email: { endsWith: "@routine-model-test.local" } },
