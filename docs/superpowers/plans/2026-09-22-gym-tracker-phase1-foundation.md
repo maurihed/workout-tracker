@@ -69,8 +69,8 @@ Add to `package.json` (keep existing fields):
 
 ```json
 {
-  "engines": { "node": ">=22 <23", "pnpm": ">=9" },
-  "packageManager": "pnpm@9.12.0",
+  "engines": { "node": ">=22", "pnpm": ">=9" },
+  "packageManager": "pnpm@12.5.1",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -2869,7 +2869,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with: { version: 9 }
+        with: { version: 12 }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
