@@ -5,17 +5,24 @@ import NextAuth from "next-auth"
 import Facebook from "next-auth/providers/facebook"
 import Google from "next-auth/providers/google"
 
+import { requireOAuthEnv } from "@/lib/env"
 import { prisma } from "@/lib/prisma"
+
+const googleEnv = requireOAuthEnv(["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"])
+const facebookEnv = requireOAuthEnv([
+  "FACEBOOK_CLIENT_ID",
+  "FACEBOOK_CLIENT_SECRET",
+])
 
 export const providers = [
   Google({
-    clientId: process.env.GOOGLE_CLIENT_ID ?? "",
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+    clientId: googleEnv.GOOGLE_CLIENT_ID,
+    clientSecret: googleEnv.GOOGLE_CLIENT_SECRET,
     allowDangerousEmailAccountLinking: false,
   }),
   Facebook({
-    clientId: process.env.FACEBOOK_CLIENT_ID ?? "",
-    clientSecret: process.env.FACEBOOK_CLIENT_SECRET ?? "",
+    clientId: facebookEnv.FACEBOOK_CLIENT_ID,
+    clientSecret: facebookEnv.FACEBOOK_CLIENT_SECRET,
     allowDangerousEmailAccountLinking: false,
   }),
 ]
