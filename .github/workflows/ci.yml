@@ -31,9 +31,16 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec prisma generate
       - run: pnpm exec prisma migrate deploy
+      - name: Create shadow database
+        run: |
+          node -e "const {Client}=require('pg');(async()=>{const c=new Client({connectionString:'postgresql://gym:gym@localhost:5432/postgres'});await c.connect();try{await c.query('CREATE DATABASE gym_shadow')}catch(e){if(e.code!=='42P04')throw e}await c.end()})().catch(e=>{console.error(e);process.exit(1)})"
+      - name: Prisma migration drift check
+        env:
+          SHADOW_DATABASE_URL: postgresql://gym:gym@localhost:5432/gym_shadow?schema=public
+        run: pnpm exec prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm test
+      - run: pnpm test:coverage
       - run: pnpm test:integration
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm e2e

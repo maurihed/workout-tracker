@@ -26,6 +26,17 @@ export default defineConfig({
     // `next-auth` imports the extensionless `next/server`, which native Node
     // ESM cannot resolve. Inline it so Vite resolves it while transforming.
     server: { deps: { inline: ["next-auth", "@auth/core"] } },
-    coverage: { provider: "v8", reporter: ["text", "lcov"] },
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "lcov"],
+      // Modest floors measured from the current suite; raise as Phase 2+ lands
+      // more pure-domain tests. CI fails when coverage drops below these.
+      thresholds: {
+        statements: 70,
+        branches: 60,
+        functions: 50,
+        lines: 70,
+      },
+    },
   },
 })
