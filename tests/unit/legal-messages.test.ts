@@ -9,4 +9,20 @@ describe("legal copy", () => {
       expect(messages.legal.termsBody.length).toBeGreaterThan(40)
     }
   })
+
+  it("privacy body states self-hosted AI and export/delete options", () => {
+    for (const messages of [en, es]) {
+      const body = messages.legal.privacyBody.toLowerCase()
+      expect(body).toMatch(/(self-hosted|autoalojados)/)
+      expect(body).toMatch(/(export|exportar)/)
+      expect(body).toMatch(/(delete|eliminar)/)
+    }
+  })
+
+  it("terms body states it is not medical advice", () => {
+    for (const messages of [en, es]) {
+      const body = messages.legal.termsBody.toLowerCase()
+      expect(body).toMatch(/(not medical advice|consejo m[eé]dico)/)
+    }
+  })
 })

@@ -22,7 +22,7 @@ export default async function TermsPage({
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-16">
-      <article className="prose text-muted-foreground leading-relaxed">
+      <article className="text-muted-foreground leading-relaxed">
         <h1 className="font-heading text-foreground mb-4 text-3xl font-bold">
           {t("terms")}
         </h1>
