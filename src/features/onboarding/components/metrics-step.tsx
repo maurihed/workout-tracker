@@ -111,7 +111,7 @@ export function MetricsStep() {
           id="onboarding-weight"
           type="number"
           inputMode="decimal"
-          min={0}
+          min={1}
           max={500}
           value={asString(answers.weightKg)}
           onChange={(event) => setAnswer("weightKg", event.target.value)}

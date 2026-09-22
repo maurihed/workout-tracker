@@ -46,12 +46,7 @@ function asStringArray(value: unknown): string[] | null {
     : null
 }
 
-function stepPatch(
-  id: StepId,
-  draft: StepProfile,
-  profile: WizardProfile | null,
-  answers: Record<string, unknown>,
-): Record<string, unknown> {
+function stepPatch(id: StepId, draft: StepProfile): Record<string, unknown> {
   switch (id) {
     case "goal":
       return { goal: draft.goal }
@@ -63,14 +58,8 @@ function stepPatch(
       return { daysPerWeek: draft.daysPerWeek }
     case "preferences":
       return { unitSystem: draft.unitSystem, timezone: draft.timezone }
-    case "metrics":
-      return {
-        birthYear: asNumber(answers.birthYear) ?? profile?.birthYear ?? null,
-        heightCm: asNumber(answers.heightCm) ?? profile?.heightCm ?? null,
-        weightKg: asNumber(answers.weightKg) ?? profile?.weightKg ?? null,
-        gender: asString(answers.gender) ?? profile?.gender ?? null,
-      }
-    case "template":
+    default:
+      // `metrics` and `template` own their actions in-step and never reach here.
       return {}
   }
 }
@@ -119,7 +108,7 @@ export function Wizard({
 
   async function handleNext() {
     try {
-      const patch = stepPatch(current, draft, profile, answers)
+      const patch = stepPatch(current, draft)
       if (Object.keys(patch).length > 0) await save.mutateAsync(patch)
       goNext()
     } catch {
