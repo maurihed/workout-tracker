@@ -8,10 +8,10 @@ function isEnforcementSkipped() {
 }
 
 /**
- * Reads the given environment variables, throwing when any are missing outside
- * of tests and production builds. Tests import server modules directly and
- * fresh clones/CI may build with placeholder env, so enforcement is skipped in
- * those two phases only.
+ * Reads the given environment variables. Outside of tests and production
+ * builds, missing values fail fast in production runtime but only warn in
+ * development, so a fresh clone with the shipped `.env.example` can still boot
+ * (OAuth sign-in, however, will not work until credentials are set).
  */
 export function requireOAuthEnv<const K extends string>(
   keys: readonly K[],
@@ -26,7 +26,14 @@ export function requireOAuthEnv<const K extends string>(
   }
 
   if (missing.length > 0 && !isEnforcementSkipped()) {
-    throw new Error(`Missing OAuth credentials: ${missing.join(", ")}`)
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        `Missing OAuth credentials: ${missing.join(", ")}. ` +
+          "Sign-in with the affected providers will fail until they are set.",
+      )
+    } else {
+      throw new Error(`Missing OAuth credentials: ${missing.join(", ")}`)
+    }
   }
 
   return values
