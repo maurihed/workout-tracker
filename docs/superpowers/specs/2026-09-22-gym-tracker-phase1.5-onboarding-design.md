@@ -1,7 +1,7 @@
 # Gym Tracker — Phase 1.5 Onboarding & First Routine — Design Spec
 
 - **Date:** 2026-09-22
-- **Status:** Approved (design), pending implementation planning
+- **Status:** Implemented
 - **Author:** Mauricio Hernandez (with opencode)
 - **Parent spec:** `docs/superpowers/specs/2026-09-22-gym-tracker-design.md` (binding authority for the product)
 - **Depends on:** Phase 1 (merged to `main` at `0510aaa`)

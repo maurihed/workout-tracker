@@ -64,3 +64,16 @@ pnpm exec prisma migrate diff \
 `SHADOW_DATABASE_URL` (see `prisma7.config.ts`) to a database the CI user may
 recreate; CI creates `gym_shadow` for this purpose. The command exits `2` when
 differences are found and `0` when migrations and schema agree.
+
+## Release notes
+
+The `migrate` release step applies any pending migration in `prisma/migrations/`
+before the new `runner` container starts. Migrations are additive and safe to
+re-run (Prisma records applied migrations in `_prisma_migrations`).
+
+- **Phase 1.5 — `20260922210226_add_routine`:** adds the routine models
+  (`Routine`, `RoutineDay`, `RoutineExercise`) with their indexes and cascading
+  foreign keys, the `RoutineSource`, `TimerType`, and `Location` enums, and the
+  `Profile.equipment`, `Profile.location`, and `Profile.onboardingSkippedAt`
+  onboarding columns. Existing rows are unaffected: the new columns are
+  nullable or defaulted (`equipment` defaults to `'{}'`).
