@@ -20,8 +20,10 @@ import { useOnboardingStore } from "@/features/onboarding/stores/onboarding-stor
 import { EquipmentStep } from "./equipment-step"
 import { ExperienceStep } from "./experience-step"
 import { GoalStep } from "./goal-step"
+import { MetricsStep } from "./metrics-step"
 import { PreferencesStep } from "./preferences-step"
 import { ScheduleStep } from "./schedule-step"
+import { TemplatePickStep } from "./template-pick-step"
 
 export type WizardProfile = StepProfile & {
   birthYear: number | null
@@ -82,6 +84,8 @@ export function Wizard({
 }) {
   const t = useTranslations("onboarding")
   const tCommon = useTranslations("common")
+  const router = useRouter()
+  const locale = useLocale()
   const save = useSaveOnboardingStep()
   const { stepIndex, answers, setAnswer, goNext, goBack, reset } =
     useOnboardingStore()
@@ -107,6 +111,11 @@ export function Wizard({
     (step) => step.id === initialStep,
   )
   const canGoBack = stepIndex > Math.max(firstIndex, 0)
+  const stepOwnsActions = current === "metrics" || current === "template"
+
+  function handlePicked() {
+    router.push(`/${locale}/dashboard`)
+  }
 
   async function handleNext() {
     try {
@@ -174,6 +183,10 @@ export function Wizard({
             onTimezoneChange={(timezone) => setAnswer("timezone", timezone)}
           />
         ) : null}
+        {current === "metrics" ? <MetricsStep /> : null}
+        {current === "template" ? (
+          <TemplatePickStep onPicked={handlePicked} />
+        ) : null}
       </div>
 
       <div className="flex gap-3">
@@ -189,15 +202,17 @@ export function Wizard({
             {t("back")}
           </Button>
         ) : null}
-        <Button
-          type="button"
-          className="h-12 flex-1"
-          disabled={!canContinue || save.isPending}
-          onClick={handleNext}
-        >
-          {t("next")}
-          <ArrowRight className="size-5" aria-hidden="true" />
-        </Button>
+        {stepOwnsActions ? null : (
+          <Button
+            type="button"
+            className="h-12 flex-1"
+            disabled={!canContinue || save.isPending}
+            onClick={handleNext}
+          >
+            {t("next")}
+            <ArrowRight className="size-5" aria-hidden="true" />
+          </Button>
+        )}
       </div>
     </div>
   )
