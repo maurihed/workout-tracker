@@ -127,3 +127,10 @@ model Exercise {
   @@index([primaryMuscles])
   @@index([equipment])
 }
+
+model RateLimitBucket {
+  key         String   @id
+  count       Int      @default(0)
+  windowStart DateTime
+  updatedAt   DateTime @updatedAt
+}
