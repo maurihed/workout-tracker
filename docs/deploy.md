@@ -77,3 +77,6 @@ re-run (Prisma records applied migrations in `_prisma_migrations`).
   `Profile.equipment`, `Profile.location`, and `Profile.onboardingSkippedAt`
   onboarding columns. Existing rows are unaffected: the new columns are
   nullable or defaulted (`equipment` defaults to `'{}'`).
+- **Foreign-key delete behavior:** every routine foreign key cascades on delete
+  except `RoutineExercise.exerciseId`, which is `ON DELETE SET NULL` so deleting
+  a catalog exercise leaves the routine's prescription intact.
