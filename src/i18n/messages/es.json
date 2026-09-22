@@ -1,0 +1,31 @@
+{
+  "app": {
+    "name": "Gym Tracker",
+    "tagline": "Sigue tu rutina. Mira tu progreso."
+  },
+  "nav": {
+    "dashboard": "Panel",
+    "routines": "Rutinas",
+    "workout": "Entrenamiento",
+    "progress": "Progreso",
+    "profile": "Perfil"
+  },
+  "common": {
+    "loading": "Cargando…",
+    "error": "Algo salió mal",
+    "retry": "Reintentar",
+    "empty": "Aún no hay nada",
+    "save": "Guardar",
+    "cancel": "Cancelar"
+  },
+  "auth": {
+    "signIn": "Iniciar sesión",
+    "signInWithGoogle": "Continuar con Google",
+    "signInWithFacebook": "Continuar con Facebook",
+    "signOut": "Cerrar sesión"
+  },
+  "legal": {
+    "privacy": "Política de privacidad",
+    "terms": "Términos del servicio"
+  }
+}
