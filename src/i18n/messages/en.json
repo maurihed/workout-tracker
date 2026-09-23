@@ -332,7 +332,10 @@
     "addTime": "Add 15 seconds",
     "subtractTime": "Subtract 15 seconds",
     "soundOn": "Turn sound on",
-    "soundOff": "Turn sound off"
+    "soundOff": "Turn sound off",
+    "notifyOn": "Alerts on",
+    "notifyOff": "Alerts off",
+    "notifyBlocked": "Alerts blocked"
   },
   "summary": {
     "title": "Workout summary",
@@ -340,5 +343,11 @@
     "sets": "Sets completed",
     "volume": "Total volume",
     "done": "Done"
+  },
+  "offline": {
+    "status": { "offline": "Offline", "syncing": "Syncing ({count})", "synced": "Synced", "pending": "{count} to sync" },
+    "retry": "Retry sync",
+    "install": { "title": "Install the app", "body": "Add Gym Tracker to your home screen for offline workouts.", "action": "Install", "dismiss": "Not now" },
+    "page": { "title": "You're offline", "body": "This page isn't available offline yet. Your workout is saved and will sync when you're back online." }
   }
 }

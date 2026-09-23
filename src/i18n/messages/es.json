@@ -332,7 +332,10 @@
     "addTime": "Añadir 15 segundos",
     "subtractTime": "Quitar 15 segundos",
     "soundOn": "Activar el sonido",
-    "soundOff": "Desactivar el sonido"
+    "soundOff": "Desactivar el sonido",
+    "notifyOn": "Alertas activadas",
+    "notifyOff": "Alertas desactivadas",
+    "notifyBlocked": "Alertas bloqueadas"
   },
   "summary": {
     "title": "Resumen del entrenamiento",
@@ -340,5 +343,11 @@
     "sets": "Series completadas",
     "volume": "Volumen total",
     "done": "Listo"
+  },
+  "offline": {
+    "status": { "offline": "Sin conexión", "syncing": "Sincronizando ({count})", "synced": "Sincronizado", "pending": "{count} por sincronizar" },
+    "retry": "Reintentar sincronización",
+    "install": { "title": "Instala la app", "body": "Añade Gym Tracker a tu pantalla de inicio para entrenar sin conexión.", "action": "Instalar", "dismiss": "Ahora no" },
+    "page": { "title": "Estás sin conexión", "body": "Esta página aún no está disponible sin conexión. Tu entrenamiento está guardado y se sincronizará cuando vuelvas a estar en línea." }
   }
 }
