@@ -204,6 +204,7 @@ model RoutineExercise {
   targetReps     String    @default("10")
   restSeconds    Int       @default(60)
   targetWeightKg Float?
+  setTargets     Json?
   timerType      TimerType @default(none)
   workSeconds    Int?
   rounds         Int?
