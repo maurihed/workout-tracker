@@ -55,3 +55,6 @@ next-env.d.ts
 
 # git worktrees
 .worktrees/
+
+# serwist service worker build output
+public/sw*

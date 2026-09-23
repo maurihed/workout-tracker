@@ -1,3 +1,4 @@
+import { SerwistProvider } from "@serwist/next/react"
 import { NextIntlClientProvider, hasLocale } from "next-intl"
 import { setRequestLocale } from "next-intl/server"
 import { notFound } from "next/navigation"
@@ -30,14 +31,16 @@ export default async function LocaleLayout({
       className={`${fontBody.variable} ${fontHeading.variable}`}
     >
       <body className="bg-background text-foreground antialiased">
-        <NextIntlClientProvider>
-          <AuthProvider>
-            <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-              <QueryProvider>{children}</QueryProvider>
-              <Toaster richColors />
-            </ThemeProvider>
-          </AuthProvider>
-        </NextIntlClientProvider>
+        <SerwistProvider swUrl="/sw.js" disable={process.env.NODE_ENV === "development"}>
+          <NextIntlClientProvider>
+            <AuthProvider>
+              <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+                <QueryProvider>{children}</QueryProvider>
+                <Toaster richColors />
+              </ThemeProvider>
+            </AuthProvider>
+          </NextIntlClientProvider>
+        </SerwistProvider>
       </body>
     </html>
   )

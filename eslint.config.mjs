@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Generated test coverage reports.
     "coverage/**",
+    // Generated Serwist service worker bundle.
+    "public/sw.js",
     // Tooling/scratch workspaces are not application source.
     ".opencode/**",
     ".superpowers/**",

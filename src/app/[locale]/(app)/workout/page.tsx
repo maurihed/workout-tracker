@@ -9,6 +9,8 @@ import { EmptyState } from "@/components/shared/empty-state"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useActiveRoutine } from "@/features/routines/hooks/use-active-routine"
+import { exerciseImageUrl } from "@/lib/exercise-images"
+import { useOfflinePrefetch } from "@/lib/offline/use-offline-prefetch"
 import { DayChooser } from "@/features/workouts/components/day-chooser"
 import {
   WorkoutRunner,
@@ -150,6 +152,19 @@ export default function WorkoutPage() {
   }, [serverSession, localSource, localLoaded])
 
   const days = useMemo(() => routine.data?.days ?? [], [routine.data])
+
+  const prefetchUrls = useMemo(() => {
+    const urls = ["/api/exercises"]
+    for (const day of routine.data?.days ?? []) {
+      for (const exercise of day.exercises) {
+        const image = exercise.exercise?.images?.[0]
+        if (image) urls.push(exerciseImageUrl(image))
+      }
+    }
+    return urls
+  }, [routine.data])
+  useOfflinePrefetch(prefetchUrls)
+
   const autoStartedRef = useRef(false)
   const startingRef = useRef(false)
 
