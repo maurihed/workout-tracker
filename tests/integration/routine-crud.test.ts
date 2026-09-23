@@ -89,6 +89,53 @@ describe("routine service CRUD", () => {
     expect(await prisma.routineExercise.count({ where: { routineDay: { routineId: a.id } } })).toBe(2)
   })
 
+  it("editing the active routine preserves isActive and leaves siblings untouched", async () => {
+    const user = await makeUser()
+    const exerciseId = await firstExerciseId()
+    const day = (weekday: number, label: string) => ({
+      weekday,
+      label,
+      exercises: [{ ...input.days[0]!.exercises[0]!, exerciseId }],
+    })
+
+    const active = await createBlankRoutine(user.id, { name: "Active", description: null, goal: null })
+    const sibling = await createBlankRoutine(user.id, { name: "Sibling", description: null, goal: null })
+    await replaceRoutine(user.id, active.id, { ...input, name: "Active v1", days: [day(1, "Push")] })
+    await replaceRoutine(user.id, sibling.id, { ...input, name: "Sibling", days: [day(2, "Pull"), day(4, "Legs")] })
+    await activateRoutine(user.id, active.id)
+
+    const updated = await replaceRoutine(user.id, active.id, {
+      ...input,
+      name: "Active v2",
+      days: [day(3, "Full body")],
+    })
+    expect(updated.isActive).toBe(true)
+
+    const siblingAfter = await getRoutine(user.id, sibling.id)
+    expect(siblingAfter.name).toBe("Sibling")
+    expect(siblingAfter.days.map((d) => d.weekday).sort()).toEqual([2, 4])
+    expect(await prisma.routineDay.count({ where: { routineId: sibling.id } })).toBe(2)
+  })
+
+  it("clears localized name/description when a user edits a routine", async () => {
+    const user = await makeUser()
+    const exerciseId = await firstExerciseId()
+    const routine = await createBlankRoutine(user.id, { name: "Blank", description: null, goal: null })
+    await prisma.routine.update({
+      where: { id: routine.id },
+      data: { nameEs: "Nombre localizado", descriptionEs: "Descripción localizada" },
+    })
+
+    const updated = await replaceRoutine(user.id, routine.id, {
+      ...input,
+      name: "Renamed",
+      days: [{ ...input.days[0]!, exercises: [{ ...input.days[0]!.exercises[0]!, exerciseId }] }],
+    })
+    expect(updated.name).toBe("Renamed")
+    expect(updated.nameEs).toBeNull()
+    expect(updated.descriptionEs).toBeNull()
+  })
+
   it("scopes by owner (404 for another user)", async () => {
     const owner = await makeUser()
     const other = await makeUser()

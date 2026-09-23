@@ -192,6 +192,11 @@ export async function replaceDays(
     where: { id: routineId },
     data: {
       name: header.name,
+      // 2A exposes a single user-entered name/description, so any template
+      // localization is cleared to let the localized fields fall back to the
+      // freshly written `name`/`description`.
+      nameEs: null,
+      descriptionEs: null,
       description: header.description,
       goal: header.goal,
       days: {
