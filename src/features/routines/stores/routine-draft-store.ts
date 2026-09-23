@@ -302,6 +302,7 @@ export const useRoutineDraftStore = create<DraftState>()(
               targetReps: exercise.targetReps,
               restSeconds: exercise.restSeconds,
               targetWeightKg: exercise.targetWeightKg,
+              setTargets: null,
               timerType: exercise.timerType,
               workSeconds: exercise.workSeconds,
               rounds: exercise.rounds,

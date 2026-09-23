@@ -11,7 +11,7 @@ const input = {
   description: null,
   goal: null,
   days: [
-    { weekday: 1, label: "Push", exercises: [{ exerciseId: "", targetSets: 4, targetReps: "6-8", restSeconds: 120, targetWeightKg: null, timerType: "none" as const, workSeconds: null, rounds: null, notes: null }] },
+    { weekday: 1, label: "Push", exercises: [{ exerciseId: "", targetSets: 4, targetReps: "6-8", restSeconds: 120, targetWeightKg: null, setTargets: null, timerType: "none" as const, workSeconds: null, rounds: null, notes: null }] },
   ],
 }
 
