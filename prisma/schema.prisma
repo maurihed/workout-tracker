@@ -273,6 +273,7 @@ model SessionExercise {
   sets     SetLog[]
 
   @@index([sessionId])
+  @@index([exerciseId])
 }
 
 model SetLog {
