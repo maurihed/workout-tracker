@@ -79,9 +79,14 @@ re-run (Prisma records applied migrations in `_prisma_migrations`).
   nullable or defaulted (`equipment` defaults to `'{}'`).
 - **Phase 2A — `20260923000922_add_routine_day_unique_weekday`:** adds the
   `RoutineDay_routineId_weekday_key` unique index on `RoutineDay(routineId,
-  weekday)`, enforcing one day per weekday within a routine. Existing
-  onboarding-created routines already use unique weekdays, so the index applies
-  cleanly; no rows are modified.
+  weekday)`, enforcing one day per weekday within a routine. Every existing
+  routine was created from an onboarding template, and templates assign each
+  day a distinct weekday, so the index applies cleanly; no rows are modified.
+- **Phase 2A — `20260923021106_drop_redundant_routine_day_index`:** drops the
+  `RoutineDay_routineId_idx` index, which the unique
+  `RoutineDay_routineId_weekday_key` index above made redundant (its leading
+  `routineId` column already serves routine-scoped lookups). This removes an
+  index only; no columns, constraints, or rows change.
 - **Foreign-key delete behavior:** every routine foreign key cascades on delete
   except `RoutineExercise.exerciseId`, which is `ON DELETE SET NULL` so deleting
   a catalog exercise leaves the routine's prescription intact.

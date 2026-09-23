@@ -190,7 +190,6 @@ model RoutineDay {
   exercises RoutineExercise[]
 
   @@unique([routineId, weekday])
-  @@index([routineId])
 }
 
 model RoutineExercise {
