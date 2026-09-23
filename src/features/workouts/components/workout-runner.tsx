@@ -40,7 +40,6 @@ import { RestTimerBar } from "@/features/workouts/components/rest-timer-bar"
 import { RunnerHeader } from "@/features/workouts/components/runner-header"
 import { SwapExerciseSheet } from "@/features/workouts/components/swap-exercise-sheet"
 import type {
-  SessionDTO,
   SessionExerciseDTO,
   SessionTimerType,
 } from "@/features/workouts/hooks/use-active-session"
@@ -66,6 +65,7 @@ import {
 import {
   useSessionStore,
   type SessionSetPatch,
+  type SessionStoreSource,
 } from "@/features/workouts/stores/session-store"
 
 const PUSH_DEBOUNCE_MS = 2000
@@ -93,11 +93,24 @@ function buildExerciseTimer(
   )
 }
 
+export type RunnerSessionInput = {
+  id: string
+  exercises: {
+    exerciseId: string | null
+    timerType: SessionTimerType | null
+    workSeconds: number | null
+    restSeconds: number | null
+    rounds: number | null
+    exercise: { id: string; name: string; nameEs: string | null; images: string[] } | null
+    lastPerformance: { reps: number | null; weightKg: number | null; date: string } | null
+  }[]
+}
+
 export function WorkoutRunner({
   session,
   onSessionConflict,
 }: {
-  session: SessionDTO
+  session: RunnerSessionInput
   /**
    * Called when a save fails because the session is no longer in progress
    * (409) — e.g. another tab finished it. The page refetches the active session
@@ -382,7 +395,7 @@ export function WorkoutRunner({
   // nulls the store id, so the remount re-hydrates.
   useEffect(() => {
     if (useSessionStore.getState().sessionId === session.id) return
-    hydrate(session)
+    hydrate(session as unknown as SessionStoreSource)
   }, [hydrate, session])
 
   useEffect(() => {

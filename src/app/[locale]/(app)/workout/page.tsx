@@ -3,16 +3,26 @@
 import { Barbell, WarningCircle } from "@phosphor-icons/react"
 import { useLocale, useTranslations } from "next-intl"
 import Link from "next/link"
-import { useCallback, useEffect, useMemo, useRef } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { EmptyState } from "@/components/shared/empty-state"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useActiveRoutine } from "@/features/routines/hooks/use-active-routine"
 import { DayChooser } from "@/features/workouts/components/day-chooser"
-import { WorkoutRunner } from "@/features/workouts/components/workout-runner"
+import {
+  WorkoutRunner,
+  type RunnerSessionInput,
+} from "@/features/workouts/components/workout-runner"
 import { useActiveSession } from "@/features/workouts/hooks/use-active-session"
 import { useStartSession } from "@/features/workouts/hooks/use-start-session"
+import {
+  loadActiveSession, saveActiveSession, type PersistedSession,
+} from "@/features/workouts/lib/session-persistence"
+import {
+  useSessionStore,
+  type SessionStoreSource,
+} from "@/features/workouts/stores/session-store"
 
 function WorkoutSkeleton({ label }: { label: string }) {
   return (
@@ -25,6 +35,21 @@ function WorkoutSkeleton({ label }: { label: string }) {
   )
 }
 
+function toRunnerInput(persisted: PersistedSession): RunnerSessionInput {
+  return {
+    id: persisted.source.id,
+    exercises: persisted.source.exercises.map((exercise) => ({
+      exerciseId: exercise.exerciseId,
+      timerType: exercise.timerType,
+      workSeconds: exercise.workSeconds,
+      restSeconds: exercise.restSeconds,
+      rounds: exercise.rounds,
+      exercise: null,
+      lastPerformance: null,
+    })),
+  }
+}
+
 export default function WorkoutPage() {
   const t = useTranslations("runner")
   const tCommon = useTranslations("common")
@@ -33,40 +58,101 @@ export default function WorkoutPage() {
   const session = useActiveSession()
   const routine = useActiveRoutine()
   const start = useStartSession()
+  const hydrate = useSessionStore((state) => state.hydrate)
 
-  const activeSession = session.data ?? null
+  const [persisted, setPersisted] = useState<PersistedSession | null>(null)
+  const [localLoaded, setLocalLoaded] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    void loadActiveSession().then((value) => {
+      if (!active) return
+      setPersisted(value ?? null)
+      setLocalLoaded(true)
+    })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const serverSession = session.data ?? null
+
+  const started = useMemo<PersistedSession | null>(
+    () =>
+      start.data
+        ? {
+            source: start.data.source,
+            snapshot: start.data.snapshot,
+            routineDayId: start.data.routineDayId,
+            timer: null,
+            paused: false,
+          }
+        : null,
+    [start.data],
+  )
+
+  const adopted = useMemo<PersistedSession | null>(() => {
+    if (!serverSession) return null
+    const knownId = started?.source.id ?? persisted?.source.id ?? null
+    if (knownId === serverSession.id) return null
+    return {
+      source: serverSession,
+      snapshot: null,
+      routineDayId: serverSession.routineDayId,
+      timer: null,
+      paused: false,
+    }
+  }, [serverSession, started, persisted])
+
+  const local = started ?? adopted ?? persisted
+  const localSource = local?.source ?? null
+  const localWins = Boolean(
+    localSource &&
+      localSource.status === "in_progress" &&
+      (!serverSession || serverSession.id !== localSource.id),
+  )
+  const chosen: RunnerSessionInput | null = localWins && local
+    ? toRunnerInput(local)
+    : serverSession
+
+  const hydratedRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!chosen) return
+    if (hydratedRef.current === chosen.id) return
+    const source: SessionStoreSource | null = localWins && local ? local.source : serverSession
+    if (!source) return
+    hydratedRef.current = chosen.id
+    hydrate(source, {
+      snapshot: localWins && local ? local.snapshot : null,
+      routineDayId: localWins && local ? local.routineDayId : serverSession?.routineDayId ?? null,
+    })
+  }, [chosen, hydrate, local, localWins, serverSession])
+
+  // Adopt a server session into local storage so a later offline reload resumes it.
+  const adoptedRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!adopted || !localLoaded) return
+    if (adoptedRef.current === adopted.source.id) return
+    adoptedRef.current = adopted.source.id
+    void saveActiveSession(adopted)
+  }, [adopted, localLoaded])
+
   const days = useMemo(() => routine.data?.days ?? [], [routine.data])
-  const sessionRefetch = session.refetch
-  const startStatus = (
-    start.error as { response?: { status?: number } } | null | undefined
-  )?.response?.status
-
-  // A single-day routine has no choice to make: start it as soon as we know
-  // there is no in-progress session. The ref keeps StrictMode/refetches from
-  // firing a second `POST` (which the service would reject with a conflict).
-  // It is deliberately NOT re-armed on a failed start: a persistent 409 must
-  // not turn into a retry storm. Only the explicit retry button re-arms it.
   const autoStartedRef = useRef(false)
-  // Single-flight guard. The auto-start effect re-runs on every render (the
-  // `useMutation` result is a fresh object each time) and the explicit retry
-  // handler also starts; both funnel through `requestStart`, which collapses
-  // them into one in-flight `POST` per attempt.
   const startingRef = useRef(false)
 
   const requestStart = useCallback(
     (dayId: string) => {
-      if (startingRef.current) return
+      if (startingRef.current || !routine.data) return
       startingRef.current = true
-      start.mutate(dayId)
+      start.mutate({ routine: routine.data, dayId })
     },
-    [start],
+    [routine.data, start],
   )
 
   useEffect(() => {
-    if (session.isLoading || routine.isLoading) return
-    if (activeSession) {
-      // A resumed session already counts as "started": after it is completed
-      // the active query flips to null, which must NOT auto-start a new one.
+    if (session.isLoading || routine.isLoading || !localLoaded) return
+    if (chosen) {
       autoStartedRef.current = true
       return
     }
@@ -75,16 +161,31 @@ export default function WorkoutPage() {
       autoStartedRef.current = true
       requestStart(days[0]!.id)
     }
-  }, [activeSession, days, routine.isLoading, session.isLoading, requestStart])
+  }, [chosen, days, routine.isLoading, session.isLoading, localLoaded, requestStart])
 
-  // A 409 means a session is already in progress (typically another tab).
-  // Refresh the active query once so the runner takes over instead of looping.
-  useEffect(() => {
-    if (startStatus !== 409) return
-    void sessionRefetch()
-  }, [startStatus, sessionRefetch])
+  if (chosen) {
+    return <WorkoutRunner session={chosen} />
+  }
 
-  if (session.isError) {
+  if (session.isLoading || routine.isLoading || !localLoaded) {
+    return <WorkoutSkeleton label={tCommon("loading")} />
+  }
+
+  if (session.isError && !start.isError) {
+    return (
+      <EmptyState
+        icon={WarningCircle}
+        title={tCommon("error")}
+        action={
+          <Button type="button" variant="outline" className="h-12" onClick={() => void session.refetch()}>
+            {tCommon("retry")}
+          </Button>
+        }
+      />
+    )
+  }
+
+  if (routine.isError || start.isError) {
     return (
       <EmptyState
         icon={WarningCircle}
@@ -94,45 +195,9 @@ export default function WorkoutPage() {
             type="button"
             variant="outline"
             className="h-12"
-            onClick={() => void session.refetch()}
-          >
-            {tCommon("retry")}
-          </Button>
-        }
-      />
-    )
-  }
-
-  if (activeSession) {
-    return (
-      <WorkoutRunner
-        session={activeSession}
-        onSessionConflict={() => void sessionRefetch()}
-      />
-    )
-  }
-
-  if (session.isLoading || routine.isLoading) {
-    return <WorkoutSkeleton label={tCommon("loading")} />
-  }
-
-  if (routine.isError || start.isError) {
-    return (
-      <EmptyState
-        icon={WarningCircle}
-        title={startStatus === 409 ? t("conflict") : tCommon("error")}
-        action={
-          <Button
-            type="button"
-            variant="outline"
-            className="h-12"
             onClick={() => {
               start.reset()
-              // An explicit retry is the only thing that re-arms auto-start.
               autoStartedRef.current = false
-              // The mutation has settled (we are in its error state), so allow
-              // this attempt to start; the guard makes the effect's re-run a
-              // no-op, yielding exactly one `POST`.
               startingRef.current = false
               if (days.length === 1) requestStart(days[0]!.id)
               else void routine.refetch()
@@ -164,9 +229,6 @@ export default function WorkoutPage() {
   }
 
   return (
-    <DayChooser
-      routine={routine.data}
-      onPick={(dayId) => start.mutate(dayId)}
-    />
+    <DayChooser routine={routine.data} onPick={(dayId) => requestStart(dayId)} />
   )
 }

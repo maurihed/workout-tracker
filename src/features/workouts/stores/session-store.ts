@@ -1,6 +1,8 @@
 import { create } from "zustand"
 
 import type { SessionStateInput } from "@/features/workouts/schemas/session"
+import type { SessionSnapshot } from "@/features/workouts/lib/session-snapshot"
+import type { SessionUpsertPayload } from "@/features/workouts/lib/build-local-session"
 import type {
   SessionDTO,
   SessionExerciseDTO,
@@ -91,7 +93,12 @@ type SessionState = {
   exercises: SessionExerciseState[]
   currentIndex: number
   isDirty: boolean
-  hydrate: (session: SessionStoreSource) => void
+  snapshot: SessionSnapshot | null
+  routineDayId: string | null
+  hydrate: (
+    session: SessionStoreSource,
+    meta?: { snapshot?: SessionSnapshot | null; routineDayId?: string | null },
+  ) => void
   reset: () => void
   toggleSet: (
     exerciseId: string,
@@ -107,6 +114,7 @@ type SessionState = {
   next: () => void
   prev: () => void
   toStateInput: () => SessionStateInput
+  toUpsertPayload: (activeSeconds: number) => SessionUpsertPayload | null
 }
 
 const emptyState = {
@@ -118,6 +126,8 @@ const emptyState = {
   exercises: [] as SessionExerciseState[],
   currentIndex: 0,
   isDirty: false,
+  snapshot: null as SessionSnapshot | null,
+  routineDayId: null as string | null,
 }
 
 function toSetState(set: HydratableSet): SessionSetState {
@@ -213,9 +223,15 @@ function withDerivedCompletion(
 export const useSessionStore = create<SessionState>()((set, get) => ({
   ...emptyState,
 
-  hydrate: (session) => {
+  hydrate: (session, meta) => {
     const current = get()
-    if (session.id === current.sessionId && current.isDirty) return
+    if (session.id === current.sessionId && current.isDirty) {
+      set({
+        ...(meta?.snapshot !== undefined ? { snapshot: meta.snapshot } : {}),
+        ...(meta?.routineDayId !== undefined ? { routineDayId: meta.routineDayId } : {}),
+      })
+      return
+    }
     set({
       sessionId: session.id,
       name: session.name,
@@ -225,6 +241,8 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
       exercises: withDerivedCompletion(session.exercises.map(toExerciseState)),
       currentIndex: 0,
       isDirty: false,
+      snapshot: meta?.snapshot ?? null,
+      routineDayId: meta?.routineDayId ?? null,
     })
   },
 
@@ -330,6 +348,39 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
     const { activeSeconds, exercises } = get()
     return {
       activeSeconds,
+      exercises: exercises.map((exercise) => ({
+        id: exercise.id,
+        exerciseId: exercise.exerciseId,
+        nameSnapshot: exercise.nameSnapshot,
+        swappedFromId: exercise.swappedFromId,
+        completed: exercise.completed,
+        skipped: exercise.skipped,
+        notes: exercise.notes,
+        sets: exercise.sets.map((set) => ({
+          ...(set.id ? { id: set.id } : {}),
+          setNumber: set.setNumber,
+          type: set.type,
+          reps: set.reps,
+          weightKg: set.weightKg,
+          durationSeconds: set.durationSeconds,
+          rpe: set.rpe,
+          restSecondsLogged: set.restSecondsLogged,
+          completedAt: set.completedAt,
+        })),
+      })),
+    }
+  },
+
+  toUpsertPayload: (activeSeconds) => {
+    const { sessionId, name, startedAt, snapshot, routineDayId, exercises } = get()
+    if (!sessionId || !startedAt || !snapshot || !routineDayId) return null
+    return {
+      id: sessionId,
+      routineDayId,
+      name,
+      startedAt,
+      activeSeconds,
+      snapshot,
       exercises: exercises.map((exercise) => ({
         id: exercise.id,
         exerciseId: exercise.exerciseId,

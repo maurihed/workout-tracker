@@ -1,10 +1,15 @@
-import { fireEvent, render, screen } from "@testing-library/react"
+import { act, fireEvent, render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const hooks = vi.hoisted(() => ({
   activeSession: vi.fn(),
   activeRoutine: vi.fn(),
   start: { mutate: vi.fn(), reset: vi.fn(), isError: false, isPending: false },
+  persistence: {
+    loadActiveSession: vi.fn(async (): Promise<unknown> => undefined),
+    saveActiveSession: vi.fn(async (): Promise<unknown> => undefined),
+    clearActiveSession: vi.fn(async (): Promise<unknown> => undefined),
+  },
 }))
 
 vi.mock("next-intl", () => ({
@@ -26,8 +31,10 @@ vi.mock("@/features/workouts/hooks/use-start-session", () => ({
 vi.mock("@/features/workouts/components/workout-runner", () => ({
   WorkoutRunner: () => <div data-testid="runner" />,
 }))
+vi.mock("@/features/workouts/lib/session-persistence", () => hooks.persistence)
 
 import WorkoutPage from "@/app/[locale]/(app)/workout/page"
+import { useSessionStore } from "@/features/workouts/stores/session-store"
 
 const routine = {
   id: "r1",
@@ -54,47 +61,56 @@ function query<T>(data: T, isLoading = false) {
 }
 
 beforeEach(() => {
+  useSessionStore.getState().reset()
   hooks.activeSession.mockReset()
   hooks.activeRoutine.mockReset()
   hooks.start.mutate.mockReset()
   hooks.start.reset.mockReset()
   hooks.start.isError = false
   hooks.start.isPending = false
+  hooks.persistence.loadActiveSession.mockReset()
+  hooks.persistence.loadActiveSession.mockResolvedValue(undefined)
+  hooks.persistence.saveActiveSession.mockReset()
+  hooks.persistence.saveActiveSession.mockResolvedValue(undefined)
 })
 
 describe("WorkoutPage auto-start", () => {
-  it("does not start a new session when a resumed session later completes", () => {
+  it("does not start a new session when a resumed session later completes", async () => {
     hooks.activeRoutine.mockReturnValue(query(routine))
-    hooks.activeSession.mockReturnValue(query({ id: "s1" }))
+    hooks.activeSession.mockReturnValue(query({ id: "s1", exercises: [] }))
 
     const { rerender } = render(<WorkoutPage />)
+    await act(async () => {})
     expect(screen.getByTestId("runner")).toBeInTheDocument()
 
     // `useCompleteSession` invalidates `active`, flipping it to null while the
     // page is still mounted (before navigation to the summary).
     hooks.activeSession.mockReturnValue(query(null))
     rerender(<WorkoutPage />)
+    await act(async () => {})
 
     expect(hooks.start.mutate).not.toHaveBeenCalled()
   })
 
-  it("starts a single-day routine once when no session is in progress", () => {
+  it("starts a single-day routine once when no session is in progress", async () => {
     hooks.activeRoutine.mockReturnValue(query(routine))
     hooks.activeSession.mockReturnValue(query(null))
 
     render(<WorkoutPage />)
+    await act(async () => {})
 
     expect(hooks.start.mutate).toHaveBeenCalledTimes(1)
-    expect(hooks.start.mutate).toHaveBeenCalledWith("d1")
+    expect(hooks.start.mutate).toHaveBeenCalledWith({ routine, dayId: "d1" })
   })
 
-  it("issues exactly one start POST per attempt when Retry re-arms a single-day routine", () => {
+  it("issues exactly one start POST per attempt when Retry re-arms a single-day routine", async () => {
     hooks.activeRoutine.mockReturnValue(query(routine))
     hooks.activeSession.mockReturnValue(query(null))
     // Simulate the auto-start having failed: the error state (and Retry) shows.
     hooks.start.isError = true
 
     const { rerender } = render(<WorkoutPage />)
+    await act(async () => {})
     expect(hooks.start.mutate).toHaveBeenCalledTimes(1)
 
     // Clicking Retry re-arms auto-start; without the single-flight guard the
@@ -103,6 +119,51 @@ describe("WorkoutPage auto-start", () => {
     rerender(<WorkoutPage />)
 
     expect(hooks.start.mutate).toHaveBeenCalledTimes(2)
-    expect(hooks.start.mutate).toHaveBeenLastCalledWith("d1")
+    expect(hooks.start.mutate).toHaveBeenLastCalledWith({ routine, dayId: "d1" })
+  })
+
+  it("resumes a locally persisted session while offline", async () => {
+    hooks.persistence.loadActiveSession.mockResolvedValue({
+      source: {
+        id: "s9",
+        name: "Local Push",
+        status: "in_progress",
+        startedAt: "2026-01-01T00:00:00.000Z",
+        activeSeconds: 5,
+        exercises: [
+          {
+            id: "se9",
+            exerciseId: "e1",
+            nameSnapshot: "Squat",
+            targetSets: 3,
+            targetReps: "10",
+            restSeconds: 60,
+            timerType: "none",
+            workSeconds: null,
+            rounds: null,
+            completed: false,
+            skipped: false,
+            swappedFromId: null,
+            notes: null,
+            sets: [],
+          },
+        ],
+      },
+      snapshot: null,
+      routineDayId: "d1",
+      timer: null,
+      paused: false,
+    })
+    hooks.activeRoutine.mockReturnValue(query(routine))
+    hooks.activeSession.mockReturnValue(query(null))
+
+    render(<WorkoutPage />)
+    await act(async () => {})
+
+    expect(screen.getByTestId("runner")).toBeInTheDocument()
+    expect(useSessionStore.getState().sessionId).toBe("s9")
+    expect(useSessionStore.getState().exercises[0]?.nameSnapshot).toBe("Squat")
+    expect(useSessionStore.getState().routineDayId).toBe("d1")
+    expect(hooks.start.mutate).not.toHaveBeenCalled()
   })
 })

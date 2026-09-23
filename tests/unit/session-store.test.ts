@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest"
+import type { SessionSnapshot } from "@/features/workouts/lib/session-snapshot"
 import { useSessionStore } from "@/features/workouts/stores/session-store"
 
 const session = {
@@ -165,5 +166,25 @@ describe("session store", () => {
       completedAt: "2026-01-01T00:00:00.000Z",
     })
     expect(useSessionStore.getState().exercises[0]?.completed).toBe(true)
+  })
+})
+
+const snapshot: SessionSnapshot = {
+  routineId: "r1", routineDayId: "d1", name: "Push", nameEs: null, weekday: 1, label: "Push",
+  exercises: [{ order: 0, name: "Squat", nameEs: null, targetSets: 3, targetReps: "10", restSeconds: 60, targetWeightKg: 40, timerType: "none", workSeconds: null, rounds: null }],
+}
+
+describe("session store upsert meta", () => {
+  beforeEach(() => useSessionStore.getState().reset())
+
+  it("builds an upsert payload only once snapshot meta is present", () => {
+    useSessionStore.getState().hydrate(session)
+    expect(useSessionStore.getState().toUpsertPayload(0)).toBeNull()
+    useSessionStore.getState().hydrate(session, { snapshot, routineDayId: "d1" })
+    const payload = useSessionStore.getState().toUpsertPayload(42)
+    expect(payload?.id).toBe("s1")
+    expect(payload?.activeSeconds).toBe(42)
+    expect(payload?.snapshot.routineDayId).toBe("d1")
+    expect(payload?.exercises[0]?.id).toBe("se1")
   })
 })
