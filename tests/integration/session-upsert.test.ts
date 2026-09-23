@@ -83,6 +83,32 @@ describe("session upsert", () => {
     expect(rows[0]?.reps).toBe(5)
   })
 
+  it("keeps the client id of a set added mid-session across replays", async () => {
+    const { userId, routine } = await makeRoutine()
+    const payload = payloadFor(routine)
+    await upsertSession(userId, payload)
+    const newSetId = crypto.randomUUID()
+    const added = {
+      ...payload,
+      exercises: [{
+        ...payload.exercises[0]!,
+        sets: [
+          ...payload.exercises[0]!.sets,
+          { ...payload.exercises[0]!.sets[0]!, id: newSetId, setNumber: 4, reps: 8 },
+        ],
+      }],
+    }
+    await upsertSession(userId, added)
+    await upsertSession(userId, added)
+    const rows = await prisma.setLog.findMany({
+      where: { sessionExercise: { sessionId: payload.id } },
+      select: { id: true },
+      orderBy: { setNumber: "asc" },
+    })
+    expect(rows).toHaveLength(4)
+    expect(rows[3]?.id).toBe(newSetId)
+  })
+
   it("is idempotent on complete and abandon; rejects a write after completion", async () => {
     const { userId, routine } = await makeRoutine()
     const payload = payloadFor(routine, 120)

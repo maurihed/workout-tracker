@@ -231,6 +231,18 @@ export async function replaceSets(
           create: { id: set.id, sessionExerciseId: exercise.id, ...setData(set) },
           update: setData(set),
         })
+      } else if (set.id) {
+        const existing = await tx.setLog.findUnique({
+          where: { id: set.id },
+          select: { id: true },
+        })
+        await tx.setLog.create({
+          data: {
+            ...(existing ? {} : { id: set.id }),
+            sessionExerciseId: exercise.id,
+            ...setData(set),
+          },
+        })
       } else {
         await tx.setLog.create({ data: { sessionExerciseId: exercise.id, ...setData(set) } })
       }
