@@ -189,6 +189,7 @@ model RoutineDay {
   routine   Routine           @relation(fields: [routineId], references: [id], onDelete: Cascade)
   exercises RoutineExercise[]
 
+  @@unique([routineId, weekday])
   @@index([routineId])
 }
 

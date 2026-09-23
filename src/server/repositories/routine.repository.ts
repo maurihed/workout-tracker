@@ -92,3 +92,41 @@ export function findExercisesBySourceIds(
     select: { id: true, sourceId: true },
   })
 }
+
+export type RoutineSummary = {
+  id: string
+  name: string
+  description: string | null
+  source: "manual" | "ai" | "template"
+  isActive: boolean
+  updatedAt: Date
+  dayCount: number
+  exerciseCount: number
+}
+
+export async function listByUser(userId: string): Promise<RoutineSummary[]> {
+  const rows = await prisma.routine.findMany({
+    where: { userId },
+    orderBy: { updatedAt: "desc" },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      source: true,
+      isActive: true,
+      updatedAt: true,
+      _count: { select: { days: true } },
+      days: { select: { _count: { select: { exercises: true } } } },
+    },
+  })
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    description: r.description,
+    source: r.source,
+    isActive: r.isActive,
+    updatedAt: r.updatedAt,
+    dayCount: r._count.days,
+    exerciseCount: r.days.reduce((sum, d) => sum + d._count.exercises, 0),
+  }))
+}
