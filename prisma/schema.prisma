@@ -16,10 +16,11 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts Account[]
-  sessions Session[]
-  profile  Profile?
-  routines Routine[]
+  accounts        Account[]
+  sessions        Session[]
+  profile         Profile?
+  routines        Routine[]
+  workoutSessions WorkoutSession[]
 }
 
 model Account {
@@ -146,7 +147,8 @@ model Exercise {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  routineExercises RoutineExercise[]
+  routineExercises   RoutineExercise[]
+  sessionExercises   SessionExercise[]
 
   @@index([name])
   @@index([primaryMuscles])
@@ -212,4 +214,80 @@ model RoutineExercise {
 
   @@index([routineDayId])
   @@index([exerciseId])
+}
+
+enum SessionStatus {
+  in_progress
+  completed
+  abandoned
+}
+
+enum SetType {
+  warmup
+  working
+  drop
+  failure
+}
+
+model WorkoutSession {
+  id            String        @id @default(cuid())
+  userId        String
+  routineId     String?
+  routineDayId  String?
+  name          String
+  status        SessionStatus @default(in_progress)
+  startedAt     DateTime      @default(now())
+  completedAt   DateTime?
+  activeSeconds Int           @default(0)
+  notes         String?
+  snapshot      Json
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercises SessionExercise[]
+
+  @@index([userId, status])
+  @@index([userId, startedAt])
+}
+
+model SessionExercise {
+  id            String     @id @default(cuid())
+  sessionId     String
+  exerciseId    String?
+  order         Int
+  nameSnapshot  String
+  targetSets    Int?
+  targetReps    String?
+  restSeconds   Int?
+  timerType     TimerType?
+  workSeconds   Int?
+  rounds        Int?
+  completed     Boolean    @default(false)
+  skipped       Boolean    @default(false)
+  swappedFromId String?
+  notes         String?
+
+  session  WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  exercise Exercise?      @relation(fields: [exerciseId], references: [id])
+  sets     SetLog[]
+
+  @@index([sessionId])
+}
+
+model SetLog {
+  id                String    @id @default(cuid())
+  sessionExerciseId String
+  setNumber         Int
+  type              SetType   @default(working)
+  reps              Int?
+  weightKg          Float?
+  durationSeconds   Int?
+  rpe               Int?
+  restSecondsLogged Int?
+  completedAt       DateTime?
+
+  sessionExercise SessionExercise @relation(fields: [sessionExerciseId], references: [id], onDelete: Cascade)
+
+  @@index([sessionExerciseId])
 }
