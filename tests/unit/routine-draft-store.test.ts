@@ -41,4 +41,26 @@ describe("routine draft store", () => {
     expect(useRoutineDraftStore.getState().name).toBe("Other")
     expect(useRoutineDraftStore.getState().days).toHaveLength(1)
   })
+
+  it("only marks dirty when a reorder actually changes the order", () => {
+    useRoutineDraftStore.getState().hydrate(routine)
+    useRoutineDraftStore.getState().moveDay(0, 0)
+    expect(useRoutineDraftStore.getState().isDirty).toBe(false)
+    useRoutineDraftStore.getState().moveDay(0, 9)
+    expect(useRoutineDraftStore.getState().isDirty).toBe(false)
+  })
+
+  it("marks dirty and reorders days when the move is real", () => {
+    useRoutineDraftStore.getState().hydrate({
+      ...routine,
+      days: [
+        routine.days[0]!,
+        { id: "d2", weekday: 2, label: null, exercises: [] },
+      ],
+    })
+    useRoutineDraftStore.getState().moveDay(0, 1)
+    expect(useRoutineDraftStore.getState().isDirty).toBe(true)
+    expect(useRoutineDraftStore.getState().days[0]?.weekday).toBe(2)
+    expect(useRoutineDraftStore.getState().days[1]?.weekday).toBe(1)
+  })
 })

@@ -236,17 +236,33 @@ export const useRoutineDraftStore = create<DraftState>()(
         })),
 
       moveDay: (from, to) =>
-        set((state) => ({ days: moveItem(state.days, from, to), isDirty: true })),
+        set((state) => {
+          const days = moveItem(state.days, from, to)
+          if (days.every((day, index) => day === state.days[index])) {
+            return state
+          }
+          return { days, isDirty: true }
+        }),
 
       moveExercise: (dayId, from, to) =>
-        set((state) => ({
-          days: state.days.map((day) =>
-            day.id === dayId
-              ? { ...day, exercises: moveItem(day.exercises, from, to) }
-              : day,
-          ),
-          isDirty: true,
-        })),
+        set((state) => {
+          const day = state.days.find((item) => item.id === dayId)
+          if (!day) return state
+          const exercises = moveItem(day.exercises, from, to)
+          if (
+            exercises.every(
+              (exercise, index) => exercise === day.exercises[index],
+            )
+          ) {
+            return state
+          }
+          return {
+            days: state.days.map((item) =>
+              item.id === dayId ? { ...item, exercises } : item,
+            ),
+            isDirty: true,
+          }
+        }),
 
       toRoutineInput: () => {
         const { name, description, goal, days } = get()

@@ -12,11 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import type { RoutineDTO } from "@/features/routines/hooks/use-active-routine"
-
-function weekdayName(weekday: number, locale: string): string {
-  const date = new Date(Date.UTC(2024, 0, weekday))
-  return new Intl.DateTimeFormat(locale, { weekday: "long" }).format(date)
-}
+import { weekdayLabel } from "@/features/routines/lib/weekdays"
 
 export function RoutinePreview({ routine }: { routine: RoutineDTO }) {
   const t = useTranslations("dashboard")
@@ -38,7 +34,7 @@ export function RoutinePreview({ routine }: { routine: RoutineDTO }) {
             <Card>
               <CardHeader>
                 <CardTitle>
-                  {day.label ?? weekdayName(day.weekday, locale)}
+                  {day.label ?? weekdayLabel(locale, day.weekday)}
                 </CardTitle>
               </CardHeader>
               <CardContent>

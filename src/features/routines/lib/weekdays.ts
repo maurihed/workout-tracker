@@ -7,5 +7,8 @@ const REFERENCE_SUNDAY = Date.UTC(2024, 0, 7)
 
 export function weekdayLabel(locale: string, weekday: number): string {
   const date = new Date(REFERENCE_SUNDAY + weekday * 24 * 60 * 60 * 1000)
-  return new Intl.DateTimeFormat(locale, { weekday: "long" }).format(date)
+  return new Intl.DateTimeFormat(locale, {
+    weekday: "long",
+    timeZone: "UTC",
+  }).format(date)
 }
