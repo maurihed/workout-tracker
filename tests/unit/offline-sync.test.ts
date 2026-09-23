@@ -80,4 +80,28 @@ describe("sync engine", () => {
     await flushOutbox({ fetchImpl })
     expect(await listOutbox()).toHaveLength(0)
   })
+
+  it("does not clobber a newer enqueue made while the send is in flight", async () => {
+    let clock = 1000
+    const now = () => clock++
+    let injected = false
+    const bodies: unknown[] = []
+    const fetchImpl = (async (_url: string, init?: RequestInit) => {
+      bodies.push(init?.body ? JSON.parse(String(init.body)) : undefined)
+      if (!injected) {
+        injected = true
+        await enqueue("upsert", "s1", { state: { v: 2 }, activeSeconds: 2 }, { now })
+      }
+      return json(200)
+    }) as unknown as typeof fetch
+    await enqueue("upsert", "s1", { state: { v: 1 }, activeSeconds: 1 }, { now })
+    const first = await flushOutbox({ fetchImpl, now })
+    expect(first.failed).toBe(false)
+    const row = await getOutbox("s1")
+    expect((row?.payload as { state: { v: number } }).state.v).toBe(2)
+    const second = await flushOutbox({ fetchImpl, now })
+    expect(second.synced).toBe(1)
+    expect(await listOutbox()).toHaveLength(0)
+    expect(bodies).toEqual([{ v: 1 }, { v: 2 }])
+  })
 })

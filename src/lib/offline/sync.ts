@@ -54,7 +54,7 @@ async function send(
   })
 }
 
-async function flushRecord(fetchImpl: typeof fetch, record: OutboxRecord): Promise<"synced" | "retry" | "error" | "gone"> {
+async function flushRecord(fetchImpl: typeof fetch, record: OutboxRecord): Promise<"synced" | "retry" | "error"> {
   const payload = record.payload as OutboxPayload
   try {
     if (record.op === "upsert") {
@@ -89,19 +89,30 @@ export async function flushOutbox(deps: SyncDeps = {}): Promise<FlushResult> {
     let synced = 0
     let failed = false
     for (const row of rows) {
-      await putOutbox({ ...row, status: "syncing" })
-      const outcome = await flushRecord(fetchImpl, row)
+      const current = await getOutbox(row.sessionId)
+      if (!current || current.updatedAt !== row.updatedAt) continue
+      await putOutbox({ ...current, status: "syncing" })
+      const outcome = await flushRecord(fetchImpl, current)
       if (outcome === "synced") {
-        await deleteOutbox(row.sessionId)
-        synced += 1
+        const latest = await getOutbox(row.sessionId)
+        if (!latest || latest.updatedAt === row.updatedAt) {
+          await deleteOutbox(row.sessionId)
+          synced += 1
+        }
         continue
       }
       if (outcome === "retry") {
-        await putOutbox({ ...row, status: "pending", updatedAt: now() })
+        const latest = await getOutbox(row.sessionId)
+        if (!latest || latest.updatedAt === row.updatedAt) {
+          await putOutbox({ ...current, status: "pending", updatedAt: now() })
+        }
         failed = true
         break
       }
-      await putOutbox({ ...row, status: "error" })
+      const latest = await getOutbox(row.sessionId)
+      if (!latest || latest.updatedAt === row.updatedAt) {
+        await putOutbox({ ...current, status: "error" })
+      }
       failed = true
       break
     }
