@@ -17,4 +17,22 @@ describe("SetRow", () => {
     await userEvent.click(screen.getByRole("checkbox", { name: /complete/i }))
     expect(onComplete).toHaveBeenCalled()
   })
+
+  it("commits metric weight exactly as typed across a multi-keystroke sequence", async () => {
+    const onChange = vi.fn()
+    render(<SetRow set={set} unitSystem="metric" onChange={onChange} onComplete={vi.fn()} />)
+    const weight = screen.getByLabelText(/weight/i)
+    await userEvent.type(weight, "100")
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ weightKg: 100 }))
+    expect(weight).toHaveValue(100)
+  })
+
+  it("keeps the typed draft in imperial while committing the converted kg value", async () => {
+    const onChange = vi.fn()
+    render(<SetRow set={set} unitSystem="imperial" onChange={onChange} onComplete={vi.fn()} />)
+    const weight = screen.getByLabelText(/weight/i)
+    await userEvent.type(weight, "100")
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ weightKg: 45.4 }))
+    expect(weight).toHaveValue(100)
+  })
 })

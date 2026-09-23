@@ -2,6 +2,7 @@
 
 import { Flame } from "@phosphor-icons/react"
 import { useTranslations } from "next-intl"
+import { useEffect, useRef, useState } from "react"
 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -36,6 +37,11 @@ function toNumberOrNull(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+/** Display string for the canonical kg value, or `""` when unset. */
+function weightToDraft(weightKg: number | null, unitSystem: UnitSystem): string {
+  return weightKg == null ? "" : String(displayWeight(weightKg, unitSystem))
+}
+
 export function SetRow({ set, unitSystem, onChange, onComplete }: SetRowProps) {
   const t = useTranslations("runner")
   const completed = set.completedAt !== null
@@ -43,6 +49,20 @@ export function SetRow({ set, unitSystem, onChange, onComplete }: SetRowProps) {
   const repsId = `set-${set.setNumber}-reps`
   const weightId = `set-${set.setNumber}-weight`
   const rpeId = `set-${set.setNumber}-rpe`
+
+  // The weight field keeps its own string draft while the user types so the
+  // unit conversion (display <-> kg) never rewrites the focused input. Without
+  // this, imperial entry is unusable: `100` would round-trip through kg on every
+  // keystroke and redisplay as `100.1`, making `100` unreachable.
+  const [weightDraft, setWeightDraft] = useState(() =>
+    weightToDraft(set.weightKg, unitSystem),
+  )
+  const weightFocused = useRef(false)
+
+  useEffect(() => {
+    if (weightFocused.current) return
+    setWeightDraft(weightToDraft(set.weightKg, unitSystem))
+  }, [set.weightKg, unitSystem])
 
   return (
     <li
@@ -111,9 +131,17 @@ export function SetRow({ set, unitSystem, onChange, onComplete }: SetRowProps) {
             inputMode="decimal"
             min={0}
             step="0.5"
-            value={set.weightKg == null ? "" : displayWeight(set.weightKg, unitSystem)}
+            value={weightDraft}
+            onFocus={() => {
+              weightFocused.current = true
+            }}
+            onBlur={() => {
+              weightFocused.current = false
+            }}
             onChange={(event) => {
-              const value = toNumberOrNull(event.target.value)
+              const raw = event.target.value
+              setWeightDraft(raw)
+              const value = toNumberOrNull(raw)
               onChange({
                 weightKg: value == null ? null : parseWeightToKg(value, unitSystem),
               })

@@ -10,7 +10,7 @@ import type { TimerState } from "@/features/workouts/lib/timer"
 type IntervalTimerProps = {
   timer: TimerState
   onStart: () => void
-  onPause?: () => void
+  onPause: () => void
   onSkipRound: () => void
 }
 
@@ -57,7 +57,7 @@ export function IntervalTimer({
           variant="outline"
           className="h-11 flex-1"
           aria-label={timer.running ? t("pause") : t("start")}
-          onClick={() => (timer.running ? onPause?.() : onStart())}
+          onClick={() => (timer.running ? onPause() : onStart())}
         >
           {timer.running ? (
             <Pause className="size-4" aria-hidden="true" />
