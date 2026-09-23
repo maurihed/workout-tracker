@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest"
-import { useRoutineDraftStore } from "@/features/routines/stores/routine-draft-store"
+import {
+  OrphanedExerciseError,
+  useRoutineDraftStore,
+} from "@/features/routines/stores/routine-draft-store"
 
 const routine = {
   id: "r1", name: "Plan", description: null, source: "manual" as const, isActive: false,
@@ -48,6 +51,48 @@ describe("routine draft store", () => {
     expect(useRoutineDraftStore.getState().isDirty).toBe(false)
     useRoutineDraftStore.getState().moveDay(0, 9)
     expect(useRoutineDraftStore.getState().isDirty).toBe(false)
+  })
+
+  it("ignores addExercises for an unknown day without dirtying the draft", () => {
+    useRoutineDraftStore.getState().hydrate(routine)
+    const added = useRoutineDraftStore
+      .getState()
+      .addExercises("missing-day", [{ exerciseId: "e1", name: "Squat" }])
+    expect(added).toBe(false)
+    expect(useRoutineDraftStore.getState().isDirty).toBe(false)
+    expect(useRoutineDraftStore.getState().days).toHaveLength(1)
+    expect(useRoutineDraftStore.getState().days[0]?.exercises).toHaveLength(0)
+  })
+
+  it("throws a specific error for an exercise without a catalog reference", () => {
+    useRoutineDraftStore.getState().hydrate({
+      ...routine,
+      days: [
+        {
+          id: "d1",
+          weekday: 1,
+          label: null,
+          exercises: [
+            {
+              id: "x1",
+              exerciseId: null,
+              customName: "Legacy custom",
+              targetSets: 3,
+              targetReps: "10",
+              restSeconds: 60,
+              targetWeightKg: null,
+              timerType: "none",
+              workSeconds: null,
+              rounds: null,
+              notes: null,
+            },
+          ],
+        },
+      ],
+    })
+    expect(() => useRoutineDraftStore.getState().toRoutineInput()).toThrow(
+      OrphanedExerciseError,
+    )
   })
 
   it("marks dirty and reorders days when the move is real", () => {

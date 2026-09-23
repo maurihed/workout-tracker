@@ -9,6 +9,7 @@ import { useLocale, useTranslations } from "next-intl"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
+import { toast } from "sonner"
 
 import { EmptyState } from "@/components/shared/empty-state"
 import { Badge } from "@/components/ui/badge"
@@ -108,13 +109,18 @@ export function ExercisePicker({ routineId, dayId }: ExercisePickerProps) {
 
   function handleAdd() {
     if (count === 0) return
-    addExercises(
+    const added = addExercises(
       dayId,
       Array.from(selected.values(), (item) => ({
         exerciseId: item.id,
         name: displayName(item),
       })),
     )
+    if (!added) {
+      toast.error(t("unknownDay"))
+      router.replace(`/${locale}/routines/${routineId}`)
+      return
+    }
     router.back()
   }
 

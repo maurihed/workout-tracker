@@ -171,6 +171,7 @@
     "unsaved": "Unsaved changes",
     "saved": "Routine saved",
     "validationError": "Check the highlighted fields and try again.",
+    "orphanExercise": "One or more exercises are missing a catalog reference. Remove and re-add them.",
     "emptyDays": "No days yet. Add one to start building your routine."
   },
   "picker": {
@@ -191,6 +192,7 @@
     "noResults": "No exercises found",
     "empty": "No exercises found",
     "emptyDescription": "Try a different search or filter.",
+    "unknownDay": "That day is no longer in your routine. Your selection was not added.",
     "error": "Couldn't load exercises",
     "retry": "Retry",
     "muscles": {

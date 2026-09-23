@@ -171,6 +171,7 @@
     "unsaved": "Cambios sin guardar",
     "saved": "Rutina guardada",
     "validationError": "Revisa los campos marcados e inténtalo de nuevo.",
+    "orphanExercise": "Uno o más ejercicios no tienen referencia de catálogo. Quítalos y vuelve a añadirlos.",
     "emptyDays": "Aún no hay días. Añade uno para empezar a crear tu rutina."
   },
   "picker": {
@@ -191,6 +192,7 @@
     "noResults": "No se encontraron ejercicios",
     "empty": "No se encontraron ejercicios",
     "emptyDescription": "Prueba con otra búsqueda u otro filtro.",
+    "unknownDay": "Ese día ya no está en tu rutina. No se añadió la selección.",
     "error": "No se pudieron cargar los ejercicios",
     "retry": "Reintentar",
     "muscles": {

@@ -74,6 +74,19 @@ export type DayPatch = {
 
 export type ExercisePatch = Partial<Omit<DraftExercise, "id" | "exerciseId" | "name">>
 
+/**
+ * Raised when the draft contains an exercise row without a catalog reference
+ * (e.g. a legacy custom exercise whose `exerciseId` is null). 2A only supports
+ * catalog exercises, so this must fail loudly rather than emit an empty
+ * `exerciseId` that the input schema rejects with a generic message.
+ */
+export class OrphanedExerciseError extends Error {
+  constructor() {
+    super("Draft contains an exercise without a catalog reference")
+    this.name = "OrphanedExerciseError"
+  }
+}
+
 type DraftState = {
   routineId: string | null
   name: string
@@ -86,7 +99,7 @@ type DraftState = {
   addDay: (weekday: number) => void
   removeDay: (dayId: string) => void
   updateDay: (dayId: string, patch: DayPatch) => void
-  addExercises: (dayId: string, items: NewExerciseRef[]) => void
+  addExercises: (dayId: string, items: NewExerciseRef[]) => boolean
   updateExercise: (
     dayId: string,
     exerciseId: string,
@@ -175,7 +188,11 @@ export const useRoutineDraftStore = create<DraftState>()(
           isDirty: true,
         })),
 
-      addExercises: (dayId, items) =>
+      addExercises: (dayId, items) => {
+        // Never clobber the draft or flip `isDirty` for an unknown day: the
+        // picker can be opened directly and must not silently discard the
+        // selection (or the user's unsaved edits) when the draft is missing.
+        if (!get().days.some((day) => day.id === dayId)) return false
         set((state) => ({
           days: state.days.map((day) =>
             day.id === dayId
@@ -201,7 +218,9 @@ export const useRoutineDraftStore = create<DraftState>()(
               : day,
           ),
           isDirty: true,
-        })),
+        }))
+        return true
+      },
 
       updateExercise: (dayId, exerciseId, patch) =>
         set((state) => ({
@@ -266,6 +285,10 @@ export const useRoutineDraftStore = create<DraftState>()(
 
       toRoutineInput: () => {
         const { name, description, goal, days } = get()
+        const orphaned = days.some((day) =>
+          day.exercises.some((exercise) => exercise.exerciseId.trim() === ""),
+        )
+        if (orphaned) throw new OrphanedExerciseError()
         return {
           name,
           description,

@@ -96,6 +96,7 @@ describe("routine builder copy", () => {
       "routineEditor.unsaved",
       "routineEditor.saved",
       "routineEditor.validationError",
+      "routineEditor.orphanExercise",
       "routineEditor.emptyDays",
     ]
     for (const [locale, m] of dicts) {
@@ -124,6 +125,7 @@ describe("routine builder copy", () => {
       "picker.noResults",
       "picker.empty",
       "picker.emptyDescription",
+      "picker.unknownDay",
       "picker.error",
       "picker.retry",
     ]

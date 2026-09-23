@@ -12,10 +12,15 @@ import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { DayList } from "@/features/routines/components/day-list"
 import { SaveBar } from "@/features/routines/components/save-bar"
+import { useHydrateDraft } from "@/features/routines/hooks/use-hydrate-draft"
 import { useRoutine } from "@/features/routines/hooks/use-routine"
 import { useUpdateRoutine } from "@/features/routines/hooks/use-update-routine"
-import { routineInputSchema } from "@/features/routines/schemas/routine"
 import {
+  routineInputSchema,
+  type RoutineInput,
+} from "@/features/routines/schemas/routine"
+import {
+  OrphanedExerciseError,
   useRoutineDraftStore,
   type Goal,
 } from "@/features/routines/stores/routine-draft-store"
@@ -61,18 +66,8 @@ export function RoutineEditor({ routineId }: RoutineEditorProps) {
   const toRoutineInput = useRoutineDraftStore((state) => state.toRoutineInput)
   const clearDraft = useRoutineDraftStore((state) => state.clearDraft)
 
-  const [hydrated, setHydrated] = useState(false)
-  const [validationError, setValidationError] = useState(false)
-
-  useEffect(() => {
-    let active = true
-    Promise.resolve(useRoutineDraftStore.persist.rehydrate()).finally(() => {
-      if (active) setHydrated(true)
-    })
-    return () => {
-      active = false
-    }
-  }, [])
+  const hydrated = useHydrateDraft()
+  const [validationError, setValidationError] = useState<string | null>(null)
 
   useEffect(() => {
     if (hydrated && data) hydrate(data)
@@ -89,10 +84,20 @@ export function RoutineEditor({ routineId }: RoutineEditorProps) {
   }, [isDirty])
 
   async function handleSave() {
-    setValidationError(false)
-    const parsed = routineInputSchema.safeParse(toRoutineInput())
+    setValidationError(null)
+    let input: RoutineInput
+    try {
+      input = toRoutineInput()
+    } catch (error) {
+      if (error instanceof OrphanedExerciseError) {
+        setValidationError(t("orphanExercise"))
+        return
+      }
+      throw error
+    }
+    const parsed = routineInputSchema.safeParse(input)
     if (!parsed.success) {
-      setValidationError(true)
+      setValidationError(t("validationError"))
       return
     }
     try {
@@ -134,11 +139,7 @@ export function RoutineEditor({ routineId }: RoutineEditorProps) {
     )
   }
 
-  const error = update.isError
-    ? tCommon("error")
-    : validationError
-      ? t("validationError")
-      : null
+  const error = update.isError ? tCommon("error") : validationError
 
   return (
     <div className="flex flex-col gap-6 pb-4">
