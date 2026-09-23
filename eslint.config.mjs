@@ -19,6 +19,7 @@ const eslintConfig = defineConfig([
     // Tooling/scratch workspaces are not application source.
     ".opencode/**",
     ".superpowers/**",
+    ".worktrees/**",
   ]),
 ]);
 
