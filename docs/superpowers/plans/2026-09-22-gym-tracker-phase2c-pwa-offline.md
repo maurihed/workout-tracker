@@ -3529,7 +3529,7 @@ await png(512, "public/icons/icon-512.png")
 await png(180, "public/icons/apple-touch-icon.png")
 ```
 
-- [ ] **Step 5: Generate the icons**
+- [ ] **Step 6: Generate the icons**
 
 ```bash
 pnpm add -D sharp
@@ -3539,7 +3539,7 @@ ls -1 public/icons
 
 Expected: `icon.svg icon-192.png icon-512.png apple-touch-icon.png`.
 
-- [ ] **Step 6: Add metadata and viewport to the locale layout**
+- [ ] **Step 7: Add metadata and viewport to the locale layout**
 
 In `src/app/[locale]/layout.tsx` add (before the component):
 
@@ -3561,15 +3561,15 @@ export const viewport: Viewport = {
 }
 ```
 
-- [ ] **Step 7: Run the test and build**
+- [ ] **Step 8: Run the test and build**
 
 Run: `pnpm test -- tests/unit/manifest.test.ts && pnpm build`
 Expected: PASS; build emits `/manifest.webmanifest`.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add src/app/manifest.ts public/icons scripts/generate-icons.mjs "src/app/[locale]/layout.tsx" tests/unit/manifest.test.ts package.json pnpm-lock.yaml
+git add src/app/manifest.ts public/icons scripts/generate-icons.mjs "src/app/[locale]/layout.tsx" serwist.config.js tests/unit/manifest.test.ts package.json pnpm-lock.yaml
 git commit -m "feat(pwa): manifest, icons, and install metadata"
 ```
 
