@@ -2,7 +2,10 @@ import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
-vi.mock("next-intl", () => ({ useTranslations: () => (k: string) => k }))
+vi.mock("next-intl", () => ({
+  useTranslations: () => (k: string) => k,
+  useLocale: () => "en",
+}))
 
 import { RoutineCard } from "@/features/routines/components/routine-card"
 import type { RoutineSummary } from "@/features/routines/hooks/use-routines"

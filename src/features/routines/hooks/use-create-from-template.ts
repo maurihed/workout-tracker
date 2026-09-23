@@ -13,6 +13,7 @@ export function useCreateFromTemplate() {
       return res.data.data
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: routineKeys.list() })
       queryClient.invalidateQueries({ queryKey: routineKeys.active() })
       queryClient.invalidateQueries({ queryKey: ["profile"] })
     },

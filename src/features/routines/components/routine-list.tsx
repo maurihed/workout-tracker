@@ -1,9 +1,8 @@
 "use client"
 
 import { Barbell } from "@phosphor-icons/react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import Link from "next/link"
-import { useParams } from "next/navigation"
 
 import { EmptyState } from "@/components/shared/empty-state"
 import { Button } from "@/components/ui/button"
@@ -24,8 +23,7 @@ export function RoutineList({
   onDelete,
 }: RoutineListProps) {
   const t = useTranslations("routines")
-  const params = useParams()
-  const locale = typeof params?.locale === "string" ? params.locale : "en"
+  const locale = useLocale()
 
   if (routines.length === 0) {
     return (

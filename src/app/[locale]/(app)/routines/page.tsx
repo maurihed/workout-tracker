@@ -1,9 +1,8 @@
 "use client"
 
 import { WarningCircle } from "@phosphor-icons/react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import Link from "next/link"
-import { useParams } from "next/navigation"
 
 import { EmptyState } from "@/components/shared/empty-state"
 import { Button } from "@/components/ui/button"
@@ -29,8 +28,7 @@ export default function RoutinesPage() {
   const t = useTranslations("routines")
   const tNav = useTranslations("nav")
   const tCommon = useTranslations("common")
-  const params = useParams()
-  const locale = typeof params?.locale === "string" ? params.locale : "en"
+  const locale = useLocale()
   const { data: routines, isLoading, isError, refetch } = useRoutines()
   const activate = useActivateRoutine()
   const duplicate = useDuplicateRoutine()

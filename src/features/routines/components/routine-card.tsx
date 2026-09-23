@@ -1,9 +1,8 @@
 "use client"
 
 import { Copy, Play, Trash } from "@phosphor-icons/react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import Link from "next/link"
-import { useParams } from "next/navigation"
 
 import {
   AlertDialog,
@@ -34,12 +33,6 @@ type RoutineCardProps = {
   onDelete: (id: string) => void
 }
 
-function useLocaleParam(): string {
-  const params = useParams()
-  const locale = params?.locale
-  return typeof locale === "string" ? locale : "en"
-}
-
 export function RoutineCard({
   routine,
   onActivate,
@@ -48,7 +41,7 @@ export function RoutineCard({
 }: RoutineCardProps) {
   const t = useTranslations("routines")
   const tCommon = useTranslations("common")
-  const locale = useLocaleParam()
+  const locale = useLocale()
 
   return (
     <Card>
