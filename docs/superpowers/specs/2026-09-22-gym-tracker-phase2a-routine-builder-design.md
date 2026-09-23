@@ -1,7 +1,7 @@
 # Gym Tracker — Phase 2A Routine Builder — Design Spec
 
 - **Date:** 2026-09-22
-- **Status:** Approved (design), pending implementation planning
+- **Status:** Implemented
 - **Author:** Mauricio Hernandez (with opencode)
 - **Parent spec:** `docs/superpowers/specs/2026-09-22-gym-tracker-design.md` (binding)
 - **Depends on:** Phase 1 + Phase 1.5 (merged to `main` at `bd0a95e`)
