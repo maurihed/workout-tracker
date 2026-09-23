@@ -36,10 +36,16 @@ export default function WorkoutPage() {
 
   const activeSession = session.data ?? null
   const days = useMemo(() => routine.data?.days ?? [], [routine.data])
+  const sessionRefetch = session.refetch
+  const startStatus = (
+    start.error as { response?: { status?: number } } | null | undefined
+  )?.response?.status
 
   // A single-day routine has no choice to make: start it as soon as we know
   // there is no in-progress session. The ref keeps StrictMode/refetches from
   // firing a second `POST` (which the service would reject with a conflict).
+  // It is deliberately NOT re-armed on a failed start: a persistent 409 must
+  // not turn into a retry storm. Only the explicit retry button re-arms it.
   const autoStartedRef = useRef(false)
   useEffect(() => {
     if (session.isLoading || routine.isLoading) return
@@ -56,9 +62,12 @@ export default function WorkoutPage() {
     }
   }, [activeSession, days, routine.isLoading, session.isLoading, start])
 
+  // A 409 means a session is already in progress (typically another tab).
+  // Refresh the active query once so the runner takes over instead of looping.
   useEffect(() => {
-    if (start.isError) autoStartedRef.current = false
-  }, [start.isError])
+    if (startStatus !== 409) return
+    void sessionRefetch()
+  }, [startStatus, sessionRefetch])
 
   if (session.isError) {
     return (
@@ -91,7 +100,7 @@ export default function WorkoutPage() {
     return (
       <EmptyState
         icon={WarningCircle}
-        title={tCommon("error")}
+        title={startStatus === 409 ? t("conflict") : tCommon("error")}
         action={
           <Button
             type="button"
@@ -99,7 +108,10 @@ export default function WorkoutPage() {
             className="h-12"
             onClick={() => {
               start.reset()
-              void routine.refetch()
+              // An explicit retry is the only thing that re-arms auto-start.
+              autoStartedRef.current = false
+              if (days.length === 1) start.mutate(days[0]!.id)
+              else void routine.refetch()
             }}
           >
             {tCommon("retry")}

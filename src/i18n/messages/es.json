@@ -295,6 +295,14 @@
     "unknownDay": "Ese día ya no está en tu rutina.",
     "error": "No se pudo cargar tu entrenamiento",
     "retry": "Reintentar",
+    "conflict": "Ya hay un entrenamiento en curso.",
+    "save": {
+      "saving": "Guardando…",
+      "saved": "Guardado",
+      "error": "No se pudo guardar tu progreso.",
+      "retry": "Reintentar guardar",
+      "finishError": "No se pudo terminar el entrenamiento. Inténtalo de nuevo."
+    },
     "sets": {
       "reps": "Repeticiones",
       "weight": "Peso",

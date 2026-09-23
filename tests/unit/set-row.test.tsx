@@ -35,4 +35,32 @@ describe("SetRow", () => {
     expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ weightKg: 45.4 }))
     expect(weight).toHaveValue(100)
   })
+
+  it("displays the prefill for a set with no value yet", () => {
+    render(
+      <SetRow
+        set={set}
+        unitSystem="metric"
+        prefill={{ reps: 10, weightKg: 40 }}
+        onChange={vi.fn()}
+        onComplete={vi.fn()}
+      />,
+    )
+    expect(screen.getByLabelText(/reps/i)).toHaveValue(10)
+    expect(screen.getByLabelText(/weight/i)).toHaveValue(40)
+  })
+
+  it("prefers the set's own values over the prefill", () => {
+    render(
+      <SetRow
+        set={{ ...set, reps: 8, weightKg: 60 }}
+        unitSystem="metric"
+        prefill={{ reps: 10, weightKg: 40 }}
+        onChange={vi.fn()}
+        onComplete={vi.fn()}
+      />,
+    )
+    expect(screen.getByLabelText(/reps/i)).toHaveValue(8)
+    expect(screen.getByLabelText(/weight/i)).toHaveValue(60)
+  })
 })

@@ -9,11 +9,14 @@ import {
   Pause,
   Play,
   Prohibit,
+  SpeakerHigh,
+  SpeakerSlash,
   XCircle,
 } from "@phosphor-icons/react"
 import { useLocale, useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { toast } from "sonner"
 
 import {
   AlertDialog,
@@ -44,6 +47,7 @@ import type {
 import type { UnitSystem } from "@/features/workouts/components/set-row"
 import { useAbandonSession } from "@/features/workouts/hooks/use-abandon-session"
 import { useCompleteSession } from "@/features/workouts/hooks/use-complete-session"
+import { useSoundPreference } from "@/features/workouts/hooks/use-sound-preference"
 import { useUpdateSession } from "@/features/workouts/hooks/use-update-session"
 import {
   adjust as adjustTimer,
@@ -55,9 +59,16 @@ import {
   tick as tickTimer,
   type TimerState,
 } from "@/features/workouts/lib/timer"
-import { useSessionStore } from "@/features/workouts/stores/session-store"
+import {
+  useSessionStore,
+  type SessionSetPatch,
+} from "@/features/workouts/stores/session-store"
 
 const PUSH_DEBOUNCE_MS = 2000
+// Cap for the exponential backoff that retries a failed debounced save.
+const PUSH_MAX_BACKOFF_MS = 30_000
+
+type SaveStatus = "idle" | "saving" | "saved" | "error"
 
 type WakeLockSentinelLike = { release: () => Promise<void> }
 
@@ -80,6 +91,7 @@ function buildExerciseTimer(
 
 export function WorkoutRunner({ session }: { session: SessionDTO }) {
   const t = useTranslations("runner")
+  const tTimers = useTranslations("timers")
   const tCommon = useTranslations("common")
   const locale = useLocale()
   const router = useRouter()
@@ -119,6 +131,8 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
   const [swapOpen, setSwapOpen] = useState(false)
   const [finishOpen, setFinishOpen] = useState(false)
   const [discardOpen, setDiscardOpen] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle")
+  const [soundOn, setSoundOn] = useSoundPreference()
 
   const timerRef = useRef<TimerState | null>(initialTimer)
   const pausedRef = useRef(false)
@@ -130,14 +144,29 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
     accumulatedMs: number
     startedAt: number | null
   } | null>(null)
-  const hydratedRef = useRef<string | null>(null)
   const editVersionRef = useRef(0)
   const updateRef = useRef(update)
   const reducedMotionRef = useRef(false)
+  const soundOnRef = useRef(soundOn)
+
+  // Serializes every write through one promise chain so an older payload can
+  // never land after a newer one (debounce + visibility/finish can race).
+  const pushChainRef = useRef<Promise<unknown>>(Promise.resolve())
+  const pushTimerRef = useRef<number | null>(null)
+  const pushKeepaliveRef = useRef(false)
+  const pushingRef = useRef(false)
+  const pendingPushRef = useRef(false)
+  const retryAttemptRef = useRef(0)
+  const unmountedRef = useRef(false)
+  const runPushRef = useRef<() => Promise<void>>(async () => undefined)
 
   useEffect(() => {
     updateRef.current = update
   })
+
+  useEffect(() => {
+    soundOnRef.current = soundOn
+  }, [soundOn])
 
   const applyTimer = useCallback((nextTimer: TimerState | null) => {
     timerRef.current = nextTimer
@@ -145,8 +174,9 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
   }, [])
 
   const playAlert = useCallback(() => {
-    // Respect the user's motion preference for both the pulse and the beep.
-    if (reducedMotionRef.current) return
+    // Respect a muted toggle and the user's motion preference for both the
+    // vibration and the beep.
+    if (reducedMotionRef.current || !soundOnRef.current) return
     try {
       if (typeof navigator.vibrate === "function") navigator.vibrate(200)
     } catch {
@@ -213,25 +243,112 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
     [applyTimer, finishRest],
   )
 
-  const pushState = useCallback(() => {
-    const input = useSessionStore.getState().toStateInput()
-    const version = editVersionRef.current
-    updateRef.current.mutate(input, {
-      onSuccess: () => {
-        // Only clear the dirty flag if no edit landed while this PUT was in
-        // flight; otherwise keep it set so the debounce pushes again.
-        if (editVersionRef.current === version) {
-          useSessionStore.setState({ isDirty: false })
-        }
-      },
-    })
+  // Appends a write to the single serialized chain so requests stay ordered.
+  const enqueuePush = useCallback(<T,>(task: () => Promise<T>): Promise<T> => {
+    const run = () => task()
+    const next = pushChainRef.current.then(run, run)
+    pushChainRef.current = next.then(
+      () => undefined,
+      () => undefined,
+    )
+    return next
   }, [])
 
-  // Hydrate the authoritative client store from the server DTO exactly once
-  // per session id (a refetch must not clobber the user's edits/navigation).
+  const schedulePush = useCallback(
+    (delay: number, keepalive = false) => {
+      if (unmountedRef.current) return
+      if (pushTimerRef.current !== null) window.clearTimeout(pushTimerRef.current)
+      pushKeepaliveRef.current = keepalive
+      pushTimerRef.current = window.setTimeout(() => {
+        pushTimerRef.current = null
+        void runPushRef.current()
+      }, delay)
+    },
+    [],
+  )
+
+  /**
+   * Persists the current store snapshot once. A failure re-schedules itself
+   * with bounded exponential backoff while the store is still dirty, so a
+   * transient network error never silently drops logged sets.
+   */
+  const pushState = useCallback(async () => {
+    if (unmountedRef.current) return
+    if (pushingRef.current) {
+      // A write is already in flight; ask for one more trailing push.
+      pendingPushRef.current = true
+      return
+    }
+    pushingRef.current = true
+    if (pushTimerRef.current !== null) {
+      window.clearTimeout(pushTimerRef.current)
+      pushTimerRef.current = null
+    }
+    const keepalive = pushKeepaliveRef.current
+    pushKeepaliveRef.current = false
+    setSaveStatus("saving")
+    let failed = false
+    let versionMismatch = false
+    try {
+      await enqueuePush(async () => {
+        const version = editVersionRef.current
+        const input = useSessionStore.getState().toStateInput()
+        await updateRef.current.mutateAsync({ input, keepalive })
+        if (editVersionRef.current === version) {
+          useSessionStore.setState({ isDirty: false })
+        } else {
+          versionMismatch = true
+        }
+      })
+    } catch {
+      failed = true
+    } finally {
+      pushingRef.current = false
+    }
+    if (unmountedRef.current) return
+    const dirty = useSessionStore.getState().isDirty
+    const queued = pendingPushRef.current
+    pendingPushRef.current = false
+
+    if (failed) {
+      setSaveStatus("error")
+      retryAttemptRef.current += 1
+      const backoff = Math.min(
+        PUSH_DEBOUNCE_MS * 2 ** retryAttemptRef.current,
+        PUSH_MAX_BACKOFF_MS,
+      )
+      schedulePush(backoff)
+      return
+    }
+
+    retryAttemptRef.current = 0
+    if (dirty || versionMismatch) {
+      setSaveStatus("saving")
+      schedulePush(PUSH_DEBOUNCE_MS)
+      return
+    }
+    if (queued) {
+      schedulePush(0)
+      return
+    }
+    setSaveStatus("saved")
+  }, [enqueuePush, schedulePush])
+
   useEffect(() => {
-    if (hydratedRef.current === session.id) return
-    hydratedRef.current = session.id
+    runPushRef.current = pushState
+  }, [pushState])
+
+  const retrySave = useCallback(() => {
+    retryAttemptRef.current = 0
+    schedulePush(0)
+  }, [schedulePush])
+
+  // Hydrate the authoritative client store from the server DTO once per session
+  // id. Keying on the *store's* sessionId (not a ref) keeps StrictMode's
+  // simulated unmount→remount from leaving the runner empty: the reset cleanup
+  // nulls the store id, so the remount re-hydrates.
+  useEffect(() => {
+    if (useSessionStore.getState().sessionId === session.id) return
     hydrate(session)
   }, [hydrate, session])
 
@@ -290,7 +407,13 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
   }, [])
 
   useEffect(() => {
+    unmountedRef.current = false
     return () => {
+      unmountedRef.current = true
+      if (pushTimerRef.current !== null) {
+        window.clearTimeout(pushTimerRef.current)
+        pushTimerRef.current = null
+      }
       reset()
     }
   }, [reset])
@@ -352,21 +475,27 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
   // Debounced push: any edit (isDirty) schedules a PUT ~2s after the last edit.
   useEffect(() => {
     if (!isDirty) return
-    const id = window.setTimeout(pushState, PUSH_DEBOUNCE_MS)
-    return () => window.clearTimeout(id)
-  }, [exercises, isDirty, pushState])
+    schedulePush(PUSH_DEBOUNCE_MS)
+    return () => {
+      if (pushTimerRef.current !== null) {
+        window.clearTimeout(pushTimerRef.current)
+        pushTimerRef.current = null
+      }
+    }
+  }, [exercises, isDirty, schedulePush])
 
   // Last-chance push when the tab/app is backgrounded, but only when there are
   // unsaved edits (an unconditional PUT would race the destructive replaceSets).
+  // Uses `keepalive` so the request outlives the hidden tab.
   useEffect(() => {
     if (!isDirty) return
     function handleVisibility() {
-      if (document.visibilityState === "hidden") pushState()
+      if (document.visibilityState === "hidden") schedulePush(0, true)
     }
     document.addEventListener("visibilitychange", handleVisibility)
     return () =>
       document.removeEventListener("visibilitychange", handleVisibility)
-  }, [isDirty, pushState])
+  }, [isDirty, schedulePush])
 
   // Media + previous-performance are keyed by CATALOG exercise id so a swap
   // (which rewrites the store's `exerciseId`) immediately drops the replaced
@@ -408,9 +537,23 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
 
   function handleSetComplete(setNumber: number, completed: boolean) {
     if (!currentExercise) return
-    toggleSet(currentExercise.id, setNumber, {
+    const patch: SessionSetPatch = {
       completedAt: completed ? new Date().toISOString() : null,
-    })
+    }
+    // Persist the displayed last-performance prefill when the user checks off a
+    // set they never typed into, so the shown values are actually saved.
+    if (completed) {
+      const set = currentExercise.sets.find(
+        (entry) => entry.setNumber === setNumber,
+      )
+      if (set?.reps == null && currentLastPerformance?.reps != null) {
+        patch.reps = currentLastPerformance.reps
+      }
+      if (set?.weightKg == null && currentLastPerformance?.weightKg != null) {
+        patch.weightKg = currentLastPerformance.weightKg
+      }
+    }
+    toggleSet(currentExercise.id, setNumber, patch)
     if (
       completed &&
       (!currentTimerType || currentTimerType === "none") &&
@@ -430,23 +573,35 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
     }
     if (nextPaused) pauseRest()
     else resumeRest()
-    pushState()
+    schedulePush(0)
   }
 
   async function finishSession() {
     pausedRef.current = true
     setPaused(true)
-    const input = useSessionStore.getState().toStateInput()
+    if (pushTimerRef.current !== null) {
+      window.clearTimeout(pushTimerRef.current)
+      pushTimerRef.current = null
+    }
+    pendingPushRef.current = false
+    // Flush the header (via the serialized chain) before finalizing.
     try {
-      await updateRef.current.mutateAsync(input)
+      await enqueuePush(async () => {
+        const input = useSessionStore.getState().toStateInput()
+        await updateRef.current.mutateAsync({ input })
+      })
+      useSessionStore.setState({ isDirty: false })
+      retryAttemptRef.current = 0
     } catch {
       // Best effort: still finalize so the user isn't stuck in the runner.
+      setSaveStatus("error")
     }
     try {
       await complete.mutateAsync(useSessionStore.getState().activeSeconds)
       router.push(`/${locale}/workout/summary/${session.id}`)
     } catch {
       setFinishOpen(false)
+      toast.error(t("save.finishError"))
     }
   }
 
@@ -469,6 +624,46 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
         completedSets={completedSets}
         totalSets={totalSets}
       />
+
+      <div className="flex items-center justify-between gap-2">
+        <div
+          role="status"
+          aria-live="polite"
+          className="text-muted-foreground flex min-h-5 items-center gap-2 text-xs"
+        >
+          {saveStatus === "saving" ? t("save.saving") : null}
+          {saveStatus === "saved" ? t("save.saved") : null}
+          {saveStatus === "error" ? (
+            <>
+              <span className="text-destructive">{t("save.error")}</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8"
+                onClick={retrySave}
+              >
+                {t("save.retry")}
+              </Button>
+            </>
+          ) : null}
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-9 shrink-0 gap-1.5"
+          aria-pressed={soundOn}
+          onClick={() => setSoundOn(!soundOn)}
+        >
+          {soundOn ? (
+            <SpeakerHigh className="size-4" aria-hidden="true" />
+          ) : (
+            <SpeakerSlash className="size-4" aria-hidden="true" />
+          )}
+          {soundOn ? tTimers("soundOn") : tTimers("soundOff")}
+        </Button>
+      </div>
 
       {currentTimerType && currentTimerType !== "none" && timer ? (
         <IntervalTimer

@@ -295,6 +295,14 @@
     "unknownDay": "That day is no longer in your routine.",
     "error": "Couldn't load your workout",
     "retry": "Retry",
+    "conflict": "A workout is already in progress.",
+    "save": {
+      "saving": "Saving…",
+      "saved": "Saved",
+      "error": "Couldn't save your progress.",
+      "retry": "Retry save",
+      "finishError": "Couldn't finish the workout. Please try again."
+    },
     "sets": {
       "reps": "Reps",
       "weight": "Weight",

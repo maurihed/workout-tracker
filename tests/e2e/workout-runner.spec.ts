@@ -57,25 +57,31 @@ test("runs a workout, logs a set, resumes after a reload, then finishes", async 
   ).toBeVisible()
   await page.getByRole("button", { name: "E2E Day A", exact: true }).click()
 
-  // Runner is up on the first exercise.
+  // Runner is up on the first exercise, with the prescribed sets already seeded
+  // (the helper seeds 3 sets × 10 reps) so no manual "Add set" is needed.
   await expect(
     page.getByRole("heading", { level: 2, name: EXERCISE_A }),
   ).toBeVisible()
+  await expect(page.getByLabel("Reps")).toHaveCount(3)
+  await expect(page.getByLabel("Reps").first()).toHaveValue("10")
 
-  // Log a set: add the row, fill reps/weight, then mark it complete.
-  await page.getByRole("button", { name: "Add set" }).click()
-  await page.getByLabel("Reps").fill("10")
-  await page.getByLabel("Weight").fill("20")
+  // Log the first set: fill the weight, then mark it complete.
+  await page.getByLabel("Weight").first().fill("20")
 
   // Register the response wait before completing: the runner pushes the state
   // to the server ~2s after the last edit, and the reload must resume from it.
-  const persisted = page.waitForResponse(
-    (response) =>
+  const persisted = page.waitForResponse((response) => {
+    const url = new URL(response.url())
+    return (
       response.request().method() === "PUT" &&
-      /\/api\/sessions\/[^/]+$/.test(response.url()) &&
-      response.status() === 200,
-  )
-  await page.getByRole("checkbox", { name: "Mark set complete" }).check()
+      /^\/api\/sessions\/[^/]+$/.test(url.pathname) &&
+      response.status() === 200
+    )
+  })
+  await page
+    .getByRole("checkbox", { name: "Mark set complete" })
+    .first()
+    .check()
 
   // Completing a set with rest configured surfaces the rest timer bar.
   await expect(page.getByRole("region", { name: "Rest" })).toBeVisible()
@@ -86,14 +92,17 @@ test("runs a workout, logs a set, resumes after a reload, then finishes", async 
   await expect(
     page.getByRole("heading", { level: 2, name: EXERCISE_A }),
   ).toBeVisible()
-  await expect(page.getByLabel("Reps")).toHaveValue("10")
-  await expect(page.getByLabel("Weight")).toHaveValue("20")
+  await expect(page.getByLabel("Reps").first()).toHaveValue("10")
+  await expect(page.getByLabel("Weight").first()).toHaveValue("20")
   await expect(
-    page.getByRole("checkbox", { name: "Mark set complete" }),
+    page.getByRole("checkbox", { name: "Mark set complete" }).first(),
   ).toBeChecked()
 
-  // Finish (the only set is complete, so no confirmation dialog) → summary.
+  // Two prescribed sets remain, so finishing asks for confirmation first.
   await page.getByRole("button", { name: "Finish" }).click()
+  const finishDialog = page.getByRole("alertdialog")
+  await expect(finishDialog).toBeVisible()
+  await finishDialog.getByRole("button", { name: "Finish" }).click()
   await expect(page).toHaveURL(/\/en\/workout\/summary\/[^/]+$/)
 
   await expect(

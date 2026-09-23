@@ -27,6 +27,8 @@ export type UnitSystem = "metric" | "imperial"
 type SetRowProps = {
   set: SetRowSet
   unitSystem: UnitSystem
+  /** Displayed when the set itself has no value yet (target/last-performance). */
+  prefill?: { reps: number | null; weightKg: number | null } | null
   onChange: (patch: SessionSetPatch) => void
   onComplete: (completed: boolean) => void
 }
@@ -42,7 +44,13 @@ function weightToDraft(weightKg: number | null, unitSystem: UnitSystem): string 
   return weightKg == null ? "" : String(displayWeight(weightKg, unitSystem))
 }
 
-export function SetRow({ set, unitSystem, onChange, onComplete }: SetRowProps) {
+export function SetRow({
+  set,
+  unitSystem,
+  prefill,
+  onChange,
+  onComplete,
+}: SetRowProps) {
   const t = useTranslations("runner")
   const completed = set.completedAt !== null
   const warmup = set.type === "warmup"
@@ -50,19 +58,23 @@ export function SetRow({ set, unitSystem, onChange, onComplete }: SetRowProps) {
   const weightId = `set-${set.setNumber}-weight`
   const rpeId = `set-${set.setNumber}-rpe`
 
+  // Show the target/last-performance value only until the user records one.
+  const repsValue = set.reps ?? prefill?.reps ?? null
+  const weightValue = set.weightKg ?? prefill?.weightKg ?? null
+
   // The weight field keeps its own string draft while the user types so the
   // unit conversion (display <-> kg) never rewrites the focused input. Without
   // this, imperial entry is unusable: `100` would round-trip through kg on every
   // keystroke and redisplay as `100.1`, making `100` unreachable.
   const [weightDraft, setWeightDraft] = useState(() =>
-    weightToDraft(set.weightKg, unitSystem),
+    weightToDraft(weightValue, unitSystem),
   )
   const weightFocused = useRef(false)
 
   useEffect(() => {
     if (weightFocused.current) return
-    setWeightDraft(weightToDraft(set.weightKg, unitSystem))
-  }, [set.weightKg, unitSystem])
+    setWeightDraft(weightToDraft(weightValue, unitSystem))
+  }, [weightValue, unitSystem])
 
   return (
     <li
@@ -115,7 +127,7 @@ export function SetRow({ set, unitSystem, onChange, onComplete }: SetRowProps) {
             type="number"
             inputMode="numeric"
             min={0}
-            value={set.reps ?? ""}
+            value={repsValue ?? ""}
             onChange={(event) => onChange({ reps: toNumberOrNull(event.target.value) })}
             className={cn("h-11 text-center", completed && "text-muted-foreground")}
           />

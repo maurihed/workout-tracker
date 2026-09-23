@@ -51,6 +51,12 @@ export function ExerciseView({
   const t = useTranslations("runner")
   const thumbnail = exerciseImageUrl(imagePath ?? undefined)
   const notesId = `exercise-${exercise.id}-notes`
+  // Prescribed reps/weights already arrive seeded on each set from the server;
+  // this prefill covers sets left blank (e.g. a non-numeric target) using the
+  // last recorded performance.
+  const prefill = lastPerformance
+    ? { reps: lastPerformance.reps, weightKg: lastPerformance.weightKg }
+    : null
 
   const target =
     exercise.restSeconds != null
@@ -101,6 +107,7 @@ export function ExerciseView({
             key={set.setNumber}
             set={set}
             unitSystem={unitSystem}
+            prefill={prefill}
             onChange={(patch) => onSetChange(set.setNumber, patch)}
             onComplete={(completed) => onSetComplete(set.setNumber, completed)}
           />
