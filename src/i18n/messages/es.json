@@ -303,6 +303,13 @@
     "addSet": "Añadir serie",
     "target": "{sets} × {reps}",
     "targetWithRest": "{sets} × {reps} · {rest}s de descanso",
+    "image": {
+      "view": "Ver imagen del ejercicio",
+      "start": "Inicio",
+      "end": "Fin",
+      "pause": "Pausar animación",
+      "play": "Reproducir animación"
+    },
     "unknownDay": "Ese día ya no está en tu rutina.",
     "error": "No se pudo cargar tu entrenamiento",
     "retry": "Reintentar",

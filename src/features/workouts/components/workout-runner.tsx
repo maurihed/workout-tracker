@@ -631,7 +631,7 @@ export function WorkoutRunner({
             })),
           }}
           unitSystem={unitSystem}
-          imagePath={currentMedia?.images?.[0] ?? null}
+          imagePaths={currentMedia?.images ?? []}
           lastPerformance={currentLastPerformance}
           onSetChange={(setNumber, patch) => {
             toggleSet(currentExercise.id, setNumber, patch)

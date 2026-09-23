@@ -303,6 +303,13 @@
     "addSet": "Add set",
     "target": "{sets} × {reps}",
     "targetWithRest": "{sets} × {reps} · {rest}s rest",
+    "image": {
+      "view": "View exercise image",
+      "start": "Start",
+      "end": "End",
+      "pause": "Pause animation",
+      "play": "Play animation"
+    },
     "unknownDay": "That day is no longer in your routine.",
     "error": "Couldn't load your workout",
     "retry": "Retry",

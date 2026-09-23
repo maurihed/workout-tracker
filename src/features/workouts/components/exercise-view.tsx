@@ -3,9 +3,11 @@
 import { ClockCounterClockwise, Plus } from "@phosphor-icons/react"
 import { useTranslations } from "next-intl"
 import Image from "next/image"
+import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { ExerciseImageModal } from "@/features/workouts/components/exercise-image-modal"
 import { SetRow, type SetRowSet, type UnitSystem } from "@/features/workouts/components/set-row"
 import { formatWeight } from "@/features/workouts/lib/units"
 import type { SessionSetPatch } from "@/features/workouts/stores/session-store"
@@ -30,7 +32,7 @@ export type ExerciseViewExercise = {
 type ExerciseViewProps = {
   exercise: ExerciseViewExercise
   unitSystem: UnitSystem
-  imagePath?: string | null
+  imagePaths?: string[]
   lastPerformance?: LastPerformance | null
   onSetChange: (setNumber: number, patch: SessionSetPatch) => void
   onSetComplete: (setNumber: number, completed: boolean) => void
@@ -41,7 +43,7 @@ type ExerciseViewProps = {
 export function ExerciseView({
   exercise,
   unitSystem,
-  imagePath,
+  imagePaths,
   lastPerformance,
   onSetChange,
   onSetComplete,
@@ -49,7 +51,9 @@ export function ExerciseView({
   onNotesChange,
 }: ExerciseViewProps) {
   const t = useTranslations("runner")
-  const thumbnail = exerciseImageUrl(imagePath ?? undefined)
+  const [imageOpen, setImageOpen] = useState(false)
+  const images = imagePaths ?? []
+  const thumbnail = exerciseImageUrl(images[0])
   const notesId = `exercise-${exercise.id}-notes`
   // Prescribed reps/weights already arrive seeded on each set from the server;
   // this prefill covers sets left blank (e.g. a non-numeric target) using the
@@ -73,14 +77,22 @@ export function ExerciseView({
   return (
     <section className="flex flex-col gap-4" aria-label={exercise.nameSnapshot}>
       <div className="bg-card flex items-center gap-3 rounded-3xl border border-border p-3 ring-1 ring-(--surface-ring)">
-        <Image
-          src={thumbnail}
-          alt=""
-          width={72}
-          height={72}
-          unoptimized={thumbnail.endsWith(".svg")}
-          className="bg-muted size-18 shrink-0 rounded-2xl object-cover"
-        />
+        <button
+          type="button"
+          onClick={() => setImageOpen(true)}
+          disabled={images.length === 0}
+          aria-label={t("image.view")}
+          className="focus-visible:ring-ring/50 shrink-0 rounded-2xl outline-none focus-visible:ring-3 disabled:cursor-default"
+        >
+          <Image
+            src={thumbnail}
+            alt=""
+            width={72}
+            height={72}
+            unoptimized={thumbnail.endsWith(".svg")}
+            className="bg-muted size-18 shrink-0 rounded-2xl object-cover"
+          />
+        </button>
         <div className="flex min-w-0 flex-col gap-1">
           <h2 className="font-heading truncate text-xl font-bold tracking-tight">
             {exercise.nameSnapshot}
@@ -140,6 +152,13 @@ export function ExerciseView({
           className="border-input bg-muted/40 focus-visible:border-ring focus-visible:ring-ring/50 min-h-11 w-full resize-y rounded-2xl border px-3.5 py-2 text-base outline-none focus-visible:ring-3 md:text-sm"
         />
       </div>
+
+      <ExerciseImageModal
+        open={imageOpen}
+        onOpenChange={setImageOpen}
+        name={exercise.nameSnapshot}
+        imagePaths={images}
+      />
     </section>
   )
 }
