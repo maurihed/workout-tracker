@@ -229,6 +229,7 @@ export function ExercisePicker({ routineId, dayId }: ExercisePickerProps) {
             {items.map((item) => {
               const name = displayName(item)
               const inputId = `picker-${item.id}`
+              const thumbnail = exerciseImageUrl(item.images[0])
               return (
                 <li key={item.id}>
                   <label
@@ -244,10 +245,11 @@ export function ExercisePicker({ routineId, dayId }: ExercisePickerProps) {
                       aria-label={name}
                     />
                     <Image
-                      src={exerciseImageUrl(item.images[0])}
+                      src={thumbnail}
                       alt=""
                       width={48}
                       height={48}
+                      unoptimized={thumbnail.endsWith(".svg")}
                       className="bg-muted size-12 shrink-0 rounded-md object-cover"
                     />
                     <span className="flex min-w-0 flex-1 flex-col gap-1">
