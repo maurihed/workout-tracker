@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react"
+import { fireEvent, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -6,8 +6,8 @@ vi.mock("next-intl", () => ({
   useTranslations: () => (k: string) => k,
   useLocale: () => "en",
 }))
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }))
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
+const push = vi.hoisted(() => vi.fn())
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }))
 vi.mock("@/features/profile/hooks/use-profile", () => ({
   useProfile: () => ({ data: { unitSystem: "metric" } }),
 }))
@@ -15,43 +15,35 @@ vi.mock("@/features/workouts/components/swap-exercise-sheet", () => ({
   SwapExerciseSheet: () => null,
 }))
 
-const mutation = vi.hoisted(() => ({
-  mutate: vi.fn(),
-  mutateAsync: vi.fn(async () => undefined),
-  isPending: false,
-  reset: vi.fn(),
+const sync = vi.hoisted(() => ({
+  status: { online: true, pending: 0, syncing: false, flush: vi.fn() },
+  enqueueState: vi.fn(),
+  complete: vi.fn(async () => {}),
+  abandon: vi.fn(async () => {}),
 }))
-vi.mock("@/features/workouts/hooks/use-update-session", () => ({
-  useUpdateSession: () => mutation,
-}))
-vi.mock("@/features/workouts/hooks/use-complete-session", () => ({
-  useCompleteSession: () => mutation,
-}))
-vi.mock("@/features/workouts/hooks/use-abandon-session", () => ({
-  useAbandonSession: () => mutation,
+vi.mock("@/features/workouts/hooks/use-session-sync", () => ({
+  useSessionSync: () => sync,
 }))
 
-import { WorkoutRunner } from "@/features/workouts/components/workout-runner"
-import type { SessionDTO } from "@/features/workouts/hooks/use-active-session"
-import { useSessionStore } from "@/features/workouts/stores/session-store"
+import {
+  WorkoutRunner,
+  type RunnerSessionInput,
+} from "@/features/workouts/components/workout-runner"
+import {
+  useSessionStore,
+  type SessionStoreSource,
+} from "@/features/workouts/stores/session-store"
 
-const session: SessionDTO = {
+const storeSession: SessionStoreSource = {
   id: "s1",
-  userId: "u1",
-  routineId: null,
-  routineDayId: null,
   name: "Push",
   status: "in_progress",
   startedAt: "2026-01-01T00:00:00.000Z",
-  completedAt: null,
   activeSeconds: 0,
-  notes: null,
-  snapshot: null,
   exercises: [
     {
       id: "se1",
       exerciseId: "e1",
-      order: 0,
       nameSnapshot: "Squat",
       targetSets: 3,
       targetReps: "10",
@@ -63,8 +55,6 @@ const session: SessionDTO = {
       skipped: false,
       swappedFromId: null,
       notes: null,
-      exercise: null,
-      lastPerformance: null,
       sets: [
         {
           id: "set1",
@@ -82,26 +72,42 @@ const session: SessionDTO = {
   ],
 }
 
+const session: RunnerSessionInput = {
+  id: "s1",
+  exercises: [
+    {
+      exerciseId: "e1",
+      timerType: "none",
+      workSeconds: null,
+      restSeconds: 60,
+      rounds: null,
+      exercise: null,
+      lastPerformance: null,
+    },
+  ],
+}
+
 beforeEach(() => {
   useSessionStore.getState().reset()
-  useSessionStore.getState().hydrate(session, {
+  useSessionStore.getState().hydrate(storeSession, {
     snapshot: null,
     routineDayId: null,
   })
-  mutation.mutateAsync.mockReset()
-  mutation.mutateAsync.mockResolvedValue(undefined)
+  sync.enqueueState.mockReset()
+  sync.complete.mockReset()
+  sync.complete.mockResolvedValue(undefined)
+  sync.abandon.mockReset()
+  sync.abandon.mockResolvedValue(undefined)
+  sync.status.online = true
+  sync.status.pending = 0
+  sync.status.syncing = false
+  push.mockReset()
   window.localStorage.clear()
 })
 
 afterEach(() => {
   vi.useRealTimers()
 })
-
-async function flush(ms: number) {
-  await act(async () => {
-    await vi.advanceTimersByTimeAsync(ms)
-  })
-}
 
 describe("WorkoutRunner store ownership", () => {
   it("renders the seeded store without hydrating it itself", () => {
@@ -121,62 +127,35 @@ describe("WorkoutRunner store ownership", () => {
   })
 })
 
-describe("WorkoutRunner save status", () => {
-  it("pushes on pause and reports saved, with a sound toggle", async () => {
-    vi.useFakeTimers()
+describe("WorkoutRunner sync status", () => {
+  it("reports saved when online with nothing pending, with a sound toggle", () => {
     render(<WorkoutRunner session={session} />)
 
-    const status = screen.getByRole("status")
-    fireEvent.click(screen.getByRole("button", { name: "pause" }))
-    await flush(0)
-    await flush(0)
+    expect(screen.getByRole("status")).toHaveTextContent("save.saved")
 
-    expect(mutation.mutateAsync).toHaveBeenCalled()
-    expect(status).toHaveTextContent("save.saved")
-
-    // The persisted sound toggle flips and writes to storage.
     fireEvent.click(screen.getByRole("button", { name: "soundOn" }))
     expect(window.localStorage.getItem("gym.runner.sound")).toBe("off")
     expect(screen.getByRole("button", { name: "soundOff" })).toBeInTheDocument()
   })
 
-  it("surfaces a save error and retries on demand", async () => {
-    vi.useFakeTimers()
-    mutation.mutateAsync.mockRejectedValueOnce(new Error("network"))
+  it("surfaces offline and pending sync counts", () => {
+    sync.status.online = false
+    const { unmount } = render(<WorkoutRunner session={session} />)
+    expect(screen.getByRole("status")).toHaveTextContent("save.offline")
+    unmount()
+
+    sync.status.online = true
+    sync.status.pending = 2
+    render(<WorkoutRunner session={session} />)
+    expect(screen.getByRole("status")).toHaveTextContent("save.pending")
+  })
+
+  it("enqueues the session when the user pauses", () => {
     render(<WorkoutRunner session={session} />)
 
     fireEvent.click(screen.getByRole("button", { name: "pause" }))
-    await flush(0)
-    await flush(0)
 
-    expect(screen.getByRole("status")).toHaveTextContent("save.error")
-
-    fireEvent.click(screen.getByRole("button", { name: "save.retry" }))
-    await flush(0)
-    await flush(0)
-    expect(screen.getByRole("status")).toHaveTextContent("save.saved")
-  })
-
-  it("does not retry a terminal 4xx save and refetches the session on 409", async () => {
-    vi.useFakeTimers()
-    const onSessionConflict = vi.fn()
-    const conflict = Object.assign(new Error("conflict"), { status: 409 })
-    mutation.mutateAsync.mockRejectedValueOnce(conflict)
-    render(
-      <WorkoutRunner session={session} onSessionConflict={onSessionConflict} />,
-    )
-
-    fireEvent.click(screen.getByRole("button", { name: "pause" }))
-    await flush(0)
-    await flush(0)
-
-    expect(screen.getByRole("status")).toHaveTextContent("save.error")
-    expect(onSessionConflict).toHaveBeenCalledTimes(1)
-
-    const calls = mutation.mutateAsync.mock.calls.length
-    // Advance far past the max backoff: a terminal failure must not loop.
-    await flush(60_000)
-    expect(mutation.mutateAsync).toHaveBeenCalledTimes(calls)
+    expect(sync.enqueueState).toHaveBeenCalled()
   })
 
   it("logs a set, marks the exercise dirty, and starts the rest timer", async () => {
@@ -191,9 +170,47 @@ describe("WorkoutRunner save status", () => {
   })
 })
 
+describe("WorkoutRunner finish and discard", () => {
+  it("completes the session and navigates to the summary", async () => {
+    const user = userEvent.setup()
+    render(<WorkoutRunner session={session} />)
+
+    await user.click(screen.getByRole("button", { name: "finish" }))
+    const dialog = screen.getByRole("alertdialog")
+    await user.click(within(dialog).getByRole("button", { name: "finish" }))
+
+    expect(sync.complete).toHaveBeenCalledWith(0)
+    expect(push).toHaveBeenCalledWith("/en/workout/summary/s1")
+  })
+
+  it("abandons the session and navigates to the dashboard", async () => {
+    const user = userEvent.setup()
+    render(<WorkoutRunner session={session} />)
+
+    await user.click(screen.getByRole("button", { name: "discard" }))
+    const dialog = screen.getByRole("alertdialog")
+    await user.click(within(dialog).getByRole("button", { name: "discard" }))
+
+    expect(sync.abandon).toHaveBeenCalled()
+    expect(push).toHaveBeenCalledWith("/en/dashboard")
+  })
+})
+
 describe("WorkoutRunner timed exercises", () => {
-  const timedSession: SessionDTO = {
-    ...session,
+  const timedStoreSession: SessionStoreSource = {
+    ...storeSession,
+    exercises: [
+      {
+        ...storeSession.exercises[0]!,
+        timerType: "interval",
+        workSeconds: 30,
+        restSeconds: 15,
+        rounds: 3,
+      },
+    ],
+  }
+  const timedSession: RunnerSessionInput = {
+    id: "s1",
     exercises: [
       {
         ...session.exercises[0]!,
@@ -209,7 +226,7 @@ describe("WorkoutRunner timed exercises", () => {
     const user = userEvent.setup()
     useSessionStore
       .getState()
-      .hydrate(timedSession, { snapshot: null, routineDayId: null })
+      .hydrate(timedStoreSession, { snapshot: null, routineDayId: null })
     render(<WorkoutRunner session={timedSession} />)
 
     const region = screen.getByRole("region", { name: "interval" })

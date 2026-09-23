@@ -57,6 +57,8 @@ const RUNNER_KEYS = [
   "runner.conflict",
   "runner.save.saving",
   "runner.save.saved",
+  "runner.save.offline",
+  "runner.save.pending",
   "runner.save.error",
   "runner.save.retry",
   "runner.save.finishError",

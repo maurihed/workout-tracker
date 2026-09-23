@@ -299,6 +299,8 @@
     "save": {
       "saving": "Saving…",
       "saved": "Saved",
+      "offline": "Offline",
+      "pending": "{count} to sync",
       "error": "Couldn't save your progress.",
       "retry": "Retry save",
       "finishError": "Couldn't finish the workout. Please try again."

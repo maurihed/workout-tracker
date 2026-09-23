@@ -61,7 +61,7 @@ type HydratableSet = Pick<
   | "rpe"
   | "restSecondsLogged"
   | "completedAt"
-> & { id?: string }
+> & { id?: string | null }
 
 type HydratableExercise = Pick<
   SessionExerciseDTO,

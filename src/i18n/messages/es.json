@@ -299,6 +299,8 @@
     "save": {
       "saving": "Guardando…",
       "saved": "Guardado",
+      "offline": "Sin conexión",
+      "pending": "{count} por sincronizar",
       "error": "No se pudo guardar tu progreso.",
       "retry": "Reintentar guardar",
       "finishError": "No se pudo terminar el entrenamiento. Inténtalo de nuevo."

@@ -16,7 +16,6 @@ import {
 import { useLocale, useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { toast } from "sonner"
 
 import {
   AlertDialog,
@@ -44,14 +43,8 @@ import type {
   SessionTimerType,
 } from "@/features/workouts/hooks/use-active-session"
 import type { UnitSystem } from "@/features/workouts/components/set-row"
-import { useAbandonSession } from "@/features/workouts/hooks/use-abandon-session"
-import { useCompleteSession } from "@/features/workouts/hooks/use-complete-session"
+import { useSessionSync } from "@/features/workouts/hooks/use-session-sync"
 import { useSoundPreference } from "@/features/workouts/hooks/use-sound-preference"
-import { useUpdateSession } from "@/features/workouts/hooks/use-update-session"
-import {
-  getHttpStatus,
-  isRetryableSaveError,
-} from "@/features/workouts/lib/save-errors"
 import {
   adjust as adjustTimer,
   pause as pauseTimer,
@@ -67,12 +60,6 @@ import {
   type SessionSetPatch,
 } from "@/features/workouts/stores/session-store"
 
-const PUSH_DEBOUNCE_MS = 2000
-// Cap for the exponential backoff that retries a failed debounced save.
-const PUSH_MAX_BACKOFF_MS = 30_000
-
-type SaveStatus = "idle" | "saving" | "saved" | "error"
-
 type WakeLockSentinelLike = { release: () => Promise<void> }
 
 /** A paused interval timer for timed exercises, or `null` for rep-based work. */
@@ -84,11 +71,14 @@ function buildExerciseTimer(
 ): TimerState | null {
   if (!timerType || timerType === "none") return null
   return pauseTimer(
-    startIntervalTimer({
-      workSeconds: workSeconds ?? 0,
-      restSeconds: restSeconds ?? 0,
-      rounds: rounds ?? 1,
-    }),
+    startIntervalTimer(
+      {
+        workSeconds: workSeconds ?? 0,
+        restSeconds: restSeconds ?? 0,
+        rounds: rounds ?? 1,
+      },
+      Date.now(),
+    ),
   )
 }
 
@@ -107,15 +97,8 @@ export type RunnerSessionInput = {
 
 export function WorkoutRunner({
   session,
-  onSessionConflict,
 }: {
   session: RunnerSessionInput
-  /**
-   * Called when a save fails because the session is no longer in progress
-   * (409) — e.g. another tab finished it. The page refetches the active session
-   * so the runner exits instead of retrying the doomed save forever.
-   */
-  onSessionConflict?: () => void
 }) {
   const t = useTranslations("runner")
   const tTimers = useTranslations("timers")
@@ -138,10 +121,6 @@ export function WorkoutRunner({
   const setNotes = useSessionStore((state) => state.setNotes)
   const goTo = useSessionStore((state) => state.goTo)
 
-  const update = useUpdateSession(session.id)
-  const complete = useCompleteSession(session.id)
-  const abandon = useAbandonSession(session.id)
-
   // Seed the timer from the session DTO so a timed first exercise shows its
   // paused interval timer on the very first paint, before the store hydrates.
   const firstExercise = session.exercises[0] ?? null
@@ -157,7 +136,6 @@ export function WorkoutRunner({
   const [swapOpen, setSwapOpen] = useState(false)
   const [finishOpen, setFinishOpen] = useState(false)
   const [discardOpen, setDiscardOpen] = useState(false)
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle")
   const [soundOn, setSoundOn] = useSoundPreference()
 
   const timerRef = useRef<TimerState | null>(initialTimer)
@@ -170,34 +148,19 @@ export function WorkoutRunner({
     accumulatedMs: number
     startedAt: number | null
   } | null>(null)
-  const editVersionRef = useRef(0)
-  const updateRef = useRef(update)
   const reducedMotionRef = useRef(false)
   const soundOnRef = useRef(soundOn)
-  const sessionConflictRef = useRef(onSessionConflict)
 
-  // Serializes every write through one promise chain so an older payload can
-  // never land after a newer one (debounce + visibility/finish can race).
-  const pushChainRef = useRef<Promise<unknown>>(Promise.resolve())
-  const pushTimerRef = useRef<number | null>(null)
-  const pushKeepaliveRef = useRef(false)
-  const pushingRef = useRef(false)
-  const pendingPushRef = useRef(false)
-  const retryAttemptRef = useRef(0)
-  const unmountedRef = useRef(false)
-  const runPushRef = useRef<() => Promise<void>>(async () => undefined)
-
-  useEffect(() => {
-    updateRef.current = update
-  })
+  const sync = useSessionSync(
+    session.id,
+    () => timerRef.current,
+    () => pausedRef.current,
+  )
+  const { enqueueState } = sync
 
   useEffect(() => {
     soundOnRef.current = soundOn
   }, [soundOn])
-
-  useEffect(() => {
-    sessionConflictRef.current = onSessionConflict
-  }, [onSessionConflict])
 
   const applyTimer = useCallback((nextTimer: TimerState | null) => {
     timerRef.current = nextTimer
@@ -269,123 +232,10 @@ export function WorkoutRunner({
         accumulatedMs: 0,
         startedAt: pausedRef.current ? null : Date.now(),
       }
-      applyTimer(startRestTimer(seconds))
+      applyTimer(startRestTimer(seconds, Date.now()))
     },
     [applyTimer, finishRest],
   )
-
-  // Appends a write to the single serialized chain so requests stay ordered.
-  const enqueuePush = useCallback(<T,>(task: () => Promise<T>): Promise<T> => {
-    const run = () => task()
-    const next = pushChainRef.current.then(run, run)
-    pushChainRef.current = next.then(
-      () => undefined,
-      () => undefined,
-    )
-    return next
-  }, [])
-
-  const schedulePush = useCallback(
-    (delay: number, keepalive = false) => {
-      if (unmountedRef.current) return
-      if (pushTimerRef.current !== null) window.clearTimeout(pushTimerRef.current)
-      pushKeepaliveRef.current = keepalive
-      pushTimerRef.current = window.setTimeout(() => {
-        pushTimerRef.current = null
-        void runPushRef.current()
-      }, delay)
-    },
-    [],
-  )
-
-  /**
-   * Persists the current store snapshot once. A failure re-schedules itself
-   * with bounded exponential backoff while the store is still dirty, so a
-   * transient network error never silently drops logged sets.
-   */
-  const pushState = useCallback(async () => {
-    if (unmountedRef.current) return
-    if (pushingRef.current) {
-      // A write is already in flight; ask for one more trailing push.
-      pendingPushRef.current = true
-      return
-    }
-    pushingRef.current = true
-    if (pushTimerRef.current !== null) {
-      window.clearTimeout(pushTimerRef.current)
-      pushTimerRef.current = null
-    }
-    const keepalive = pushKeepaliveRef.current
-    pushKeepaliveRef.current = false
-    setSaveStatus("saving")
-    let failed = false
-    let retryable = true
-    let sessionConflict = false
-    let versionMismatch = false
-    try {
-      await enqueuePush(async () => {
-        const version = editVersionRef.current
-        const input = useSessionStore.getState().toStateInput()
-        await updateRef.current.mutateAsync({ input, keepalive })
-        if (editVersionRef.current === version) {
-          useSessionStore.setState({ isDirty: false })
-        } else {
-          versionMismatch = true
-        }
-      })
-    } catch (error) {
-      failed = true
-      retryable = isRetryableSaveError(error)
-      sessionConflict = getHttpStatus(error) === 409
-    } finally {
-      pushingRef.current = false
-    }
-    if (unmountedRef.current) return
-    const dirty = useSessionStore.getState().isDirty
-    const queued = pendingPushRef.current
-    pendingPushRef.current = false
-
-    if (failed) {
-      setSaveStatus("error")
-      // A 409 means the session is no longer in progress (another tab finished
-      // or abandoned it). Refresh the active query so the runner exits/updates.
-      if (sessionConflict) sessionConflictRef.current?.()
-      // Retry only transient failures (network / timeout / 5xx). A terminal 4xx
-      // stops the loop and leaves the explicit retry button to the user.
-      if (!retryable) {
-        retryAttemptRef.current = 0
-        return
-      }
-      retryAttemptRef.current += 1
-      const backoff = Math.min(
-        PUSH_DEBOUNCE_MS * 2 ** retryAttemptRef.current,
-        PUSH_MAX_BACKOFF_MS,
-      )
-      schedulePush(backoff)
-      return
-    }
-
-    retryAttemptRef.current = 0
-    if (dirty || versionMismatch) {
-      setSaveStatus("saving")
-      schedulePush(PUSH_DEBOUNCE_MS)
-      return
-    }
-    if (queued) {
-      schedulePush(0)
-      return
-    }
-    setSaveStatus("saved")
-  }, [enqueuePush, schedulePush])
-
-  useEffect(() => {
-    runPushRef.current = pushState
-  }, [pushState])
-
-  const retrySave = useCallback(() => {
-    retryAttemptRef.current = 0
-    schedulePush(0)
-  }, [schedulePush])
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return
@@ -442,13 +292,7 @@ export function WorkoutRunner({
   }, [])
 
   useEffect(() => {
-    unmountedRef.current = false
     return () => {
-      unmountedRef.current = true
-      if (pushTimerRef.current !== null) {
-        window.clearTimeout(pushTimerRef.current)
-        pushTimerRef.current = null
-      }
       reset()
     }
   }, [reset])
@@ -491,7 +335,7 @@ export function WorkoutRunner({
       store.setActiveSeconds(store.activeSeconds + 1)
       const running = timerRef.current
       if (!running || !running.running) return
-      const advanced = tickTimer(running)
+      const advanced = tickTimer(running, Date.now())
       if (running.phase !== "idle" && advanced.phase === "idle") {
         playAlert()
         if (running.kind === "rest") finishRest()
@@ -501,36 +345,25 @@ export function WorkoutRunner({
     return () => window.clearInterval(id)
   }, [applyTimer, finishRest, playAlert])
 
-  // Bump a version on every edit so an in-flight push can tell whether it is
-  // still the latest state (and therefore owns clearing `isDirty`).
+  // A backgrounded tab stops receiving ticks; re-sync the countdown from the
+  // wall clock the moment it becomes visible again.
   useEffect(() => {
-    editVersionRef.current += 1
-  }, [exercises])
-
-  // Debounced push: any edit (isDirty) schedules a PUT ~2s after the last edit.
-  useEffect(() => {
-    if (!isDirty) return
-    schedulePush(PUSH_DEBOUNCE_MS)
-    return () => {
-      if (pushTimerRef.current !== null) {
-        window.clearTimeout(pushTimerRef.current)
-        pushTimerRef.current = null
-      }
-    }
-  }, [exercises, isDirty, schedulePush])
-
-  // Last-chance push when the tab/app is backgrounded, but only when there are
-  // unsaved edits (an unconditional PUT would race the destructive replaceSets).
-  // Uses `keepalive` so the request outlives the hidden tab.
-  useEffect(() => {
-    if (!isDirty) return
     function handleVisibility() {
-      if (document.visibilityState === "hidden") schedulePush(0, true)
+      if (document.visibilityState !== "visible") return
+      const current = timerRef.current
+      if (!current) return
+      applyTimer(tickTimer(current, Date.now()))
     }
     document.addEventListener("visibilitychange", handleVisibility)
     return () =>
       document.removeEventListener("visibilitychange", handleVisibility)
-  }, [isDirty, schedulePush])
+  }, [applyTimer])
+
+  // Debounced push: any edit (isDirty) schedules an upsert ~2s after the last edit.
+  useEffect(() => {
+    if (!isDirty) return
+    enqueueState()
+  }, [exercises, isDirty, enqueueState])
 
   // Media + previous-performance are keyed by CATALOG exercise id so a swap
   // (which rewrites the store's `exerciseId`) immediately drops the replaced
@@ -604,48 +437,28 @@ export function WorkoutRunner({
     setPaused(nextPaused)
     const running = timerRef.current
     if (running && running.phase !== "idle") {
-      applyTimer(nextPaused ? pauseTimer(running) : resumeTimer(running))
+      applyTimer(
+        nextPaused
+          ? pauseTimer(running, Date.now())
+          : resumeTimer(running, Date.now()),
+      )
     }
     if (nextPaused) pauseRest()
     else resumeRest()
-    schedulePush(0)
+    sync.enqueueState()
   }
 
   async function finishSession() {
     pausedRef.current = true
     setPaused(true)
-    if (pushTimerRef.current !== null) {
-      window.clearTimeout(pushTimerRef.current)
-      pushTimerRef.current = null
-    }
-    pendingPushRef.current = false
-    // Flush the header (via the serialized chain) before finalizing.
-    try {
-      await enqueuePush(async () => {
-        const input = useSessionStore.getState().toStateInput()
-        await updateRef.current.mutateAsync({ input })
-      })
-      useSessionStore.setState({ isDirty: false })
-      retryAttemptRef.current = 0
-    } catch {
-      // Best effort: still finalize so the user isn't stuck in the runner.
-      setSaveStatus("error")
-    }
-    try {
-      await complete.mutateAsync(useSessionStore.getState().activeSeconds)
-      router.push(`/${locale}/workout/summary/${session.id}`)
-    } catch {
-      setFinishOpen(false)
-      toast.error(t("save.finishError"))
-    }
+    const seconds = useSessionStore.getState().activeSeconds
+    await sync.complete(seconds)
+    reset()
+    router.push(`/${locale}/workout/summary/${session.id}`)
   }
 
   async function discardSession() {
-    try {
-      await abandon.mutateAsync()
-    } catch {
-      // Ignore; the active query invalidation decides the next view.
-    }
+    await sync.abandon()
     reset()
     router.push(`/${locale}/dashboard`)
   }
@@ -666,21 +479,13 @@ export function WorkoutRunner({
           aria-live="polite"
           className="text-muted-foreground flex min-h-5 items-center gap-2 text-xs"
         >
-          {saveStatus === "saving" ? t("save.saving") : null}
-          {saveStatus === "saved" ? t("save.saved") : null}
-          {saveStatus === "error" ? (
-            <>
-              <span className="text-destructive">{t("save.error")}</span>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-8"
-                onClick={retrySave}
-              >
-                {t("save.retry")}
-              </Button>
-            </>
+          {!sync.status.online ? <span>{t("save.offline")}</span> : null}
+          {sync.status.syncing ? <span>{t("save.saving")}</span> : null}
+          {sync.status.online && !sync.status.syncing && sync.status.pending > 0 ? (
+            <span>{t("save.pending", { count: sync.status.pending })}</span>
+          ) : null}
+          {sync.status.online && !sync.status.syncing && sync.status.pending === 0 ? (
+            <span>{t("save.saved")}</span>
           ) : null}
         </div>
         <Button
@@ -713,13 +518,13 @@ export function WorkoutRunner({
                 currentExercise?.restSeconds ?? null,
                 currentExercise?.rounds ?? null,
               )
-              if (rebuilt) applyTimer(resumeTimer(rebuilt))
+              if (rebuilt) applyTimer(resumeTimer(rebuilt, Date.now()))
               return
             }
-            applyTimer(resumeTimer(timer))
+            applyTimer(resumeTimer(timer, Date.now()))
           }}
-          onPause={() => applyTimer(pauseTimer(timer))}
-          onSkipRound={() => applyTimer(skipRoundTimer(timer))}
+          onPause={() => applyTimer(pauseTimer(timer, Date.now()))}
+          onSkipRound={() => applyTimer(skipRoundTimer(timer, Date.now()))}
         />
       ) : null}
 
@@ -732,7 +537,7 @@ export function WorkoutRunner({
           onAdjust={(delta) => {
             const running = timerRef.current
             if (running && running.kind === "rest") {
-              applyTimer(adjustTimer(running, delta))
+              applyTimer(adjustTimer(running, delta, Date.now()))
             }
           }}
           onSkip={() => {
