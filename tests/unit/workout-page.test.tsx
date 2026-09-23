@@ -246,4 +246,90 @@ describe("WorkoutPage auto-start", () => {
     expect(useSessionStore.getState().sessionId).toBe("s9")
     expect(useSessionStore.getState().snapshot).toEqual(snapshot)
   })
+
+  it("does not rewind an offline local-wins session on re-render", async () => {
+    hooks.persistence.loadActiveSession.mockResolvedValue(localSession)
+    hooks.activeRoutine.mockReturnValue(query(routine))
+    hooks.activeSession.mockReturnValue(query(null))
+
+    const { rerender } = render(<WorkoutPage />)
+    await act(async () => {})
+    expect(useSessionStore.getState().sessionId).toBe("s9")
+
+    act(() => {
+      useSessionStore.getState().setActiveSeconds(99)
+    })
+    expect(useSessionStore.getState().activeSeconds).toBe(99)
+
+    rerender(<WorkoutPage />)
+    await act(async () => {})
+    expect(useSessionStore.getState().activeSeconds).toBe(99)
+
+    act(() => {
+      useSessionStore.getState().addSet("se9")
+    })
+    expect(useSessionStore.getState().exercises[0]?.sets).toHaveLength(1)
+
+    rerender(<WorkoutPage />)
+    await act(async () => {})
+    expect(useSessionStore.getState().activeSeconds).toBe(99)
+    expect(useSessionStore.getState().exercises[0]?.sets).toHaveLength(1)
+  })
+
+  it("hydrates a resumed server session from its stored snapshot", async () => {
+    const serverSnapshot = {
+      routineId: "r1",
+      routineDayId: "d1",
+      name: "Push",
+      nameEs: null,
+      weekday: 1,
+      label: "Push",
+      exercises: [],
+    }
+    const serverSession = {
+      id: "s2",
+      userId: "u1",
+      routineId: "r1",
+      routineDayId: "d1",
+      name: "Push",
+      status: "in_progress",
+      startedAt: "2026-01-01T00:00:00.000Z",
+      completedAt: null,
+      activeSeconds: 5,
+      notes: null,
+      snapshot: serverSnapshot,
+      exercises: [
+        {
+          id: "se2",
+          exerciseId: "e1",
+          order: 0,
+          nameSnapshot: "Squat",
+          targetSets: 3,
+          targetReps: "10",
+          restSeconds: 60,
+          timerType: "none",
+          workSeconds: null,
+          rounds: null,
+          completed: false,
+          skipped: false,
+          swappedFromId: null,
+          notes: null,
+          exercise: null,
+          sets: [],
+          lastPerformance: null,
+        },
+      ],
+    }
+    hooks.persistence.loadActiveSession.mockResolvedValue(undefined)
+    hooks.activeRoutine.mockReturnValue(query(routine))
+    hooks.activeSession.mockReturnValue(query(serverSession))
+
+    render(<WorkoutPage />)
+    await act(async () => {})
+
+    expect(useSessionStore.getState().sessionId).toBe("s2")
+    expect(useSessionStore.getState().snapshot).toEqual(serverSnapshot)
+    expect(useSessionStore.getState().routineDayId).toBe("d1")
+    expect(useSessionStore.getState().toUpsertPayload(0)).not.toBeNull()
+  })
 })

@@ -16,6 +16,7 @@ import {
 } from "@/features/workouts/components/workout-runner"
 import { useActiveSession } from "@/features/workouts/hooks/use-active-session"
 import { useStartSession } from "@/features/workouts/hooks/use-start-session"
+import type { SessionSnapshot } from "@/features/workouts/lib/session-snapshot"
 import {
   loadActiveSession, saveActiveSession, type PersistedSession,
 } from "@/features/workouts/lib/session-persistence"
@@ -98,21 +99,38 @@ export default function WorkoutPage() {
       localSource.status === "in_progress" &&
       (!serverSession || serverSession.id !== localSource.id),
   )
-  const chosen: RunnerSessionInput | null = localWins && local
-    ? toRunnerInput(local)
-    : serverSession
+
+  const chosen = useMemo<RunnerSessionInput | null>(
+    () => (localWins && local ? toRunnerInput(local) : serverSession),
+    [localWins, local, serverSession],
+  )
+  const chosenSource = useMemo<SessionStoreSource | null>(
+    () => (localWins && local ? local.source : serverSession),
+    [localWins, local, serverSession],
+  )
+  const chosenSnapshot = useMemo<SessionSnapshot | null>(
+    () =>
+      localWins && local
+        ? local.snapshot
+        : ((serverSession?.snapshot as SessionSnapshot | null) ?? null),
+    [localWins, local, serverSession],
+  )
+  const chosenRoutineDayId = useMemo(
+    () => (localWins && local ? local.routineDayId : serverSession?.routineDayId ?? null),
+    [localWins, local, serverSession],
+  )
 
   useEffect(() => {
-    if (!chosen) return
-    const source: SessionStoreSource | null = localWins && local ? local.source : serverSession
-    if (!source) return
+    if (!chosen || !chosenSource) return
     const state = useSessionStore.getState()
-    if (state.sessionId === chosen.id && !(localWins && !state.snapshot)) return
-    hydrate(source, {
-      snapshot: localWins && local ? local.snapshot : null,
-      routineDayId: localWins && local ? local.routineDayId : serverSession?.routineDayId ?? null,
+    if (state.sessionId === chosen.id && !(chosenSnapshot != null && state.snapshot == null)) {
+      return
+    }
+    hydrate(chosenSource, {
+      snapshot: chosenSnapshot,
+      routineDayId: chosenRoutineDayId,
     })
-  }, [chosen, hydrate, local, localWins, serverSession])
+  }, [chosen, chosenSource, chosenSnapshot, chosenRoutineDayId, hydrate])
 
   // Adopt a server session into local storage so a later offline reload resumes it.
   const adoptedRef = useRef<string | null>(null)
@@ -124,7 +142,7 @@ export default function WorkoutPage() {
     adoptedRef.current = serverSession.id
     void saveActiveSession({
       source: serverSession,
-      snapshot: null,
+      snapshot: (serverSession.snapshot as SessionSnapshot | null) ?? null,
       routineDayId: serverSession.routineDayId,
       timer: null,
       paused: false,
