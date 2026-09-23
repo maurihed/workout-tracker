@@ -1,7 +1,7 @@
 # Gym Tracker — Phase 2B Workout Runner & Timers — Design Spec
 
 - **Date:** 2026-09-22
-- **Status:** Approved (design), pending implementation planning
+- **Status:** Implemented
 - **Author:** Mauricio Hernandez (with opencode)
 - **Parent spec:** `docs/superpowers/specs/2026-09-22-gym-tracker-design.md` (binding)
 - **Depends on:** Phases 1, 1.5, 2A (merged to `main` at `199ad22`)

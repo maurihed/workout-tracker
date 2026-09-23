@@ -87,6 +87,14 @@ re-run (Prisma records applied migrations in `_prisma_migrations`).
   `RoutineDay_routineId_weekday_key` index above made redundant (its leading
   `routineId` column already serves routine-scoped lookups). This removes an
   index only; no columns, constraints, or rows change.
+- **Phase 2B — `20260923030740_add_session`:** adds the workout session models
+  (`WorkoutSession`, `SessionExercise`, `SetLog`) with their indexes and the
+  `SessionStatus` and `SetType` enums, plus the `WorkoutSession.snapshot` JSONB
+  column that captures the routine prescription at start time. All three models
+  are new tables, so existing rows are unaffected. `WorkoutSession.userId` and
+  the two child→parent foreign keys cascade on delete, while
+  `SessionExercise.exerciseId` is `ON DELETE SET NULL`, matching the
+  routine-exercise rule below.
 - **Foreign-key delete behavior:** every routine foreign key cascades on delete
   except `RoutineExercise.exerciseId`, which is `ON DELETE SET NULL` so deleting
   a catalog exercise leaves the routine's prescription intact.
