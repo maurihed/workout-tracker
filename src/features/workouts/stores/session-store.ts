@@ -99,7 +99,6 @@ type SessionState = {
     patch: SessionSetPatch,
   ) => void
   addSet: (exerciseId: string) => void
-  completeExercise: (exerciseId: string, completed: boolean) => void
   skipExercise: (exerciseId: string, skipped: boolean) => void
   swapExercise: (exerciseId: string, target: SwapTarget) => void
   setNotes: (exerciseId: string, notes: string | null) => void
@@ -186,6 +185,27 @@ function clampIndex(index: number, length: number): number {
 }
 
 /**
+ * Exercise-level completion is derived from its sets: an exercise counts as
+ * completed once it has at least one set and every set is checked off. This
+ * keeps the overview honest (adding an unfinished set re-opens the exercise).
+ */
+function isExerciseComplete(exercise: SessionExerciseState): boolean {
+  return (
+    exercise.sets.length > 0 &&
+    exercise.sets.every((set) => set.completedAt !== null)
+  )
+}
+
+function withDerivedCompletion(
+  exercises: SessionExerciseState[],
+): SessionExerciseState[] {
+  return exercises.map((exercise) => {
+    const completed = isExerciseComplete(exercise)
+    return exercise.completed === completed ? exercise : { ...exercise, completed }
+  })
+}
+
+/**
  * Authoritative client-side workout state. Not persisted: the server owns the
  * session and `GET /api/sessions/active` restores it on mount (Task 9 wires the
  * debounced `PUT` from `isDirty`).
@@ -202,7 +222,7 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
       status: session.status,
       startedAt: session.startedAt,
       activeSeconds: session.activeSeconds,
-      exercises: session.exercises.map(toExerciseState),
+      exercises: withDerivedCompletion(session.exercises.map(toExerciseState)),
       currentIndex: 0,
       isDirty: false,
     })
@@ -215,14 +235,16 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
     if (!exercise) return
     const exists = exercise.sets.some((item) => item.setNumber === setNumber)
     set((state) => ({
-      exercises: replaceExercise(state.exercises, exerciseId, (current) => {
-        const sets = exists
-          ? current.sets.map((item) =>
-              item.setNumber === setNumber ? { ...item, ...patch } : item,
-            )
-          : [...current.sets, { ...createSet(setNumber), ...patch }]
-        return { ...current, sets }
-      }),
+      exercises: withDerivedCompletion(
+        replaceExercise(state.exercises, exerciseId, (current) => {
+          const sets = exists
+            ? current.sets.map((item) =>
+                item.setNumber === setNumber ? { ...item, ...patch } : item,
+              )
+            : [...current.sets, { ...createSet(setNumber), ...patch }]
+          return { ...current, sets }
+        }),
+      ),
       isDirty: true,
     }))
   },
@@ -235,22 +257,12 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
       0,
     )
     set((state) => ({
-      exercises: replaceExercise(state.exercises, exerciseId, (current) => ({
-        ...current,
-        sets: [...current.sets, createSet(lastSetNumber + 1)],
-      })),
-      isDirty: true,
-    }))
-  },
-
-  completeExercise: (exerciseId, completed) => {
-    const exercise = get().exercises.find((item) => item.id === exerciseId)
-    if (!exercise || exercise.completed === completed) return
-    set((state) => ({
-      exercises: replaceExercise(state.exercises, exerciseId, (current) => ({
-        ...current,
-        completed,
-      })),
+      exercises: withDerivedCompletion(
+        replaceExercise(state.exercises, exerciseId, (current) => ({
+          ...current,
+          sets: [...current.sets, createSet(lastSetNumber + 1)],
+        })),
+      ),
       isDirty: true,
     }))
   },

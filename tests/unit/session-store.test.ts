@@ -125,11 +125,45 @@ describe("session store", () => {
 
   it("does not dirty the store when an exercise update is a no-op", () => {
     useSessionStore.getState().hydrate(session)
-    useSessionStore.getState().completeExercise("se1", false)
     useSessionStore.getState().skipExercise("se1", false)
     useSessionStore.getState().setNotes("se1", null)
     expect(useSessionStore.getState().isDirty).toBe(false)
-    useSessionStore.getState().completeExercise("se1", true)
+    useSessionStore.getState().skipExercise("se1", true)
     expect(useSessionStore.getState().isDirty).toBe(true)
+  })
+
+  it("derives exercise completion from its sets", () => {
+    useSessionStore.getState().hydrate({
+      ...session,
+      exercises: [
+        {
+          ...session.exercises[0]!,
+          sets: [
+            { setNumber: 1, type: "working" as const, reps: 8, weightKg: 40, durationSeconds: null, rpe: null, restSecondsLogged: null, completedAt: "2026-01-01T00:00:00.000Z" },
+            { setNumber: 2, type: "working" as const, reps: 8, weightKg: 40, durationSeconds: null, rpe: null, restSecondsLogged: null, completedAt: "2026-01-01T00:01:00.000Z" },
+          ],
+        },
+      ],
+    })
+    expect(useSessionStore.getState().exercises[0]?.completed).toBe(true)
+
+    // Un-completing any set re-opens the exercise.
+    useSessionStore.getState().toggleSet("se1", 2, { completedAt: null })
+    expect(useSessionStore.getState().exercises[0]?.completed).toBe(false)
+
+    // An exercise with no sets is never complete, even after adding a blank one.
+    useSessionStore.getState().addSet("se1")
+    expect(useSessionStore.getState().exercises[0]?.completed).toBe(false)
+  })
+
+  it("marks an exercise complete when all seeded sets are completed", () => {
+    useSessionStore.getState().hydrate(session)
+    useSessionStore.getState().addSet("se1")
+    useSessionStore.getState().toggleSet("se1", 1, {
+      reps: 10,
+      weightKg: 50,
+      completedAt: "2026-01-01T00:00:00.000Z",
+    })
+    expect(useSessionStore.getState().exercises[0]?.completed).toBe(true)
   })
 })
