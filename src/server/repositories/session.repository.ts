@@ -1,6 +1,7 @@
 import "server-only"
 import { prisma } from "@/lib/prisma"
 import type { Prisma, SessionStatus, SetType } from "@/generated/prisma/client"
+import type { SessionUpsertInput } from "@/features/workouts/schemas/session"
 
 export const sessionSelect = {
   id: true,
@@ -64,32 +65,6 @@ export type SessionAckRecord = Prisma.WorkoutSessionGetPayload<{
   select: typeof sessionAckSelect
 }>
 
-const ownedDaySelect = {
-  id: true,
-  weekday: true,
-  label: true,
-  order: true,
-  routine: { select: { id: true, name: true, nameEs: true } },
-  exercises: {
-    orderBy: { order: "asc" },
-    select: {
-      exerciseId: true,
-      customName: true,
-      order: true,
-      targetSets: true,
-      targetReps: true,
-      restSeconds: true,
-      targetWeightKg: true,
-      timerType: true,
-      workSeconds: true,
-      rounds: true,
-      exercise: { select: { name: true, nameEs: true } },
-    },
-  },
-} satisfies Prisma.RoutineDaySelect
-
-export type OwnedDay = Prisma.RoutineDayGetPayload<{ select: typeof ownedDaySelect }>
-
 /** The user's current in-progress session, if any. */
 export function findActiveByUser(userId: string) {
   return prisma.workoutSession.findFirst({
@@ -104,98 +79,73 @@ export function findByIdForUser(userId: string, id: string) {
   return prisma.workoutSession.findFirst({ where: { id, userId }, select: sessionSelect })
 }
 
-/** Loads a routine day only when its parent routine belongs to `userId`. */
-export function findOwnedDayWithExercises(userId: string, routineDayId: string) {
+/** True when the routine day exists and its parent routine belongs to `userId`. */
+export function findOwnedDay(userId: string, routineDayId: string) {
   return prisma.routineDay.findFirst({
     where: { id: routineDayId, routine: { userId } },
-    select: ownedDaySelect,
+    select: { id: true },
   })
 }
 
-/**
- * Freezes the routine/day identity and each exercise's display name and
- * prescription, so editing or deleting the routine mid-session never changes a
- * running workout or its history.
- */
-function buildSnapshot(day: OwnedDay) {
-  return {
-    routineId: day.routine.id,
-    routineDayId: day.id,
-    name: day.routine.name,
-    nameEs: day.routine.nameEs,
-    weekday: day.weekday,
-    label: day.label,
-    exercises: day.exercises.map((exercise) => ({
-      order: exercise.order,
-      name: exercise.customName ?? exercise.exercise?.name ?? "Unknown exercise",
-      nameEs: exercise.exercise?.nameEs ?? null,
-      targetSets: exercise.targetSets,
-      targetReps: exercise.targetReps,
-      restSeconds: exercise.restSeconds,
-      targetWeightKg: exercise.targetWeightKg,
-      timerType: exercise.timerType,
-      workSeconds: exercise.workSeconds,
-      rounds: exercise.rounds,
-    })),
-  } satisfies Prisma.InputJsonObject
+/** The subset of `ids` that exist in the catalog (for upsert validation). */
+export async function existingExerciseIds(ids: string[]): Promise<Set<string>> {
+  if (ids.length === 0) return new Set()
+  const rows = await prisma.exercise.findMany({ where: { id: { in: ids } }, select: { id: true } })
+  return new Set(rows.map((row) => row.id))
 }
 
-/**
- * Parses the numeric part of a prescription (`"10"` → `10`). Ranges (`"8-12"`),
- * AMRAP, and other free-form text yield `null` so the set stays blank for the
- * user to fill in.
- */
-export function parseTargetReps(targetReps: string | null): number | null {
-  if (!targetReps) return null
-  const trimmed = targetReps.trim()
-  return /^\d+$/.test(trimmed) ? Number(trimmed) : null
-}
-
-/** Max seeded rows per exercise, matching the set-input schema's `max(50)`. */
-const MAX_SEEDED_SETS = 50
-
-/** Builds the prescribed `SetLog` rows for a routine exercise (all uncompleted). */
-function buildSeededSets(exercise: OwnedDay["exercises"][number]) {
-  const count = Math.min(Math.max(exercise.targetSets ?? 0, 0), MAX_SEEDED_SETS)
-  const reps = parseTargetReps(exercise.targetReps)
-  return Array.from({ length: count }, (_, index) => ({
-    setNumber: index + 1,
-    type: "working" as const,
-    reps,
-    weightKg: exercise.targetWeightKg,
-  }))
-}
-
-/**
- * Creates the session (with its snapshot), copied exercise rows, and the
- * prescribed `SetLog` rows in one write, so the runner opens with the user's
- * target sets already in place.
- */
-export function createSessionWithExercises(
+/** Marks every other in-progress session for the user abandoned (local wins). */
+export function abandonOtherInProgress(
   tx: Prisma.TransactionClient,
-  { userId, day }: { userId: string; day: OwnedDay },
+  userId: string,
+  keepId: string,
+) {
+  return tx.workoutSession.updateMany({
+    where: { userId, status: "in_progress", id: { not: keepId } },
+    data: { status: "abandoned" },
+  })
+}
+
+/** Creates the session (with its client snapshot, exercises, and sets) in one write. */
+export function createSessionFromUpsert(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  input: SessionUpsertInput,
 ) {
   return tx.workoutSession.create({
     data: {
+      id: input.id,
       userId,
-      routineId: day.routine.id,
-      routineDayId: day.id,
-      name: day.label ?? day.routine.name,
+      routineId: input.snapshot.routineId,
+      routineDayId: input.routineDayId,
+      name: input.name,
       status: "in_progress",
-      snapshot: buildSnapshot(day),
+      startedAt: new Date(input.startedAt),
+      activeSeconds: input.activeSeconds,
+      snapshot: input.snapshot as Prisma.InputJsonValue,
       exercises: {
-        create: day.exercises.map((exercise) => ({
+        create: input.exercises.map((exercise, index) => ({
+          id: exercise.id,
           exerciseId: exercise.exerciseId,
-          order: exercise.order,
-          nameSnapshot:
-            exercise.customName ?? exercise.exercise?.name ?? "Unknown exercise",
-          targetSets: exercise.targetSets,
-          targetReps: exercise.targetReps,
-          restSeconds: exercise.restSeconds,
-          timerType: exercise.timerType,
-          workSeconds: exercise.workSeconds,
-          rounds: exercise.rounds,
-          sets: { create: buildSeededSets(exercise) },
+          order: index,
+          nameSnapshot: exercise.nameSnapshot,
+          completed: exercise.completed,
+          skipped: exercise.skipped,
+          swappedFromId: exercise.swappedFromId,
+          notes: exercise.notes,
+          sets: {
+            create: exercise.sets.map((set) => ({
+              ...(set.id ? { id: set.id } : {}),
+              setNumber: set.setNumber,
+              type: set.type,
+              reps: set.reps,
+              weightKg: set.weightKg,
+              durationSeconds: set.durationSeconds,
+              rpe: set.rpe,
+              restSecondsLogged: set.restSecondsLogged,
+              completedAt: set.completedAt ? new Date(set.completedAt) : null,
+            })),
+          },
         })),
       },
     },
@@ -204,6 +154,7 @@ export function createSessionWithExercises(
 }
 
 export type SetLogWriteInput = {
+  id?: string | undefined
   setNumber: number
   type: SetType
   reps: number | null
@@ -225,26 +176,34 @@ export type SessionExerciseWriteInput = {
   sets: SetLogWriteInput[]
 }
 
+function setData(set: SetLogWriteInput) {
+  return {
+    setNumber: set.setNumber,
+    type: set.type,
+    reps: set.reps,
+    weightKg: set.weightKg,
+    durationSeconds: set.durationSeconds,
+    rpe: set.rpe,
+    restSecondsLogged: set.restSecondsLogged,
+    completedAt: set.completedAt ? new Date(set.completedAt) : null,
+  }
+}
+
 /**
- * Replaces every submitted exercise's sets wholesale, matching rows by their
- * server-generated `SessionExercise.id`. Also applies the mutable exercise
- * fields so a swap (`exerciseId`/`nameSnapshot`) is persisted. Ids that do not
- * belong to the session are ignored rather than trusted.
+ * Applies the submitted exercises to the session, upserting sets by their
+ * client id and deleting only sets the payload dropped, so replaying the same
+ * state never churns row ids. Ids that do not belong to the session are ignored.
  */
 export async function replaceSets(
   tx: Prisma.TransactionClient,
   sessionId: string,
   exercises: SessionExerciseWriteInput[],
 ) {
-  const owned = await tx.sessionExercise.findMany({
-    where: { sessionId },
-    select: { id: true },
-  })
+  const owned = await tx.sessionExercise.findMany({ where: { sessionId }, select: { id: true } })
   const ownedIds = new Set(owned.map((row) => row.id))
 
   for (const exercise of exercises) {
     if (!ownedIds.has(exercise.id)) continue
-    await tx.setLog.deleteMany({ where: { sessionExerciseId: exercise.id } })
     await tx.sessionExercise.update({
       where: { id: exercise.id },
       data: {
@@ -254,20 +213,23 @@ export async function replaceSets(
         completed: exercise.completed,
         skipped: exercise.skipped,
         notes: exercise.notes,
-        sets: {
-          create: exercise.sets.map((set) => ({
-            setNumber: set.setNumber,
-            type: set.type,
-            reps: set.reps,
-            weightKg: set.weightKg,
-            durationSeconds: set.durationSeconds,
-            rpe: set.rpe,
-            restSecondsLogged: set.restSecondsLogged,
-            completedAt: set.completedAt ? new Date(set.completedAt) : null,
-          })),
-        },
       },
     })
+    const keepIds = exercise.sets.map((set) => set.id).filter((id): id is string => Boolean(id))
+    await tx.setLog.deleteMany({
+      where: { sessionExerciseId: exercise.id, ...(keepIds.length > 0 ? { id: { notIn: keepIds } } : {}) },
+    })
+    for (const set of exercise.sets) {
+      if (set.id) {
+        await tx.setLog.upsert({
+          where: { id: set.id },
+          create: { id: set.id, sessionExerciseId: exercise.id, ...setData(set) },
+          update: setData(set),
+        })
+      } else {
+        await tx.setLog.create({ data: { sessionExerciseId: exercise.id, ...setData(set) } })
+      }
+    }
   }
 }
 

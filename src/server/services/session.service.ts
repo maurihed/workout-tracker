@@ -1,7 +1,7 @@
 import "server-only"
-import { ConflictError, NotFoundError } from "@/lib/api-error"
+import { ConflictError, NotFoundError, ValidationError } from "@/lib/api-error"
 import { logger } from "@/lib/logger"
-import type { SessionStateInput } from "@/features/workouts/schemas/session"
+import type { SessionUpsertInput } from "@/features/workouts/schemas/session"
 import type {
   Prisma,
   SessionStatus,
@@ -129,20 +129,47 @@ async function toSessionDTO(
   }
 }
 
-export async function startSession(userId: string, routineDayId: string): Promise<SessionDTO> {
-  const existing = await repos.findActiveByUser(userId)
-  if (existing) throw new ConflictError("A workout is already in progress")
+export async function upsertSession(
+  userId: string,
+  input: SessionUpsertInput,
+): Promise<SessionStateAck> {
+  const existing = await repos.findByIdForUser(userId, input.id)
+  if (existing) {
+    if (existing.status !== "in_progress") throw new ConflictError("Session is not in progress")
+    const updated = await withTransaction(async (tx) => {
+      await repos.replaceSets(tx, input.id, input.exercises)
+      return repos.updateHeader(tx, input.id, { activeSeconds: input.activeSeconds })
+    })
+    logger.info({ event: "session.synced", userId, sessionId: input.id }, "session synced")
+    return toStateAck(updated)
+  }
 
-  const day = await repos.findOwnedDayWithExercises(userId, routineDayId)
+  const day = await repos.findOwnedDay(userId, input.routineDayId)
   if (!day) throw new NotFoundError("Routine day not found")
-  if (day.exercises.length === 0) throw new ConflictError("This day has no exercises")
+  if (input.snapshot.routineDayId !== input.routineDayId) {
+    throw new ValidationError("Snapshot does not match the routine day")
+  }
+  if (input.exercises.length === 0) throw new ConflictError("This day has no exercises")
+  const exerciseIds = input.exercises
+    .map((exercise) => exercise.exerciseId)
+    .filter((id): id is string => id !== null)
+  const known = await repos.existingExerciseIds(exerciseIds)
+  for (const exerciseId of exerciseIds) {
+    if (!known.has(exerciseId)) throw new ValidationError(`Unknown exercise: ${exerciseId}`)
+  }
 
-  const session = await withTransaction((tx) =>
-    repos.createSessionWithExercises(tx, { userId, day }),
-  )
-  logger.info({ event: "session.started", userId, sessionId: session.id }, "session started")
-  // Start is a write: skip the last-performance lookup (the active GET supplies it).
-  return toSessionDTO(userId, session, { withLastPerformance: false })
+  const created = await withTransaction(async (tx) => {
+    const abandoned = await repos.abandonOtherInProgress(tx, userId, input.id)
+    if (abandoned.count > 0) {
+      logger.info(
+        { event: "session.conflict-resolved", userId, sessionId: input.id, abandoned: abandoned.count },
+        "conflict resolved",
+      )
+    }
+    return repos.createSessionFromUpsert(tx, userId, input)
+  })
+  logger.info({ event: "session.started", userId, sessionId: created.id }, "session started")
+  return toStateAck(created)
 }
 
 export async function getActiveSession(userId: string): Promise<SessionDTO | null> {
@@ -156,23 +183,6 @@ export async function getSession(userId: string, id: string): Promise<SessionDTO
   return toSessionDTO(userId, session)
 }
 
-export async function replaceSessionState(
-  userId: string,
-  id: string,
-  input: SessionStateInput,
-): Promise<SessionStateAck> {
-  const session = await repos.findByIdForUser(userId, id)
-  if (!session) throw new NotFoundError("Session not found")
-  if (session.status !== "in_progress") throw new ConflictError("Session is not in progress")
-
-  const updated = await withTransaction(async (tx) => {
-    await repos.replaceSets(tx, id, input.exercises)
-    return repos.updateHeader(tx, id, { activeSeconds: input.activeSeconds })
-  })
-  logger.info({ event: "session.updated", userId, sessionId: id }, "session updated")
-  return toStateAck(updated)
-}
-
 export async function completeSession(
   userId: string,
   id: string,
@@ -180,8 +190,8 @@ export async function completeSession(
 ): Promise<SessionStateAck> {
   const session = await repos.findByIdForUser(userId, id)
   if (!session) throw new NotFoundError("Session not found")
-  if (session.status !== "in_progress") throw new ConflictError("Session is not in progress")
-
+  if (session.status === "completed") return toStateAck(session)
+  if (session.status === "abandoned") throw new ConflictError("Session is not in progress")
   const done = await repos.setStatus(id, "completed", { completedAt: new Date(), activeSeconds })
   logger.info({ event: "session.completed", userId, sessionId: id }, "session completed")
   return toStateAck(done)
@@ -190,8 +200,8 @@ export async function completeSession(
 export async function abandonSession(userId: string, id: string): Promise<void> {
   const session = await repos.findByIdForUser(userId, id)
   if (!session) throw new NotFoundError("Session not found")
-  if (session.status !== "in_progress") throw new ConflictError("Session is not in progress")
-
+  if (session.status === "abandoned") return
+  if (session.status === "completed") throw new ConflictError("Session is not in progress")
   await repos.setStatus(id, "abandoned", {})
   logger.info({ event: "session.abandoned", userId, sessionId: id }, "session abandoned")
 }

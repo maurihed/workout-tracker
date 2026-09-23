@@ -3,6 +3,8 @@ import type { RoutineDTO } from "@/features/routines/hooks/use-active-routine"
 export type RoutineDay = RoutineDTO["days"][number]
 export type RoutineExerciseDTO = RoutineDay["exercises"][number]
 
+export type SnapshotTimerType = RoutineExerciseDTO["timerType"]
+
 export type SnapshotExercise = {
   order: number
   name: string
@@ -11,7 +13,7 @@ export type SnapshotExercise = {
   targetReps: string | null
   restSeconds: number | null
   targetWeightKg: number | null
-  timerType: string | null
+  timerType: SnapshotTimerType | null
   workSeconds: number | null
   rounds: number | null
 }
