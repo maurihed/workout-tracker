@@ -112,6 +112,10 @@ export function useSessionSync(
   }, [sessionId])
 
   useEffect(() => {
+    void flushOutbox()
+  }, [])
+
+  useEffect(() => {
     const onOnline = () => void flushOutbox()
     const onVisibility = () => {
       if (document.visibilityState === "visible") void flushOutbox()

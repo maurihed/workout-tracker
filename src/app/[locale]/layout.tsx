@@ -7,6 +7,7 @@ import { notFound } from "next/navigation"
 import "../globals.css"
 
 import { AuthProvider } from "@/components/auth-provider"
+import { OfflineSyncManager } from "@/components/offline-sync-manager"
 import { QueryProvider } from "@/components/query-provider"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
@@ -50,7 +51,10 @@ export default async function LocaleLayout({
           <NextIntlClientProvider>
             <AuthProvider>
               <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-                <QueryProvider>{children}</QueryProvider>
+                <QueryProvider>
+                  <OfflineSyncManager />
+                  {children}
+                </QueryProvider>
                 <Toaster richColors />
               </ThemeProvider>
             </AuthProvider>

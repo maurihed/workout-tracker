@@ -7,7 +7,7 @@ import {
 } from "@/features/workouts/lib/build-local-session"
 import { saveActiveSession } from "@/features/workouts/lib/session-persistence"
 import { useSessionStore } from "@/features/workouts/stores/session-store"
-import { enqueue } from "@/lib/offline/sync"
+import { enqueue, flushOutbox } from "@/lib/offline/sync"
 import { sessionKeys } from "./query-keys"
 
 export type StartSessionArgs = { routine: RoutineDTO; dayId: string }
@@ -34,6 +34,7 @@ export function useStartSession() {
         state: toUpsertPayload(local, 0),
         activeSeconds: 0,
       })
+      await flushOutbox()
       return local
     },
     onSuccess: () => {

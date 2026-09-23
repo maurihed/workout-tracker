@@ -31,15 +31,29 @@ test("runs and finishes a workout entirely offline, then syncs", async ({ page, 
   await page.goto("/en/workout")
   await expect(page.getByRole("heading", { level: 2, name: EXERCISE })).toBeVisible()
   await page.waitForFunction(() => navigator.serviceWorker?.controller !== null)
+
+  // A controlled online reload lets the SW cache the runner document before offline.
+  await page.reload()
+  await expect(page.getByRole("heading", { level: 2, name: EXERCISE })).toBeVisible()
+
+  let sessionId = ""
   await expect
     .poll(async () => {
       const session = await prisma.workoutSession.findFirst({
         where: { userId, status: "in_progress" },
         select: { id: true },
       })
+      sessionId = session?.id ?? ""
       return session?.id ?? null
     }, { timeout: 15_000 })
     .not.toBeNull()
+
+  // Warm the dynamic summary document while online so the offline finish can
+  // cold-open it (the SW navigation cache is keyed by URL).
+  await page.goto(`/en/workout/summary/${sessionId}`)
+  await expect(page.getByRole("heading", { name: "Workout summary" })).toBeVisible()
+  await page.goto("/en/workout")
+  await expect(page.getByRole("heading", { level: 2, name: EXERCISE })).toBeVisible()
 
   // Go offline and cold-open: the SW shell + local session must resume the runner.
   await context.setOffline(true)
