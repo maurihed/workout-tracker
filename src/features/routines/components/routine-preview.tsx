@@ -2,8 +2,8 @@
 
 import { Play } from "@phosphor-icons/react"
 import { useLocale, useTranslations } from "next-intl"
+import Link from "next/link"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -61,13 +61,12 @@ export function RoutinePreview({ routine }: { routine: RoutineDTO }) {
         ))}
       </ul>
 
-      <div className="flex flex-col items-center gap-1">
-        <Button type="button" className="h-12 w-full" disabled>
+      <Button asChild className="h-12 w-full">
+        <Link href={`/${locale}/workout`}>
           <Play className="size-5" aria-hidden="true" />
           {t("startWorkout")}
-        </Button>
-        <Badge variant="secondary">{t("comingSoon")}</Badge>
-      </div>
+        </Link>
+      </Button>
     </section>
   )
 }

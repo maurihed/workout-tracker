@@ -64,11 +64,13 @@ describe("RoutinePreview", () => {
     expect(screen.getByText(/Barbell Squat/)).toBeInTheDocument()
   })
 
-  it("shows the prescription and a disabled Start workout CTA", () => {
+  it("shows the prescription and links the Start workout CTA to the runner", () => {
     render(<RoutinePreview routine={routine} />)
     expect(screen.getByText("3 × 8-12")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /startWorkout/ })).toBeDisabled()
-    expect(screen.getByText("comingSoon")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: /startWorkout/ })).toHaveAttribute(
+      "href",
+      "/en/workout",
+    )
   })
 
   it("renders Spanish routine and exercise names when the locale is es", () => {
