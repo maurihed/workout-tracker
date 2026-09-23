@@ -36,16 +36,20 @@ export function startInterval({
   restSeconds: number
   rounds: number
 }): TimerState {
+  const safeWork = Math.max(0, workSeconds)
+  const safeRest = Math.max(0, restSeconds)
+  const safeRounds = Math.max(1, Math.floor(rounds))
+
   return {
     kind: "interval",
     phase: "work",
-    remaining: workSeconds,
-    total: workSeconds,
+    remaining: safeWork,
+    total: safeWork,
     running: true,
     round: 1,
-    rounds,
-    workSeconds,
-    restSeconds,
+    rounds: safeRounds,
+    workSeconds: safeWork,
+    restSeconds: safeRest,
   }
 }
 
@@ -90,16 +94,13 @@ function advance(state: TimerState): TimerState {
 export function tick(state: TimerState): TimerState {
   if (!state.running) return state
 
-  if (state.remaining > 0) {
-    const remaining = state.remaining - 1
+  const remaining = state.remaining - 1
+  if (remaining > 0) return { ...state, remaining }
 
-    if (state.kind === "interval" && state.phase === "work") {
-      return { ...state, remaining }
-    }
+  return advance(state)
+}
 
-    if (remaining > 0) return { ...state, remaining }
-  }
-
+export function skipRound(state: TimerState): TimerState {
   return advance(state)
 }
 
@@ -112,6 +113,7 @@ export function pause(state: TimerState): TimerState {
 }
 
 export function resume(state: TimerState): TimerState {
+  if (state.phase === "idle" || state.remaining <= 0) return state
   return { ...state, running: true }
 }
 
