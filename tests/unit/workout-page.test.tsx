@@ -60,6 +60,38 @@ function query<T>(data: T, isLoading = false) {
   return { data, isLoading, isError: false, refetch: vi.fn() }
 }
 
+const localSession = {
+  source: {
+    id: "s9",
+    name: "Local Push",
+    status: "in_progress",
+    startedAt: "2026-01-01T00:00:00.000Z",
+    activeSeconds: 5,
+    exercises: [
+      {
+        id: "se9",
+        exerciseId: "e1",
+        nameSnapshot: "Squat",
+        targetSets: 3,
+        targetReps: "10",
+        restSeconds: 60,
+        timerType: "none",
+        workSeconds: null,
+        rounds: null,
+        completed: false,
+        skipped: false,
+        swappedFromId: null,
+        notes: null,
+        sets: [],
+      },
+    ],
+  },
+  snapshot: null,
+  routineDayId: "d1",
+  timer: null,
+  paused: false,
+}
+
 beforeEach(() => {
   useSessionStore.getState().reset()
   hooks.activeSession.mockReset()
@@ -165,5 +197,53 @@ describe("WorkoutPage auto-start", () => {
     expect(useSessionStore.getState().exercises[0]?.nameSnapshot).toBe("Squat")
     expect(useSessionStore.getState().routineDayId).toBe("d1")
     expect(hooks.start.mutate).not.toHaveBeenCalled()
+  })
+
+  it("prefers a persisted local session over a different-id server session", async () => {
+    hooks.persistence.loadActiveSession.mockResolvedValue(localSession)
+    hooks.activeRoutine.mockReturnValue(query(routine))
+    hooks.activeSession.mockReturnValue(
+      query({ id: "s2", status: "in_progress", routineDayId: "d1", exercises: [] }),
+    )
+
+    render(<WorkoutPage />)
+    await act(async () => {})
+
+    expect(screen.getByTestId("runner")).toBeInTheDocument()
+    expect(useSessionStore.getState().sessionId).toBe("s9")
+    expect(useSessionStore.getState().exercises[0]?.nameSnapshot).toBe("Squat")
+    expect(hooks.persistence.saveActiveSession).not.toHaveBeenCalled()
+  })
+
+  it("re-hydrates the store after the runner resets it on remount", async () => {
+    const snapshot = {
+      routineId: "r1",
+      routineDayId: "d1",
+      name: "Push",
+      nameEs: null,
+      weekday: 1,
+      label: "Push",
+      exercises: [],
+    }
+    hooks.persistence.loadActiveSession.mockResolvedValue({ ...localSession, snapshot })
+    hooks.activeRoutine.mockReturnValue(query(routine))
+    hooks.activeSession.mockReturnValue(query(null))
+
+    const first = render(<WorkoutPage />)
+    await act(async () => {})
+    expect(useSessionStore.getState().sessionId).toBe("s9")
+    expect(useSessionStore.getState().snapshot).toEqual(snapshot)
+
+    await act(async () => {
+      useSessionStore.getState().reset()
+    })
+    expect(useSessionStore.getState().sessionId).toBeNull()
+
+    first.unmount()
+    render(<WorkoutPage />)
+    await act(async () => {})
+
+    expect(useSessionStore.getState().sessionId).toBe("s9")
+    expect(useSessionStore.getState().snapshot).toEqual(snapshot)
   })
 })

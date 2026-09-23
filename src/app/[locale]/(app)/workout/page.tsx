@@ -91,20 +91,7 @@ export default function WorkoutPage() {
     [start.data],
   )
 
-  const adopted = useMemo<PersistedSession | null>(() => {
-    if (!serverSession) return null
-    const knownId = started?.source.id ?? persisted?.source.id ?? null
-    if (knownId === serverSession.id) return null
-    return {
-      source: serverSession,
-      snapshot: null,
-      routineDayId: serverSession.routineDayId,
-      timer: null,
-      paused: false,
-    }
-  }, [serverSession, started, persisted])
-
-  const local = started ?? adopted ?? persisted
+  const local = started ?? persisted
   const localSource = local?.source ?? null
   const localWins = Boolean(
     localSource &&
@@ -115,13 +102,12 @@ export default function WorkoutPage() {
     ? toRunnerInput(local)
     : serverSession
 
-  const hydratedRef = useRef<string | null>(null)
   useEffect(() => {
     if (!chosen) return
-    if (hydratedRef.current === chosen.id) return
     const source: SessionStoreSource | null = localWins && local ? local.source : serverSession
     if (!source) return
-    hydratedRef.current = chosen.id
+    const state = useSessionStore.getState()
+    if (state.sessionId === chosen.id && !(localWins && !state.snapshot)) return
     hydrate(source, {
       snapshot: localWins && local ? local.snapshot : null,
       routineDayId: localWins && local ? local.routineDayId : serverSession?.routineDayId ?? null,
@@ -131,11 +117,19 @@ export default function WorkoutPage() {
   // Adopt a server session into local storage so a later offline reload resumes it.
   const adoptedRef = useRef<string | null>(null)
   useEffect(() => {
-    if (!adopted || !localLoaded) return
-    if (adoptedRef.current === adopted.source.id) return
-    adoptedRef.current = adopted.source.id
-    void saveActiveSession(adopted)
-  }, [adopted, localLoaded])
+    if (!serverSession || !localLoaded) return
+    if (localSource?.id === serverSession.id) return
+    if (localSource?.status === "in_progress") return
+    if (adoptedRef.current === serverSession.id) return
+    adoptedRef.current = serverSession.id
+    void saveActiveSession({
+      source: serverSession,
+      snapshot: null,
+      routineDayId: serverSession.routineDayId,
+      timer: null,
+      paused: false,
+    })
+  }, [serverSession, localSource, localLoaded])
 
   const days = useMemo(() => routine.data?.days ?? [], [routine.data])
   const autoStartedRef = useRef(false)
