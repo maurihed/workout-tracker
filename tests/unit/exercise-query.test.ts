@@ -19,4 +19,9 @@ describe("exerciseListQuerySchema", () => {
   it("rejects an unknown equipment value", () => {
     expect(exerciseListQuerySchema.safeParse({ equipment: "jetpack" }).success).toBe(false)
   })
+
+  it("accepts a level filter and rejects an unknown level", () => {
+    expect(exerciseListQuerySchema.safeParse({ level: "beginner" }).success).toBe(true)
+    expect(exerciseListQuerySchema.safeParse({ level: "godlike" }).success).toBe(false)
+  })
 })

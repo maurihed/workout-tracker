@@ -23,6 +23,7 @@ export const exerciseListQuerySchema = z.object({
     .optional(),
   muscle: z.string().trim().min(1).optional(),
   equipment: z.enum(EQUIPMENT).optional(),
+  level: z.enum(["beginner", "intermediate", "expert"]).optional(),
   limit: z.coerce
     .number()
     .int()
