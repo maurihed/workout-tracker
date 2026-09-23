@@ -201,6 +201,11 @@ export async function replaceSets(
 ) {
   const owned = await tx.sessionExercise.findMany({ where: { sessionId }, select: { id: true } })
   const ownedIds = new Set(owned.map((row) => row.id))
+  const ownedSets = await tx.setLog.findMany({
+    where: { sessionExercise: { sessionId } },
+    select: { id: true },
+  })
+  const ownedSetIds = new Set(ownedSets.map((row) => row.id))
 
   for (const exercise of exercises) {
     if (!ownedIds.has(exercise.id)) continue
@@ -220,7 +225,7 @@ export async function replaceSets(
       where: { sessionExerciseId: exercise.id, ...(keepIds.length > 0 ? { id: { notIn: keepIds } } : {}) },
     })
     for (const set of exercise.sets) {
-      if (set.id) {
+      if (set.id && ownedSetIds.has(set.id)) {
         await tx.setLog.upsert({
           where: { id: set.id },
           create: { id: set.id, sessionExerciseId: exercise.id, ...setData(set) },

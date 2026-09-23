@@ -132,4 +132,40 @@ describe("session upsert", () => {
     expect(reopened.exercises[0]?.sets).toHaveLength(0)
     expect(reopened.exercises[0]?.notes).toHaveLength(500)
   })
+
+  it("does not overwrite a set owned by another session", async () => {
+    const { userId, routine } = await makeRoutine()
+    const first = payloadFor(routine)
+    await upsertSession(userId, first)
+    const foreignSetId = first.exercises[0]!.sets[0]!.id!
+    const before = await prisma.setLog.findUniqueOrThrow({
+      where: { id: foreignSetId },
+      select: { reps: true, weightKg: true },
+    })
+
+    const second = payloadFor(routine)
+    await upsertSession(userId, second)
+    await upsertSession(userId, {
+      ...second,
+      exercises: [{
+        ...second.exercises[0]!,
+        sets: [{ ...second.exercises[0]!.sets[0]!, id: foreignSetId, reps: 999, weightKg: 999 }],
+      }],
+    })
+
+    const after = await prisma.setLog.findUniqueOrThrow({
+      where: { id: foreignSetId },
+      select: { reps: true, weightKg: true, sessionExercise: { select: { sessionId: true } } },
+    })
+    expect(after.reps).toBe(before.reps)
+    expect(after.weightKg).toBe(before.weightKg)
+    expect(after.sessionExercise.sessionId).toBe(first.id)
+
+    const secondSets = await prisma.setLog.findMany({
+      where: { sessionExercise: { sessionId: second.id } },
+      select: { id: true },
+    })
+    expect(secondSets).toHaveLength(1)
+    expect(secondSets[0]?.id).not.toBe(foreignSetId)
+  })
 })
