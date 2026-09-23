@@ -52,3 +52,6 @@ next-env.d.ts
 
 # superpowers sdd scratch workspace
 .superpowers/
+
+# git worktrees
+.worktrees/
