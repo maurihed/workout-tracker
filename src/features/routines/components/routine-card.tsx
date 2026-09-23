@@ -4,8 +4,18 @@ import { Copy, Play, Trash } from "@phosphor-icons/react"
 import { useTranslations } from "next-intl"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { useState } from "react"
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -15,7 +25,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { ConfirmDialog } from "@/features/routines/components/confirm-dialog"
 import type { RoutineSummary } from "@/features/routines/hooks/use-routines"
 
 type RoutineCardProps = {
@@ -40,7 +49,6 @@ export function RoutineCard({
   const t = useTranslations("routines")
   const tCommon = useTranslations("common")
   const locale = useLocaleParam()
-  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   return (
     <Card>
@@ -92,29 +100,39 @@ export function RoutineCard({
         >
           <Copy className="size-4" aria-hidden="true" />
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          aria-label={t("delete")}
-          onClick={() => setConfirmingDelete(true)}
-        >
-          <Trash className="size-4" aria-hidden="true" />
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label={t("delete")}
+            >
+              <Trash className="size-4" aria-hidden="true" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t("deleteConfirmTitle")}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t("deleteConfirm")}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="h-11">
+                {tCommon("cancel")}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                variant="destructive"
+                className="h-11"
+                onClick={() => onDelete(routine.id)}
+              >
+                {t("delete")}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardFooter>
-
-      <ConfirmDialog
-        open={confirmingDelete}
-        title={t("delete")}
-        description={t("deleteConfirm")}
-        confirmLabel={t("delete")}
-        cancelLabel={tCommon("cancel")}
-        onConfirm={() => {
-          setConfirmingDelete(false)
-          onDelete(routine.id)
-        }}
-        onCancel={() => setConfirmingDelete(false)}
-      />
     </Card>
   )
 }
