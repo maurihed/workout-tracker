@@ -45,10 +45,18 @@ describe("routineInputSchema", () => {
         { reps: 10, weightKg: 45, rpe: 8 },
       ],
     }
-    expect(
-      routineInputSchema.safeParse({ name: "R", description: null, goal: null, days: [{ ...day, exercises: [ex] }] })
-        .success,
-    ).toBe(true)
+    const result = routineInputSchema.safeParse({
+      name: "R",
+      description: null,
+      goal: null,
+      days: [{ ...day, exercises: [ex] }],
+    })
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(result.data.days[0]!.exercises[0]!.setTargets).toEqual([
+      { reps: 12, weightKg: 40, rpe: 7 },
+      { reps: 10, weightKg: 45, rpe: 8 },
+    ])
   })
 
   it("rejects per-set targets whose length differs from targetSets", () => {

@@ -44,6 +44,15 @@ describe("legacyTargetsToSetTargets", () => {
     })
     expect(legacyTargetsToSetTargets(0, "10", null)).toHaveLength(1)
   })
+
+  it("nulls reps outside the schema bounds", () => {
+    expect(legacyTargetsToSetTargets(1, "150", null)[0]).toEqual({
+      reps: null,
+      weightKg: null,
+      rpe: null,
+    })
+    expect(legacyTargetsToSetTargets(1, "0", null)[0]!.reps).toBeNull()
+  })
 })
 
 describe("syncSetTargets", () => {
