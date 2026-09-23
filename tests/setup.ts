@@ -17,3 +17,7 @@ if (typeof window !== "undefined" && !window.matchMedia) {
     }),
   })
 }
+
+// jsdom ships no IndexedDB; the offline store tests exercise the real `idb`
+// API against an in-memory implementation.
+import "fake-indexeddb/auto"
