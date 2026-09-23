@@ -28,10 +28,47 @@ vi.mock("@/features/routines/hooks/use-active-routine", () => ({
 vi.mock("@/features/workouts/hooks/use-start-session", () => ({
   useStartSession: () => ({ ...hooks.start }),
 }))
-vi.mock("@/features/workouts/components/workout-runner", () => ({
-  WorkoutRunner: () => <div data-testid="runner" />,
+const runner = vi.hoisted(() => ({
+  real: false,
+  mutation: {
+    mutate: vi.fn(),
+    mutateAsync: vi.fn(async () => undefined),
+    isPending: false,
+    reset: vi.fn(),
+  },
 }))
+vi.mock("@/features/workouts/components/workout-runner", async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import("@/features/workouts/components/workout-runner")
+  >()
+  return {
+    ...actual,
+    WorkoutRunner: (props: Parameters<typeof actual.WorkoutRunner>[0]) =>
+      runner.real ? (
+        <actual.WorkoutRunner {...props} />
+      ) : (
+        <div data-testid="runner" />
+      ),
+  }
+})
 vi.mock("@/features/workouts/lib/session-persistence", () => hooks.persistence)
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }))
+vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
+vi.mock("@/features/profile/hooks/use-profile", () => ({
+  useProfile: () => ({ data: { unitSystem: "metric" } }),
+}))
+vi.mock("@/features/workouts/components/swap-exercise-sheet", () => ({
+  SwapExerciseSheet: () => null,
+}))
+vi.mock("@/features/workouts/hooks/use-update-session", () => ({
+  useUpdateSession: () => runner.mutation,
+}))
+vi.mock("@/features/workouts/hooks/use-complete-session", () => ({
+  useCompleteSession: () => runner.mutation,
+}))
+vi.mock("@/features/workouts/hooks/use-abandon-session", () => ({
+  useAbandonSession: () => runner.mutation,
+}))
 
 import WorkoutPage from "@/app/[locale]/(app)/workout/page"
 import { useSessionStore } from "@/features/workouts/stores/session-store"
@@ -94,6 +131,9 @@ const localSession = {
 
 beforeEach(() => {
   useSessionStore.getState().reset()
+  runner.real = false
+  runner.mutation.mutateAsync.mockReset()
+  runner.mutation.mutateAsync.mockResolvedValue(undefined)
   hooks.activeSession.mockReset()
   hooks.activeRoutine.mockReset()
   hooks.start.mutate.mockReset()
@@ -331,5 +371,20 @@ describe("WorkoutPage auto-start", () => {
     expect(useSessionStore.getState().snapshot).toEqual(serverSnapshot)
     expect(useSessionStore.getState().routineDayId).toBe("d1")
     expect(useSessionStore.getState().toUpsertPayload(0)).not.toBeNull()
+  })
+
+  it("hydrates canonical exercise ids and names with the real runner for an offline local-wins resume", async () => {
+    runner.real = true
+    hooks.persistence.loadActiveSession.mockResolvedValue(localSession)
+    hooks.activeRoutine.mockReturnValue(query(routine))
+    hooks.activeSession.mockReturnValue(query(null))
+
+    render(<WorkoutPage />)
+    await act(async () => {})
+
+    const state = useSessionStore.getState()
+    expect(state.sessionId).toBe("s9")
+    expect(state.exercises[0]?.id).toBe("se9")
+    expect(state.exercises[0]?.nameSnapshot).toBe("Squat")
   })
 })

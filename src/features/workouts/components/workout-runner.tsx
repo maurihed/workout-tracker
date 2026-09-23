@@ -65,7 +65,6 @@ import {
 import {
   useSessionStore,
   type SessionSetPatch,
-  type SessionStoreSource,
 } from "@/features/workouts/stores/session-store"
 
 const PUSH_DEBOUNCE_MS = 2000
@@ -131,7 +130,6 @@ export function WorkoutRunner({
   const currentIndex = useSessionStore((state) => state.currentIndex)
   const activeSeconds = useSessionStore((state) => state.activeSeconds)
   const isDirty = useSessionStore((state) => state.isDirty)
-  const hydrate = useSessionStore((state) => state.hydrate)
   const reset = useSessionStore((state) => state.reset)
   const toggleSet = useSessionStore((state) => state.toggleSet)
   const addSet = useSessionStore((state) => state.addSet)
@@ -388,15 +386,6 @@ export function WorkoutRunner({
     retryAttemptRef.current = 0
     schedulePush(0)
   }, [schedulePush])
-
-  // Hydrate the authoritative client store from the server DTO once per session
-  // id. Keying on the *store's* sessionId (not a ref) keeps StrictMode's
-  // simulated unmount→remount from leaving the runner empty: the reset cleanup
-  // nulls the store id, so the remount re-hydrates.
-  useEffect(() => {
-    if (useSessionStore.getState().sessionId === session.id) return
-    hydrate(session as unknown as SessionStoreSource)
-  }, [hydrate, session])
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return

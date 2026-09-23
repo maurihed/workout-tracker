@@ -1,6 +1,5 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { StrictMode } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("next-intl", () => ({
@@ -85,6 +84,10 @@ const session: SessionDTO = {
 
 beforeEach(() => {
   useSessionStore.getState().reset()
+  useSessionStore.getState().hydrate(session, {
+    snapshot: null,
+    routineDayId: null,
+  })
   mutation.mutateAsync.mockReset()
   mutation.mutateAsync.mockResolvedValue(undefined)
   window.localStorage.clear()
@@ -100,19 +103,21 @@ async function flush(ms: number) {
   })
 }
 
-describe("WorkoutRunner hydration", () => {
-  it("still has exercises after a StrictMode mount→unmount→mount", () => {
-    // StrictMode runs the mount effects, their cleanups (which reset the store),
-    // and the effects again. The store-keyed hydrate guard must re-hydrate.
-    render(
-      <StrictMode>
-        <WorkoutRunner session={session} />
-      </StrictMode>,
-    )
+describe("WorkoutRunner store ownership", () => {
+  it("renders the seeded store without hydrating it itself", () => {
+    render(<WorkoutRunner session={session} />)
 
     expect(useSessionStore.getState().sessionId).toBe("s1")
     expect(useSessionStore.getState().exercises).toHaveLength(1)
     expect(screen.getByText("Squat")).toBeInTheDocument()
+  })
+
+  it("resets the store on unmount so the page can re-hydrate", () => {
+    const { unmount } = render(<WorkoutRunner session={session} />)
+
+    unmount()
+
+    expect(useSessionStore.getState().sessionId).toBeNull()
   })
 })
 
@@ -202,6 +207,9 @@ describe("WorkoutRunner timed exercises", () => {
 
   it("renders the interval timer and wires start/pause/skip-round", async () => {
     const user = userEvent.setup()
+    useSessionStore
+      .getState()
+      .hydrate(timedSession, { snapshot: null, routineDayId: null })
     render(<WorkoutRunner session={timedSession} />)
 
     const region = screen.getByRole("region", { name: "interval" })
