@@ -5,11 +5,23 @@ import {
   getTemplateBySlug,
   type TemplateExercise,
 } from "@/features/onboarding/templates/routine-templates"
+import type {
+  CreateRoutineInput,
+  RoutineInput,
+} from "@/features/routines/schemas/routine"
+import { copyRoutineName } from "@/features/routines/lib/copy-name"
 import {
+  createBlank,
   createWithDays,
   deactivateActive,
+  deleteByIdForUser,
+  duplicateSource,
   findActiveByUser,
+  findByIdForUser,
   findExercisesBySourceIds,
+  listByUser,
+  replaceDays,
+  setActive,
   setOnboardedAtIfNull,
   withTransaction,
 } from "@/server/repositories/routine.repository"
@@ -106,4 +118,85 @@ export async function createRoutineFromTemplate(
   }
 
   return routine
+}
+
+export async function createBlankRoutine(userId: string, input: CreateRoutineInput) {
+  const routine = await createBlank(userId, input)
+  logger.info({ event: "routine.created", userId, routineId: routine.id }, "routine created")
+  return routine
+}
+
+export function listRoutines(userId: string) {
+  return listByUser(userId)
+}
+
+export async function getRoutine(userId: string, id: string) {
+  const routine = await findByIdForUser(userId, id)
+  if (!routine) throw new NotFoundError("Routine not found")
+  return routine
+}
+
+export async function replaceRoutine(userId: string, id: string, input: RoutineInput) {
+  // Ownership is verified up front so an unstaked routine can never be written.
+  const owned = await findByIdForUser(userId, id)
+  if (!owned) throw new NotFoundError("Routine not found")
+
+  const days = input.days.map((d, di) => ({
+    weekday: d.weekday,
+    label: d.label,
+    order: di,
+    exercises: d.exercises.map((e, ei) => ({ ...e, order: ei })),
+  }))
+
+  const routine = await withTransaction((tx) =>
+    replaceDays(tx, id, days, {
+      name: input.name,
+      description: input.description,
+      goal: input.goal,
+    }),
+  )
+  logger.info({ event: "routine.updated", userId, routineId: id }, "routine updated")
+  return routine
+}
+
+export async function activateRoutine(userId: string, id: string) {
+  const owned = await findByIdForUser(userId, id)
+  if (!owned) throw new NotFoundError("Routine not found")
+
+  const routine = await withTransaction((tx) => setActive(tx, userId, id))
+  logger.info({ event: "routine.activated", userId, routineId: id }, "routine activated")
+  return routine
+}
+
+export async function duplicateRoutine(userId: string, id: string, locale: string) {
+  const source = await duplicateSource(userId, id)
+  if (!source) throw new NotFoundError("Routine not found")
+
+  const name = copyRoutineName(source.name, locale)
+  const routine = await withTransaction(async (tx) => {
+    const created = await tx.routine.create({
+      data: {
+        userId,
+        name,
+        description: source.description,
+        goal: source.goal,
+        source: "manual",
+        isActive: false,
+      },
+      select: { id: true },
+    })
+    return replaceDays(tx, created.id, source.days, {
+      name,
+      description: source.description,
+      goal: source.goal,
+    })
+  })
+  logger.info({ event: "routine.duplicated", userId, routineId: id }, "routine duplicated")
+  return routine
+}
+
+export async function deleteRoutine(userId: string, id: string) {
+  const count = await deleteByIdForUser(userId, id)
+  if (count === 0) throw new NotFoundError("Routine not found")
+  logger.info({ event: "routine.deleted", userId, routineId: id }, "routine deleted")
 }
