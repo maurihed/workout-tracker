@@ -45,6 +45,58 @@ export async function createTestSession(
   return { cookie: { name: "authjs.session-token", value: token }, userId: user.id }
 }
 
+export type SeedRoutineExercise = {
+  name: string
+  targetSets?: number
+  targetReps?: string
+  restSeconds?: number
+}
+
+export type SeedRoutineDay = {
+  weekday: number
+  label: string
+  exercises: SeedRoutineExercise[]
+}
+
+/**
+ * Creates an active routine (with days and exercises) for `userId` so a spec can
+ * drive the workout runner, which needs a day to start. Exercises use
+ * `customName` rather than a catalog `exerciseId`, keeping the seed independent
+ * of the exercise catalog. Any existing routines and workout sessions for the
+ * user are cleared first so retries against a reused user stay idempotent.
+ */
+export async function seedActiveRoutine(
+  userId: string,
+  { name, days }: { name: string; days: SeedRoutineDay[] },
+) {
+  await prisma.workoutSession.deleteMany({ where: { userId } })
+  await prisma.routine.deleteMany({ where: { userId } })
+  return prisma.routine.create({
+    data: {
+      userId,
+      name,
+      isActive: true,
+      days: {
+        create: days.map((day, index) => ({
+          weekday: day.weekday,
+          label: day.label,
+          order: index,
+          exercises: {
+            create: day.exercises.map((exercise, exerciseIndex) => ({
+              customName: exercise.name,
+              order: exerciseIndex,
+              targetSets: exercise.targetSets ?? 3,
+              targetReps: exercise.targetReps ?? "10",
+              restSeconds: exercise.restSeconds ?? 60,
+            })),
+          },
+        })),
+      },
+    },
+    select: { id: true },
+  })
+}
+
 /** Removes the test user; profile, sessions and routines cascade on delete. */
 export async function cleanupTestUser(email: string) {
   await prisma.user.deleteMany({ where: { email } })
