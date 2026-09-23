@@ -3,8 +3,7 @@
 import { useTranslations } from "next-intl"
 
 import { useProfile } from "@/features/profile/hooks/use-profile"
-import type { SessionDTO } from "@/features/workouts/hooks/use-active-session"
-import { computeSummary, formatDuration } from "@/features/workouts/lib/summary"
+import { computeSummary, formatDuration, type SummaryInput } from "@/features/workouts/lib/summary"
 import { formatWeight } from "@/features/workouts/lib/units"
 
 type StatProps = {
@@ -21,7 +20,7 @@ function Stat({ label, value }: StatProps) {
   )
 }
 
-export function SessionSummary({ session }: { session: SessionDTO }) {
+export function SessionSummary({ session }: { session: SummaryInput }) {
   const t = useTranslations("summary")
   const profile = useProfile()
   const unitSystem = profile.data?.unitSystem ?? "metric"

@@ -4,12 +4,15 @@ import { WarningCircle } from "@phosphor-icons/react"
 import { useLocale, useTranslations } from "next-intl"
 import Link from "next/link"
 import { useParams } from "next/navigation"
+import { useEffect, useState } from "react"
 
 import { EmptyState } from "@/components/shared/empty-state"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SessionSummary } from "@/features/workouts/components/session-summary"
 import { useSession } from "@/features/workouts/hooks/use-session"
+import { loadActiveSession } from "@/features/workouts/lib/session-persistence"
+import type { SummaryInput } from "@/features/workouts/lib/summary"
 
 function SummarySkeleton({ label }: { label: string }) {
   return (
@@ -30,12 +33,31 @@ export default function SessionSummaryPage() {
   const sessionId =
     typeof params?.sessionId === "string" ? params.sessionId : ""
   const { data, isLoading, isError, refetch } = useSession(sessionId)
+  const [localSummary, setLocalSummary] = useState<SummaryInput | null>(null)
 
-  if (isLoading) {
+  useEffect(() => {
+    let active = true
+    void loadActiveSession().then((value) => {
+      if (!active || !value) return
+      if (value.source.id === sessionId && value.source.status === "completed") {
+        setLocalSummary({
+          activeSeconds: value.source.activeSeconds,
+          exercises: value.source.exercises,
+        })
+      }
+    })
+    return () => {
+      active = false
+    }
+  }, [sessionId])
+
+  const session = data ?? localSummary
+
+  if (isLoading && !session) {
     return <SummarySkeleton label={tCommon("loading")} />
   }
 
-  if (isError || !data) {
+  if ((isError && !session) || !session) {
     return (
       <EmptyState
         icon={WarningCircle}
@@ -56,7 +78,7 @@ export default function SessionSummaryPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <SessionSummary session={data} />
+      <SessionSummary session={session} />
       <Button asChild size="lg" className="w-full">
         <Link href={`/${locale}/dashboard`}>{t("done")}</Link>
       </Button>
