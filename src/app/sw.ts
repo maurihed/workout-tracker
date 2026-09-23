@@ -1,9 +1,9 @@
 /// <reference lib="esnext" />
 /// <reference lib="webworker" />
 import { defaultCache } from "@serwist/next/worker"
-import type { PrecacheEntry, SerwistGlobalConfig } from "serwist"
+import type { PrecacheEntry, SerwistGlobalConfig, SerwistPlugin } from "serwist"
 import {
-  CacheFirst, ExpirationPlugin, NetworkFirst, Serwist, StaleWhileRevalidate,
+  CacheableResponsePlugin, CacheFirst, ExpirationPlugin, NetworkFirst, Serwist, StaleWhileRevalidate,
 } from "serwist"
 import { flushOutbox } from "@/lib/offline/sync"
 
@@ -26,7 +26,10 @@ const apiData = new NetworkFirst({
 })
 const images = new CacheFirst({
   cacheName: "images-v1",
-  plugins: [new ExpirationPlugin({ maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 30 })],
+  plugins: [
+    new CacheableResponsePlugin({ statuses: [0, 200] }) as SerwistPlugin,
+    new ExpirationPlugin({ maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 30 }),
+  ],
 })
 
 const API_DATA_PATHS = new Set([
