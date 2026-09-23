@@ -10,6 +10,7 @@ const routine: RoutineDTO = {
     exercises: [{
       id: "re1", order: 0, exerciseId: "e1", customName: null,
       targetSets: 2, targetReps: "10", restSeconds: 60, targetWeightKg: 30,
+      setTargets: null,
       timerType: "none", workSeconds: null, rounds: null, notes: null,
       exercise: { id: "e1", name: "Squat", nameEs: null, images: [] },
     }],
