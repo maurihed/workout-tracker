@@ -21,6 +21,7 @@ export const sessionExerciseInputSchema = z.object({
   id: z.string().min(1),
   exerciseId: z.string().min(1).nullable(),
   nameSnapshot: z.string().trim().min(1).max(200),
+  swappedFromId: z.string().min(1).nullable().default(null),
   completed: z.boolean(),
   skipped: z.boolean(),
   notes: z.string().trim().max(500).nullable().default(null),

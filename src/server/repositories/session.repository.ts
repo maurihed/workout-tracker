@@ -173,6 +173,7 @@ export type SessionExerciseWriteInput = {
   id: string
   exerciseId: string | null
   nameSnapshot: string
+  swappedFromId: string | null
   completed: boolean
   skipped: boolean
   notes: string | null
@@ -204,6 +205,7 @@ export async function replaceSets(
       data: {
         exerciseId: exercise.exerciseId,
         nameSnapshot: exercise.nameSnapshot,
+        swappedFromId: exercise.swappedFromId,
         completed: exercise.completed,
         skipped: exercise.skipped,
         notes: exercise.notes,

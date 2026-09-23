@@ -56,7 +56,7 @@ describe("session service", () => {
     const seId = started.exercises[0]!.id
     const updated = await replaceSessionState(user.id, started.id, {
       activeSeconds: 300,
-      exercises: [{ id: seId, exerciseId: started.exercises[0]!.exercise!.id, nameSnapshot: started.exercises[0]!.nameSnapshot, completed: true, skipped: false, notes: "felt good", sets: [
+      exercises: [{ id: seId, exerciseId: started.exercises[0]!.exercise!.id, nameSnapshot: started.exercises[0]!.nameSnapshot, swappedFromId: null, completed: true, skipped: false, notes: "felt good", sets: [
         { setNumber: 1, type: "working", reps: 8, weightKg: 40, durationSeconds: null, rpe: 8, restSecondsLogged: 90, completedAt: new Date().toISOString() },
       ] }],
     })
@@ -84,7 +84,7 @@ describe("session service", () => {
     const seId = first.exercises[0]!.id
     await replaceSessionState(user.id, first.id, {
       activeSeconds: 100,
-      exercises: [{ id: seId, exerciseId: first.exercises[0]!.exercise!.id, nameSnapshot: first.exercises[0]!.nameSnapshot, completed: true, skipped: false, notes: null, sets: [
+      exercises: [{ id: seId, exerciseId: first.exercises[0]!.exercise!.id, nameSnapshot: first.exercises[0]!.nameSnapshot, swappedFromId: null, completed: true, skipped: false, notes: null, sets: [
         { setNumber: 1, type: "warmup", reps: 12, weightKg: 20, durationSeconds: null, rpe: null, restSecondsLogged: null, completedAt: new Date().toISOString() },
         { setNumber: 2, type: "working", reps: 8, weightKg: 40, durationSeconds: null, rpe: 8, restSecondsLogged: 90, completedAt: new Date().toISOString() },
       ] }],
@@ -93,5 +93,26 @@ describe("session service", () => {
     const second = await startSession(user.id, day.id)
     const reopened = await getSession(user.id, second.id)
     expect(reopened.exercises[0]?.lastPerformance).toEqual({ reps: 8, weightKg: 40, date: done.completedAt })
+  })
+
+  it("persists swap provenance when an exercise is replaced", async () => {
+    const { user, day, exercise } = await makeUserWithRoutine()
+    const substitute = await prisma.exercise.findFirstOrThrow({
+      where: { id: { not: exercise.id } },
+      select: { id: true, name: true },
+    })
+    const started = await startSession(user.id, day.id)
+    const seId = started.exercises[0]!.id
+    await replaceSessionState(user.id, started.id, {
+      activeSeconds: 30,
+      exercises: [{
+        id: seId, exerciseId: substitute.id, nameSnapshot: substitute.name, swappedFromId: exercise.id,
+        completed: false, skipped: false, notes: null, sets: [],
+      }],
+    })
+    const reopened = await getSession(user.id, started.id)
+    expect(reopened.exercises[0]?.exerciseId).toBe(substitute.id)
+    expect(reopened.exercises[0]?.nameSnapshot).toBe(substitute.name)
+    expect(reopened.exercises[0]?.swappedFromId).toBe(exercise.id)
   })
 })

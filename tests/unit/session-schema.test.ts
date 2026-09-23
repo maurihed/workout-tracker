@@ -14,6 +14,12 @@ describe("session schemas", () => {
     expect(sessionStateSchema.safeParse({ activeSeconds: -1, exercises: [ex] }).success).toBe(false)
     expect(sessionStateSchema.safeParse({ activeSeconds: 0, exercises: [{ ...ex, sets: [{ ...set, rpe: 11 }] }] }).success).toBe(false)
   })
+  it("defaults swap provenance to null and accepts an explicit origin", () => {
+    const omitted = sessionStateSchema.parse({ activeSeconds: 0, exercises: [ex] })
+    expect(omitted.exercises[0]?.swappedFromId).toBeNull()
+    const swapped = sessionStateSchema.parse({ activeSeconds: 0, exercises: [{ ...ex, swappedFromId: "e0" }] })
+    expect(swapped.exercises[0]?.swappedFromId).toBe("e0")
+  })
   it("complete requires non-negative activeSeconds", () => {
     expect(completeSessionSchema.safeParse({ activeSeconds: 0 }).success).toBe(true)
     expect(completeSessionSchema.safeParse({ activeSeconds: -5 }).success).toBe(false)
