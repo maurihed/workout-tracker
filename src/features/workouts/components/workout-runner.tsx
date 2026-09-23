@@ -13,7 +13,7 @@ import {
 } from "@phosphor-icons/react"
 import { useLocale, useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import {
   AlertDialog,
@@ -28,13 +28,17 @@ import {
 import { Button } from "@/components/ui/button"
 import { useProfile } from "@/features/profile/hooks/use-profile"
 import { ExerciseOverview } from "@/features/workouts/components/exercise-overview"
-import { ExerciseView } from "@/features/workouts/components/exercise-view"
+import {
+  ExerciseView,
+  type LastPerformance,
+} from "@/features/workouts/components/exercise-view"
 import { IntervalTimer } from "@/features/workouts/components/interval-timer"
 import { RestTimerBar } from "@/features/workouts/components/rest-timer-bar"
 import { RunnerHeader } from "@/features/workouts/components/runner-header"
 import { SwapExerciseSheet } from "@/features/workouts/components/swap-exercise-sheet"
 import type {
   SessionDTO,
+  SessionExerciseDTO,
   SessionTimerType,
 } from "@/features/workouts/hooks/use-active-session"
 import type { UnitSystem } from "@/features/workouts/components/set-row"
@@ -118,10 +122,13 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
 
   const timerRef = useRef<TimerState | null>(initialTimer)
   const pausedRef = useRef(false)
+  // Rest accrual is tracked manually (rather than from wall-clock) so a paused
+  // session does not count as resting. `startedAt` is null while paused.
   const restRef = useRef<{
     exerciseId: string
     setNumber: number
-    startedAt: number
+    accumulatedMs: number
+    startedAt: number | null
   } | null>(null)
   const hydratedRef = useRef<string | null>(null)
   const editVersionRef = useRef(0)
@@ -138,12 +145,13 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
   }, [])
 
   const playAlert = useCallback(() => {
+    // Respect the user's motion preference for both the pulse and the beep.
+    if (reducedMotionRef.current) return
     try {
       if (typeof navigator.vibrate === "function") navigator.vibrate(200)
     } catch {
       // Vibration is a progressive enhancement.
     }
-    if (reducedMotionRef.current) return
     try {
       const Ctor =
         window.AudioContext ??
@@ -158,10 +166,7 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
       oscillator.frequency.value = 880
       gain.gain.setValueAtTime(0.0001, context.currentTime)
       gain.gain.exponentialRampToValueAtTime(0.2, context.currentTime + 0.01)
-      gain.gain.exponentialRampToValueAtTime(
-        0.0001,
-        context.currentTime + 0.3,
-      )
+      gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.3)
       oscillator.start()
       oscillator.stop(context.currentTime + 0.32)
       oscillator.onended = () => {
@@ -176,17 +181,33 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
     const rest = restRef.current
     restRef.current = null
     if (!rest) return
-    const elapsed = Math.max(
-      0,
-      Math.round((Date.now() - rest.startedAt) / 1000),
-    )
+    const live = rest.startedAt == null ? 0 : Date.now() - rest.startedAt
+    const elapsed = Math.max(0, Math.round((rest.accumulatedMs + live) / 1000))
     toggleSet(rest.exerciseId, rest.setNumber, { restSecondsLogged: elapsed })
   }, [toggleSet])
+
+  const pauseRest = useCallback(() => {
+    const rest = restRef.current
+    if (!rest || rest.startedAt == null) return
+    rest.accumulatedMs += Date.now() - rest.startedAt
+    rest.startedAt = null
+  }, [])
+
+  const resumeRest = useCallback(() => {
+    const rest = restRef.current
+    if (!rest || rest.startedAt != null) return
+    rest.startedAt = Date.now()
+  }, [])
 
   const startRestFor = useCallback(
     (exerciseId: string, setNumber: number, seconds: number) => {
       finishRest()
-      restRef.current = { exerciseId, setNumber, startedAt: Date.now() }
+      restRef.current = {
+        exerciseId,
+        setNumber,
+        accumulatedMs: 0,
+        startedAt: pausedRef.current ? null : Date.now(),
+      }
       applyTimer(startRestTimer(seconds))
     },
     [applyTimer, finishRest],
@@ -221,7 +242,8 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
     ).matches
   }, [])
 
-  // Best-effort screen wake lock for the lifetime of the runner.
+  // Best-effort screen wake lock for the lifetime of the runner. Browsers
+  // release it when the page is hidden, so re-acquire when it becomes visible.
   useEffect(() => {
     let sentinel: WakeLockSentinelLike | null = null
     let cancelled = false
@@ -232,20 +254,37 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
         }
       }
     ).wakeLock
-    if (wakeLock) {
-      void wakeLock
-        .request("screen")
-        .then((held) => {
-          if (cancelled) {
-            void held.release().catch(() => undefined)
-            return
+
+    async function acquire() {
+      if (!wakeLock || cancelled) return
+      try {
+        if (sentinel) {
+          try {
+            await sentinel.release()
+          } catch {
+            // Already released by the browser when hidden.
           }
-          sentinel = held
-        })
-        .catch(() => undefined)
+          sentinel = null
+        }
+        const held = await wakeLock.request("screen")
+        if (cancelled) {
+          void held.release().catch(() => undefined)
+          return
+        }
+        sentinel = held
+      } catch {
+        // Wake lock is a progressive enhancement.
+      }
     }
+
+    void acquire()
+    function handleVisibility() {
+      if (document.visibilityState === "visible") void acquire()
+    }
+    document.addEventListener("visibilitychange", handleVisibility)
     return () => {
       cancelled = true
+      document.removeEventListener("visibilitychange", handleVisibility)
       if (sentinel) void sentinel.release().catch(() => undefined)
     }
   }, [])
@@ -257,7 +296,6 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
   }, [reset])
 
   const currentExercise = exercises[currentIndex] ?? null
-  const currentExerciseId = currentExercise?.id ?? null
   const currentTimerType = currentExercise?.timerType ?? null
   const currentRestSeconds = currentExercise?.restSeconds ?? null
 
@@ -296,11 +334,14 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
       const running = timerRef.current
       if (!running || !running.running) return
       const advanced = tickTimer(running)
-      if (running.phase !== "idle" && advanced.phase === "idle") playAlert()
+      if (running.phase !== "idle" && advanced.phase === "idle") {
+        playAlert()
+        if (running.kind === "rest") finishRest()
+      }
       applyTimer(advanced)
     }, 1000)
     return () => window.clearInterval(id)
-  }, [applyTimer, playAlert])
+  }, [applyTimer, finishRest, playAlert])
 
   // Bump a version on every edit so an in-flight push can tell whether it is
   // still the latest state (and therefore owns clearing `isDirty`).
@@ -315,17 +356,43 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
     return () => window.clearTimeout(id)
   }, [exercises, isDirty, pushState])
 
-  // Last-chance push when the tab/app is backgrounded.
+  // Last-chance push when the tab/app is backgrounded, but only when there are
+  // unsaved edits (an unconditional PUT would race the destructive replaceSets).
   useEffect(() => {
+    if (!isDirty) return
     function handleVisibility() {
       if (document.visibilityState === "hidden") pushState()
     }
     document.addEventListener("visibilitychange", handleVisibility)
-    return () => document.removeEventListener("visibilitychange", handleVisibility)
-  }, [pushState])
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility)
+  }, [isDirty, pushState])
 
-  const dtoExercise = currentExerciseId
-    ? (session.exercises.find((item) => item.id === currentExerciseId) ?? null)
+  // Media + previous-performance are keyed by CATALOG exercise id so a swap
+  // (which rewrites the store's `exerciseId`) immediately drops the replaced
+  // exercise's thumbnail/hint instead of showing stale data.
+  const { mediaByExerciseId, lastPerformanceByExerciseId } = useMemo(() => {
+    const media = new Map<string, SessionExerciseDTO["exercise"]>()
+    const lastPerformance = new Map<string, LastPerformance>()
+    for (const item of session.exercises) {
+      const catalogId = item.exerciseId ?? item.exercise?.id ?? null
+      if (!catalogId) continue
+      if (item.exercise) media.set(catalogId, item.exercise)
+      if (item.lastPerformance)
+        lastPerformance.set(catalogId, item.lastPerformance)
+    }
+    return {
+      mediaByExerciseId: media,
+      lastPerformanceByExerciseId: lastPerformance,
+    }
+  }, [session.exercises])
+
+  const currentExerciseId = currentExercise?.exerciseId ?? null
+  const currentMedia = currentExerciseId
+    ? mediaByExerciseId.get(currentExerciseId)
+    : undefined
+  const currentLastPerformance = currentExerciseId
+    ? (lastPerformanceByExerciseId.get(currentExerciseId) ?? null)
     : null
 
   const totalSets = exercises.reduce((sum, item) => sum + item.sets.length, 0)
@@ -361,6 +428,8 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
     if (running && running.phase !== "idle") {
       applyTimer(nextPaused ? pauseTimer(running) : resumeTimer(running))
     }
+    if (nextPaused) pauseRest()
+    else resumeRest()
     pushState()
   }
 
@@ -404,7 +473,21 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
       {currentTimerType && currentTimerType !== "none" && timer ? (
         <IntervalTimer
           timer={timer}
-          onStart={() => applyTimer(resumeTimer(timer))}
+          onStart={() => {
+            // A finished interval can be restarted (rather than leaving Start
+            // as a dead control at idle).
+            if (timer.phase === "idle") {
+              const rebuilt = buildExerciseTimer(
+                currentTimerType,
+                currentExercise?.workSeconds ?? null,
+                currentExercise?.restSeconds ?? null,
+                currentExercise?.rounds ?? null,
+              )
+              if (rebuilt) applyTimer(resumeTimer(rebuilt))
+              return
+            }
+            applyTimer(resumeTimer(timer))
+          }}
           onPause={() => applyTimer(pauseTimer(timer))}
           onSkipRound={() => applyTimer(skipRoundTimer(timer))}
         />
@@ -450,8 +533,8 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
             })),
           }}
           unitSystem={unitSystem}
-          imagePath={dtoExercise?.exercise?.images?.[0] ?? null}
-          lastPerformance={dtoExercise?.lastPerformance ?? null}
+          imagePath={currentMedia?.images?.[0] ?? null}
+          lastPerformance={currentLastPerformance}
           onSetChange={(setNumber, patch) => {
             toggleSet(currentExercise.id, setNumber, patch)
           }}
@@ -581,7 +664,9 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t("finish")}</AlertDialogTitle>
-            <AlertDialogDescription>{t("finishConfirm")}</AlertDialogDescription>
+            <AlertDialogDescription>
+              {t("finishConfirm")}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
@@ -596,7 +681,9 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t("discard")}</AlertDialogTitle>
-            <AlertDialogDescription>{t("discardConfirm")}</AlertDialogDescription>
+            <AlertDialogDescription>
+              {t("discardConfirm")}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>

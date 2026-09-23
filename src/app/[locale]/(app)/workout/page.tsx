@@ -42,9 +42,14 @@ export default function WorkoutPage() {
   // firing a second `POST` (which the service would reject with a conflict).
   const autoStartedRef = useRef(false)
   useEffect(() => {
-    if (autoStartedRef.current) return
     if (session.isLoading || routine.isLoading) return
-    if (activeSession) return
+    if (activeSession) {
+      // A resumed session already counts as "started": after it is completed
+      // the active query flips to null, which must NOT auto-start a new one.
+      autoStartedRef.current = true
+      return
+    }
+    if (autoStartedRef.current) return
     if (days.length === 1) {
       autoStartedRef.current = true
       start.mutate(days[0]!.id)
@@ -78,7 +83,7 @@ export default function WorkoutPage() {
     return <WorkoutRunner session={activeSession} />
   }
 
-  if (routine.isLoading) {
+  if (session.isLoading || routine.isLoading) {
     return <WorkoutSkeleton label={tCommon("loading")} />
   }
 
@@ -123,6 +128,9 @@ export default function WorkoutPage() {
   }
 
   return (
-    <DayChooser routine={routine.data} onPick={(dayId) => start.mutate(dayId)} />
+    <DayChooser
+      routine={routine.data}
+      onPick={(dayId) => start.mutate(dayId)}
+    />
   )
 }
