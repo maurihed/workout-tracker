@@ -118,16 +118,16 @@ export function Wizard({
 
   return (
     <div className="flex flex-1 flex-col gap-6">
-      <div aria-live="polite" aria-atomic="true">
-        <div className="bg-muted h-1.5 overflow-hidden rounded-full">
+      <div aria-live="polite" aria-atomic="true" className="flex flex-col gap-2">
+        <div className="bg-muted h-2.5 overflow-hidden rounded-full ring-1 ring-(--surface-ring)">
           <div
-            className="bg-primary h-full rounded-full transition-all"
+            className="bg-primary glow-volt h-full origin-left rounded-full transition-[width] duration-500 ease-spring"
             style={{
               width: `${((stepIndex + 1) / ONBOARDING_STEPS.length) * 100}%`,
             }}
           />
         </div>
-        <p className="text-muted-foreground mt-2 text-sm">
+        <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
           {t("progress", {
             current: stepIndex + 1,
             total: ONBOARDING_STEPS.length,
@@ -178,12 +178,12 @@ export function Wizard({
         ) : null}
       </div>
 
-      <div className="flex gap-3">
+      <div className="sticky bottom-0 flex gap-3 bg-gradient-to-t from-background via-background to-transparent pt-3">
         {canGoBack ? (
           <Button
             type="button"
             variant="ghost"
-            className="h-12 flex-1"
+            className="h-13 flex-1"
             disabled={save.isPending}
             onClick={goBack}
           >
@@ -194,7 +194,7 @@ export function Wizard({
         {stepOwnsActions ? null : (
           <Button
             type="button"
-            className="h-12 flex-1"
+            className="h-13 flex-1"
             disabled={!canContinue || save.isPending}
             onClick={handleNext}
           >

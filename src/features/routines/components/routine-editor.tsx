@@ -34,7 +34,7 @@ const GOALS: Goal[] = [
 ]
 
 const selectClassName =
-  "border-input bg-transparent focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full min-w-0 rounded-lg border px-2.5 py-1 text-base outline-none focus-visible:ring-3 md:text-sm dark:bg-input/30"
+  "border-input bg-muted/40 focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full min-w-0 rounded-2xl border px-3 py-1 text-base outline-none focus-visible:ring-3 md:text-sm"
 
 type RoutineEditorProps = {
   routineId: string
@@ -113,9 +113,9 @@ export function RoutineEditor({ routineId }: RoutineEditorProps) {
     return (
       <div className="space-y-3" role="status" aria-busy="true">
         <span className="sr-only">{tCommon("loading")}</span>
-        <Skeleton className="h-11 w-full rounded-lg" />
-        <Skeleton className="h-28 w-full rounded-xl" />
-        <Skeleton className="h-28 w-full rounded-xl" />
+        <Skeleton className="h-11 w-full rounded-2xl" />
+        <Skeleton className="h-28 w-full rounded-3xl" />
+        <Skeleton className="h-28 w-full rounded-3xl" />
       </div>
     )
   }
@@ -191,7 +191,9 @@ export function RoutineEditor({ routineId }: RoutineEditorProps) {
       </div>
 
       <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-lg">{t("days")}</h2>
+        <h2 className="font-heading text-xl font-bold tracking-tight">
+          {t("days")}
+        </h2>
         <DayList
           days={days}
           routineId={routineId}

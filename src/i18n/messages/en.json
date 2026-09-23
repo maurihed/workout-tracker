@@ -251,6 +251,17 @@
   "comingSoon": {
     "message": "This feature is coming soon."
   },
+  "gamify": {
+    "level": "Level {level}",
+    "xp": "{value} XP",
+    "streak": "Weekly streak",
+    "week": "This week",
+    "readiness": "Plan readiness",
+    "progressLabel": "Level progress",
+    "days": "Days",
+    "exercises": "Exercises",
+    "sets": "Sets"
+  },
   "workout": {
     "title": "Workout"
   },

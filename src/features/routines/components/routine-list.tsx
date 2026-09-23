@@ -41,8 +41,12 @@ export function RoutineList({
 
   return (
     <ul className="flex flex-col gap-3">
-      {routines.map((routine) => (
-        <li key={routine.id}>
+      {routines.map((routine, index) => (
+        <li
+          key={routine.id}
+          className="animate-rise"
+          style={{ animationDelay: `${index * 60}ms` }}
+        >
           <RoutineCard
             routine={routine}
             onActivate={onActivate}

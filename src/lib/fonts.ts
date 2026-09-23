@@ -1,13 +1,13 @@
-import { Barlow, Barlow_Condensed } from "next/font/google"
+import { DM_Sans, Space_Grotesk } from "next/font/google"
 
-export const fontBody = Barlow({
+export const fontBody = DM_Sans({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-body",
 })
 
-export const fontHeading = Barlow_Condensed({
+export const fontHeading = Space_Grotesk({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["500", "600", "700"],
   variable: "--font-heading",
 })

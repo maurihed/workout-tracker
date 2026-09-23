@@ -23,8 +23,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+    { media: "(prefers-color-scheme: light)", color: "#f6f7f4" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0d10" },
   ],
 }
 
@@ -46,7 +46,7 @@ export default async function LocaleLayout({
       suppressHydrationWarning
       className={`${fontBody.variable} ${fontHeading.variable}`}
     >
-      <body className="bg-background text-foreground antialiased">
+      <body className="bg-background text-foreground min-h-dvh antialiased">
         <SerwistProvider swUrl="/sw.js" disable={process.env.NODE_ENV === "development"}>
           <NextIntlClientProvider>
             <AuthProvider>

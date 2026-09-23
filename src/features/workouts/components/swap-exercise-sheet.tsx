@@ -27,7 +27,7 @@ type Equipment = (typeof EQUIPMENT)[number]
 type Level = (typeof LEVELS)[number]
 
 const selectClassName =
-  "border-input bg-transparent focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full min-w-0 rounded-lg border px-2 py-1 text-base outline-none focus-visible:ring-3 md:text-sm dark:bg-input/30"
+  "border-input bg-muted/40 focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full min-w-0 rounded-2xl border px-2.5 py-1 text-base outline-none focus-visible:ring-3 md:text-sm"
 
 type SwapExerciseSheetProps = {
   open: boolean
@@ -191,7 +191,7 @@ export function SwapExerciseSheet({
                     <Button
                       type="button"
                       variant="outline"
-                      className="h-auto min-h-14 w-full justify-start gap-3 p-2 text-left"
+                      className="h-auto min-h-16 w-full justify-start gap-3 rounded-2xl p-2.5 text-left"
                       onClick={() => handleSelect(item)}
                     >
                       <Image
@@ -200,7 +200,7 @@ export function SwapExerciseSheet({
                         width={48}
                         height={48}
                         unoptimized={thumbnail.endsWith(".svg")}
-                        className="bg-muted size-12 shrink-0 rounded-md object-cover"
+                        className="bg-muted size-12 shrink-0 rounded-xl object-cover"
                       />
                       <span className="flex min-w-0 flex-1 flex-col gap-1">
                         <span className="truncate font-medium">{name}</span>

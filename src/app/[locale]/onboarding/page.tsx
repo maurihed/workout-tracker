@@ -28,9 +28,12 @@ export default async function OnboardingPage({
   const initialStep = firstIncompleteStep(profile ?? EMPTY_ONBOARDING_PROFILE)
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-6 p-4">
-      <Wizard initialStep={initialStep} profile={profile} />
-      <SkipOnboardingButton />
+    <main className="bg-background relative mx-auto flex min-h-dvh w-full max-w-md flex-col gap-6 overflow-hidden p-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+      <div className="mesh-header pointer-events-none absolute inset-x-0 top-0 h-56 opacity-60" />
+      <div className="relative flex flex-1 flex-col gap-6">
+        <Wizard initialStep={initialStep} profile={profile} />
+        <SkipOnboardingButton />
+      </div>
     </main>
   )
 }

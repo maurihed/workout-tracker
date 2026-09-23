@@ -31,9 +31,9 @@ function WorkoutSkeleton({ label }: { label: string }) {
   return (
     <div className="space-y-4" role="status" aria-busy="true">
       <span className="sr-only">{label}</span>
-      <Skeleton className="h-10 w-full rounded-lg" />
-      <Skeleton className="h-40 w-full rounded-xl" />
-      <Skeleton className="h-12 w-full rounded-lg" />
+      <Skeleton className="h-14 w-full rounded-2xl" />
+      <Skeleton className="h-40 w-full rounded-3xl" />
+      <Skeleton className="h-12 w-full rounded-full" />
     </div>
   )
 }

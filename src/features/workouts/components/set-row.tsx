@@ -95,19 +95,19 @@ export function SetRow({
   return (
     <li
       className={cn(
-        "border-border bg-card flex flex-col gap-3 rounded-lg border p-3",
-        completed && "bg-muted/50",
+        "border-border bg-card flex flex-col gap-3 rounded-3xl border p-3.5 ring-1 ring-(--surface-ring) transition-colors",
+        completed && "border-primary/40 bg-primary/5",
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold tabular-nums">
+        <span className="font-heading text-sm font-bold tabular-nums">
           {t("sets.number", { number: set.setNumber })}
         </span>
         <div className="flex items-center gap-1">
           <label
             className={cn(
-              "text-muted-foreground flex min-h-11 cursor-pointer items-center gap-1.5 rounded-lg px-2 text-sm",
-              warmup && "text-foreground bg-secondary",
+              "text-muted-foreground flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full px-3 text-sm font-semibold",
+              warmup && "bg-warning text-warning-foreground",
             )}
           >
             <input
@@ -119,12 +119,12 @@ export function SetRow({
               }
               aria-label={t("sets.warmup")}
             />
-            <Flame className="size-4" aria-hidden="true" />
+            <Flame className="size-4" weight="fill" aria-hidden="true" />
           </label>
           <label className="flex size-11 cursor-pointer items-center justify-center">
             <input
               type="checkbox"
-              className="accent-primary size-7"
+              className="accent-primary size-7 cursor-pointer"
               checked={completed}
               onChange={(event) => onComplete(event.target.checked)}
               aria-label={t("sets.complete")}

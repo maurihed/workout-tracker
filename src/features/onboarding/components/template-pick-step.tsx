@@ -1,14 +1,16 @@
 "use client"
 
-import { WarningCircle } from "@phosphor-icons/react"
+import { Sparkle, WarningCircle } from "@phosphor-icons/react"
 import { useLocale, useTranslations } from "next-intl"
 import { toast } from "sonner"
 
 import { EmptyState } from "@/components/shared/empty-state"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useCreateFromTemplate } from "@/features/routines/hooks/use-create-from-template"
 import { useRoutineTemplates } from "@/features/routines/hooks/use-routine-templates"
 import type { RoutineDTO } from "@/features/routines/hooks/use-active-routine"
+import { cn } from "@/lib/utils"
 
 export function TemplatePickStep({
   onPicked,
@@ -62,9 +64,11 @@ export function TemplatePickStep({
 
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="font-heading text-lg">{t("pick")}</h2>
+      <h2 className="font-heading text-2xl font-bold tracking-tight">
+        {t("pick")}
+      </h2>
       <div className="flex flex-col gap-3">
-        {list.map((tpl) => {
+        {list.map((tpl, index) => {
           const name = locale === "es" ? (tpl.nameEs || tpl.name) : tpl.name
           const description =
             locale === "es"
@@ -74,17 +78,29 @@ export function TemplatePickStep({
             <Button
               key={tpl.slug}
               type="button"
-              variant={tpl.recommended ? "default" : "secondary"}
-              className="h-auto min-h-12 flex-col items-start gap-1 p-4 text-left"
+              variant="outline"
+              className={cn(
+                "animate-rise h-auto min-h-20 flex-col items-start gap-1.5 rounded-2xl p-4 text-left whitespace-normal",
+                tpl.recommended &&
+                  "border-primary bg-primary/10 ring-2 ring-primary/30 hover:bg-primary/15",
+              )}
+              style={{ animationDelay: `${index * 50}ms` }}
               disabled={create.isPending}
               onClick={() => handlePick(tpl.slug)}
             >
-              <span className="font-heading text-base">{name}</span>
+              <span className="flex w-full items-center justify-between gap-2">
+                <span className="font-heading text-lg font-bold">{name}</span>
+                {tpl.recommended ? (
+                  <Badge>
+                    <Sparkle className="size-3" weight="fill" aria-hidden="true" />
+                    {t("recommended")}
+                  </Badge>
+                ) : null}
+              </span>
               {description ? (
-                <span className="text-xs font-normal">{description}</span>
-              ) : null}
-              {tpl.recommended ? (
-                <span className="text-xs">{t("recommended")}</span>
+                <span className="text-muted-foreground text-sm font-normal">
+                  {description}
+                </span>
               ) : null}
             </Button>
           )

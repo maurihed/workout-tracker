@@ -32,7 +32,7 @@ type Equipment = (typeof EQUIPMENT)[number]
 type Level = (typeof LEVELS)[number]
 
 const selectClassName =
-  "border-input bg-transparent focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full min-w-0 rounded-lg border px-2 py-1 text-base outline-none focus-visible:ring-3 md:text-sm dark:bg-input/30"
+  "border-input bg-muted/40 focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full min-w-0 rounded-2xl border px-2.5 py-1 text-base outline-none focus-visible:ring-3 md:text-sm"
 
 type ExercisePickerProps = {
   routineId: string
@@ -136,7 +136,7 @@ export function ExercisePicker({ routineId, dayId }: ExercisePickerProps) {
         >
           <ArrowLeft className="size-5" aria-hidden="true" />
         </Button>
-        <h1 className="font-heading text-xl font-bold">{t("title")}</h1>
+        <h1 className="font-heading text-2xl font-bold tracking-tight">{t("title")}</h1>
       </header>
 
       <div className="flex flex-col gap-3">
@@ -240,7 +240,7 @@ export function ExercisePicker({ routineId, dayId }: ExercisePickerProps) {
                 <li key={item.id}>
                   <label
                     htmlFor={inputId}
-                    className="border-border bg-card flex min-h-14 cursor-pointer items-center gap-3 rounded-lg border p-2"
+                    className="border-border bg-card flex min-h-16 cursor-pointer items-center gap-3 rounded-2xl border p-2.5 ring-1 ring-(--surface-ring) transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/10 has-[:checked]:ring-2 has-[:checked]:ring-primary/30"
                   >
                     <input
                       id={inputId}
@@ -256,7 +256,7 @@ export function ExercisePicker({ routineId, dayId }: ExercisePickerProps) {
                       width={48}
                       height={48}
                       unoptimized={thumbnail.endsWith(".svg")}
-                      className="bg-muted size-12 shrink-0 rounded-md object-cover"
+                      className="bg-muted size-12 shrink-0 rounded-xl object-cover"
                     />
                     <span className="flex min-w-0 flex-1 flex-col gap-1">
                       <span className="truncate font-medium">{name}</span>
@@ -281,7 +281,7 @@ export function ExercisePicker({ routineId, dayId }: ExercisePickerProps) {
         ) : null}
       </div>
 
-      <div className="bg-background sticky bottom-0 border-t pt-3 pb-[env(safe-area-inset-bottom)]">
+      <div className="bg-background/95 sticky bottom-0 border-t border-border/60 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] backdrop-blur">
         <Button
           type="button"
           className="h-12 w-full"

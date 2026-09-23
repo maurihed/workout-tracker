@@ -19,7 +19,12 @@ export function ThemeToggle() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label={t("label")}>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label={t("label")}
+          className="bg-card/70 backdrop-blur"
+        >
           <Sun className="size-5 dark:hidden" aria-hidden="true" />
           <Moon className="hidden size-5 dark:block" aria-hidden="true" />
         </Button>

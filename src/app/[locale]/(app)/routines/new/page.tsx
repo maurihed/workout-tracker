@@ -9,7 +9,7 @@ export default function NewRoutinePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-heading text-2xl font-bold">{t("new")}</h1>
+      <h1 className="font-heading text-3xl font-bold tracking-tight">{t("new")}</h1>
       <NewRoutineForm />
     </div>
   )

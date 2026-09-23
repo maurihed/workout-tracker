@@ -41,21 +41,21 @@ export function ExerciseRow({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "border-border bg-background flex flex-col gap-3 rounded-lg border p-3",
+        "border-border bg-background flex flex-col gap-3 rounded-2xl border p-3",
         isDragging && "opacity-60",
       )}
     >
       <div className="flex items-center gap-1">
         <button
           type="button"
-          className="text-muted-foreground focus-visible:ring-ring/50 flex size-11 shrink-0 touch-none items-center justify-center rounded-lg outline-none focus-visible:ring-3"
+          className="text-muted-foreground focus-visible:ring-ring/50 flex size-11 shrink-0 touch-none items-center justify-center rounded-2xl outline-none focus-visible:ring-3"
           aria-label={t("reorderExercise")}
           {...attributes}
           {...listeners}
         >
           <DotsSixVertical className="size-5" aria-hidden="true" />
         </button>
-        <span className="flex-1 truncate font-medium">{exercise.name}</span>
+        <span className="flex-1 truncate font-semibold">{exercise.name}</span>
         <Button
           type="button"
           variant="ghost"
