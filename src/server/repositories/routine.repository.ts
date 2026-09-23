@@ -176,16 +176,18 @@ export function createBlank(userId: string, data: RoutineHeaderInput) {
 }
 
 /**
- * Replaces every day (cascade delete) with the supplied days and updates the
- * header. Must run inside a transaction so a failure never partially writes.
- * Returns the fresh DTO so callers do not re-read an uncommitted row.
+ * Deletes every existing day (the cascade removes their exercises) and then
+ * recreates the supplied days, updating the header in the same transaction.
+ * Must run inside a transaction so a failure never partially writes. Returns
+ * the fresh DTO so callers do not re-read an uncommitted row.
  */
-export function replaceDays(
+export async function replaceDays(
   tx: Prisma.TransactionClient,
   routineId: string,
   days: RoutineDayWriteInput[],
   header: RoutineHeaderInput,
 ) {
+  await tx.routineDay.deleteMany({ where: { routineId } })
   return tx.routine.update({
     where: { id: routineId },
     data: {
