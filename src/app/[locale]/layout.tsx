@@ -1,4 +1,5 @@
 import { SerwistProvider } from "@serwist/next/react"
+import type { Metadata, Viewport } from "next"
 import { NextIntlClientProvider, hasLocale } from "next-intl"
 import { setRequestLocale } from "next-intl/server"
 import { notFound } from "next/navigation"
@@ -11,6 +12,20 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { routing } from "@/i18n/routing"
 import { fontBody, fontHeading } from "@/lib/fonts"
+
+export const metadata: Metadata = {
+  applicationName: "Gym Tracker",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "Gym Tracker" },
+  formatDetection: { telephone: false },
+}
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
+}
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }))
