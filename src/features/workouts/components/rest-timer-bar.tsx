@@ -22,25 +22,25 @@ export function RestTimerBar({ timer, onAdjust, onSkip }: RestTimerBarProps) {
 
   return (
     <section
-      className="bg-card border-border flex flex-col gap-2 rounded-lg border p-3"
+      className="bg-secondary text-secondary-foreground flex flex-col gap-3 rounded-3xl p-4 ring-1 ring-inset ring-foreground/10"
       aria-label={t("rest")}
     >
       <div className="flex items-baseline justify-between gap-3">
         <span
-          className="font-heading text-2xl font-bold tabular-nums"
+          className="font-heading text-3xl font-bold tabular-nums"
           role="timer"
           aria-live="polite"
         >
           {formatClock(timer.remaining)}
         </span>
-        <span className="text-muted-foreground text-xs">
+        <span className="rounded-full bg-secondary-foreground/15 px-2.5 py-0.5 text-xs font-semibold">
           {timer.running ? t("running") : t("paused")}
         </span>
       </div>
 
-      <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
+      <div className="h-2 w-full overflow-hidden rounded-full bg-secondary-foreground/20">
         <div
-          className="bg-primary h-full rounded-full transition-[width]"
+          className="bg-primary h-full origin-left rounded-full transition-[width] duration-500 ease-spring"
           style={{ width: `${percent}%` }}
         />
       </div>
@@ -49,31 +49,30 @@ export function RestTimerBar({ timer, onAdjust, onSkip }: RestTimerBarProps) {
         <Button
           type="button"
           variant="outline"
-          className="h-11 flex-1"
+          className="h-11 flex-1 bg-secondary-foreground/10 text-secondary-foreground hover:bg-secondary-foreground/20"
           aria-label={`${t("adjust")} -15`}
           onClick={() => onAdjust(-15)}
         >
-          <Minus className="size-4" aria-hidden="true" />
+          <Minus className="size-4" weight="bold" aria-hidden="true" />
           15
         </Button>
         <Button
           type="button"
           variant="outline"
-          className="h-11 flex-1"
+          className="h-11 flex-1 bg-secondary-foreground/10 text-secondary-foreground hover:bg-secondary-foreground/20"
           aria-label={`${t("adjust")} +15`}
           onClick={() => onAdjust(15)}
         >
-          <Plus className="size-4" aria-hidden="true" />
+          <Plus className="size-4" weight="bold" aria-hidden="true" />
           15
         </Button>
         <Button
           type="button"
-          variant="secondary"
           className="h-11 flex-1"
           aria-label={t("skip")}
           onClick={onSkip}
         >
-          <ArrowCounterClockwise className="size-4" aria-hidden="true" />
+          <ArrowCounterClockwise className="size-4" weight="bold" aria-hidden="true" />
           {t("skip")}
         </Button>
       </div>

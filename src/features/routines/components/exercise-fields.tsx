@@ -12,7 +12,7 @@ import type {
 const TIMER_TYPES: TimerType[] = ["none", "interval", "emom", "amrap"]
 
 const selectClassName =
-  "border-input bg-transparent focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full min-w-0 rounded-lg border px-2.5 py-1 text-base outline-none focus-visible:ring-3 md:text-sm dark:bg-input/30"
+  "border-input bg-muted/40 focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full min-w-0 rounded-2xl border px-3 py-1 text-base outline-none focus-visible:ring-3 md:text-sm"
 
 type ExerciseFieldsProps = {
   exercise: DraftExercise

@@ -18,9 +18,9 @@ function SummarySkeleton({ label }: { label: string }) {
   return (
     <div className="space-y-4" role="status" aria-busy="true">
       <span className="sr-only">{label}</span>
-      <Skeleton className="h-7 w-48" />
-      <Skeleton className="h-28 w-full rounded-xl" />
-      <Skeleton className="h-12 w-full rounded-lg" />
+      <Skeleton className="h-24 w-full rounded-3xl" />
+      <Skeleton className="h-28 w-full rounded-3xl" />
+      <Skeleton className="h-12 w-full rounded-full" />
     </div>
   )
 }

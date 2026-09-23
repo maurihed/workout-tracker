@@ -57,8 +57,8 @@ export function ExerciseOverview({
                 type="button"
                 variant="ghost"
                 className={cn(
-                  "h-auto w-full justify-start gap-3 py-2 text-left",
-                  index === currentIndex && "bg-muted",
+                  "h-auto w-full justify-start gap-3 rounded-2xl py-2.5 text-left",
+                  index === currentIndex && "bg-primary/15 ring-1 ring-primary/30",
                 )}
                 onClick={() => handleSelect(index)}
               >

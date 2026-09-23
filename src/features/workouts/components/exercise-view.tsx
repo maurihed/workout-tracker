@@ -1,6 +1,6 @@
 "use client"
 
-import { Plus } from "@phosphor-icons/react"
+import { ClockCounterClockwise, Plus } from "@phosphor-icons/react"
 import { useTranslations } from "next-intl"
 import Image from "next/image"
 
@@ -72,25 +72,32 @@ export function ExerciseView({
 
   return (
     <section className="flex flex-col gap-4" aria-label={exercise.nameSnapshot}>
-      <div className="flex items-center gap-3">
+      <div className="bg-card flex items-center gap-3 rounded-3xl border border-border p-3 ring-1 ring-(--surface-ring)">
         <Image
           src={thumbnail}
           alt=""
-          width={64}
-          height={64}
+          width={72}
+          height={72}
           unoptimized={thumbnail.endsWith(".svg")}
-          className="bg-muted size-16 shrink-0 rounded-lg object-cover"
+          className="bg-muted size-18 shrink-0 rounded-2xl object-cover"
         />
         <div className="flex min-w-0 flex-col gap-1">
-          <h2 className="font-heading truncate text-xl font-bold">
+          <h2 className="font-heading truncate text-xl font-bold tracking-tight">
             {exercise.nameSnapshot}
           </h2>
-          <p className="text-muted-foreground text-sm">{target}</p>
+          <p className="bg-muted text-muted-foreground w-fit rounded-full px-2.5 py-0.5 text-xs font-semibold">
+            {target}
+          </p>
         </div>
       </div>
 
       {lastPerformance ? (
-        <p className="bg-secondary text-secondary-foreground rounded-lg px-3 py-2 text-sm">
+        <p className="bg-secondary text-secondary-foreground flex items-center gap-2 rounded-2xl px-3.5 py-2.5 text-sm font-medium ring-1 ring-inset ring-foreground/10">
+          <ClockCounterClockwise
+            className="size-4 shrink-0"
+            weight="bold"
+            aria-hidden="true"
+          />
           {t("lastPerformance", {
             reps: lastPerformance.reps ?? 0,
             weight:
@@ -115,7 +122,7 @@ export function ExerciseView({
       </ul>
 
       <Button type="button" variant="outline" className="h-12 w-full" onClick={onAddSet}>
-        <Plus className="size-4" aria-hidden="true" />
+        <Plus className="size-4" weight="bold" aria-hidden="true" />
         {t("sets.addSet")}
       </Button>
 
@@ -130,7 +137,7 @@ export function ExerciseView({
             onNotesChange(event.target.value === "" ? null : event.target.value)
           }
           rows={2}
-          className="border-input bg-transparent focus-visible:border-ring focus-visible:ring-ring/50 min-h-11 w-full resize-y rounded-lg border px-2.5 py-2 text-base outline-none focus-visible:ring-3 md:text-sm dark:bg-input/30"
+          className="border-input bg-muted/40 focus-visible:border-ring focus-visible:ring-ring/50 min-h-11 w-full resize-y rounded-2xl border px-3.5 py-2 text-base outline-none focus-visible:ring-3 md:text-sm"
         />
       </div>
     </section>

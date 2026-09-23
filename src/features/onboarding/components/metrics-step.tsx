@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useSaveOnboardingStep } from "@/features/onboarding/hooks/use-save-onboarding-step"
 import { useOnboardingStore } from "@/features/onboarding/stores/onboarding-store"
+import { cn } from "@/lib/utils"
 
 const GENDERS = [
   { id: "male", icon: GenderMale },
@@ -75,7 +76,9 @@ export function MetricsStep() {
   return (
     <section className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h2 className="font-heading text-lg">{t("label")}</h2>
+        <h2 className="font-heading text-2xl font-bold tracking-tight">
+          {t("label")}
+        </h2>
         <p className="text-muted-foreground text-sm">{t("optional")}</p>
       </div>
 
@@ -125,21 +128,30 @@ export function MetricsStep() {
       >
         <p className="text-muted-foreground text-sm">{t("gender")}</p>
         <div className="grid grid-cols-2 gap-3">
-          {GENDERS.map(({ id, icon: GenderIcon }) => (
-            <Button
-              key={id}
-              type="button"
-              variant={
-                asString(answers.gender) === id ? "default" : "secondary"
-              }
-              aria-pressed={asString(answers.gender) === id}
-              className="h-12 justify-start gap-2"
-              onClick={() => setAnswer("gender", id)}
-            >
-              <GenderIcon className="size-5" aria-hidden="true" />
-              {t(id)}
-            </Button>
-          ))}
+          {GENDERS.map(({ id, icon: GenderIcon }) => {
+            const selected = asString(answers.gender) === id
+            return (
+              <Button
+                key={id}
+                type="button"
+                variant="outline"
+                aria-pressed={selected}
+                className={cn(
+                  "h-14 justify-start gap-2 rounded-2xl px-3 text-sm",
+                  selected &&
+                    "border-primary bg-primary/15 ring-2 ring-primary/40 hover:bg-primary/20",
+                )}
+                onClick={() => setAnswer("gender", id)}
+              >
+                <GenderIcon
+                  className={cn("size-5", selected && "text-primary")}
+                  weight={selected ? "fill" : "duotone"}
+                  aria-hidden="true"
+                />
+                <span className="font-semibold">{t(id)}</span>
+              </Button>
+            )
+          })}
         </div>
       </div>
 

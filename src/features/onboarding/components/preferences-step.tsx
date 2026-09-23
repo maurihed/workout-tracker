@@ -7,6 +7,7 @@ import { useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { cn } from "@/lib/utils"
 
 const UNITS = ["metric", "imperial"] as const
 
@@ -44,26 +45,39 @@ export function PreferencesStep({
   return (
     <section className="flex flex-col gap-6">
       <div className="flex flex-col gap-4">
-        <h2 className="font-heading text-lg">{t("label")}</h2>
+        <h2 className="font-heading text-2xl font-bold tracking-tight">
+          {t("label")}
+        </h2>
         <p className="text-muted-foreground text-sm">{t("units")}</p>
         <div
           role="group"
           aria-label={t("units")}
-          className="flex flex-col gap-3"
+          className="grid grid-cols-2 gap-3"
         >
-          {UNITS.map((unit) => (
-            <Button
-              key={unit}
-              type="button"
-              variant={unitSystem === unit ? "default" : "secondary"}
-              aria-pressed={unitSystem === unit}
-              className="h-12 justify-start gap-3"
-              onClick={() => onUnitSystemChange(unit)}
-            >
-              <Scales className="size-5" aria-hidden="true" />
-              {t(unit)}
-            </Button>
-          ))}
+          {UNITS.map((unit) => {
+            const selected = unitSystem === unit
+            return (
+              <Button
+                key={unit}
+                type="button"
+                variant="outline"
+                aria-pressed={selected}
+                className={cn(
+                  "h-20 flex-col gap-1.5 rounded-2xl px-3 text-sm",
+                  selected &&
+                    "border-primary bg-primary/15 ring-2 ring-primary/40 hover:bg-primary/20",
+                )}
+                onClick={() => onUnitSystemChange(unit)}
+              >
+                <Scales
+                  className={cn("size-6", selected && "text-primary")}
+                  weight={selected ? "fill" : "duotone"}
+                  aria-hidden="true"
+                />
+                <span className="font-semibold">{t(unit)}</span>
+              </Button>
+            )
+          })}
         </div>
       </div>
 

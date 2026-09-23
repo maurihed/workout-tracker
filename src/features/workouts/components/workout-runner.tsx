@@ -66,6 +66,7 @@ import {
   useSessionStore,
   type SessionSetPatch,
 } from "@/features/workouts/stores/session-store"
+import { cn } from "@/lib/utils"
 
 type WakeLockSentinelLike = { release: () => Promise<void> }
 
@@ -500,12 +501,19 @@ export function WorkoutRunner({
         totalSets={totalSets}
       />
 
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-col gap-2">
         <div
           role="status"
           aria-live="polite"
-          className="text-muted-foreground flex min-h-5 items-center gap-2 text-xs"
+          className="text-muted-foreground flex min-h-5 items-center gap-2 text-xs font-semibold"
         >
+          <span
+            aria-hidden="true"
+            className={cn(
+              "size-2 rounded-full",
+              sync.status.online ? "bg-success" : "bg-warning",
+            )}
+          />
           {!sync.status.online ? <span>{t("save.offline")}</span> : null}
           {sync.status.syncing ? <span>{t("save.saving")}</span> : null}
           {sync.status.online && !sync.status.syncing && sync.status.pending > 0 ? (
@@ -515,47 +523,49 @@ export function WorkoutRunner({
             <span>{t("save.saved")}</span>
           ) : null}
         </div>
-        {sync.status.online && !sync.status.syncing && sync.status.pending > 0 ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {sync.status.online && !sync.status.syncing && sync.status.pending > 0 ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-11 shrink-0"
+              onClick={() => sync.status.flush()}
+            >
+              {t("save.retry")}
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-11 shrink-0 gap-1.5"
+            aria-pressed={soundOn}
+            onClick={() => setSoundOn(!soundOn)}
+          >
+            {soundOn ? (
+              <SpeakerHigh className="size-4" aria-hidden="true" />
+            ) : (
+              <SpeakerSlash className="size-4" aria-hidden="true" />
+            )}
+            {soundOn ? tTimers("soundOn") : tTimers("soundOff")}
+          </Button>
           <Button
             type="button"
             variant="outline"
             size="sm"
             className="h-11 shrink-0"
-            onClick={() => sync.status.flush()}
+            aria-pressed={permission === "granted"}
+            disabled={permission === "unsupported"}
+            onClick={async () => setPermission(await requestNotificationPermission())}
           >
-            {t("save.retry")}
+            {permission === "granted"
+              ? tTimers("notifyOn")
+              : permission === "denied"
+                ? tTimers("notifyBlocked")
+                : tTimers("notifyOff")}
           </Button>
-        ) : null}
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-11 shrink-0 gap-1.5"
-          aria-pressed={soundOn}
-          onClick={() => setSoundOn(!soundOn)}
-        >
-          {soundOn ? (
-            <SpeakerHigh className="size-4" aria-hidden="true" />
-          ) : (
-            <SpeakerSlash className="size-4" aria-hidden="true" />
-          )}
-          {soundOn ? tTimers("soundOn") : tTimers("soundOff")}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-11 shrink-0"
-          aria-pressed={permission === "granted"}
-          disabled={permission === "unsupported"}
-          onClick={async () => setPermission(await requestNotificationPermission())}
-        >
-          {permission === "granted"
-            ? tTimers("notifyOn")
-            : permission === "denied"
-              ? tTimers("notifyBlocked")
-              : tTimers("notifyOff")}
-        </Button>
+        </div>
       </div>
 
       {currentTimerType && currentTimerType !== "none" && timer ? (

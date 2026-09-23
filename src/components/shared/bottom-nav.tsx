@@ -30,9 +30,9 @@ export function BottomNav() {
   return (
     <nav
       aria-label={t("label")}
-      className="bg-background/95 supports-[backdrop-filter]:bg-background/80 fixed inset-x-0 bottom-0 z-40 border-t pt-[env(safe-area-inset-bottom)] backdrop-blur"
+      className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
     >
-      <ul className="mx-auto flex max-w-lg items-stretch justify-between px-2">
+      <ul className="border-border/60 bg-card/85 shadow-2xl mx-auto flex max-w-lg items-stretch justify-between gap-1 rounded-full border p-1.5 backdrop-blur-xl">
         {APP_NAV.map((item) => {
           const isActive = path === item.href || path.startsWith(`${item.href}/`)
           const Icon = item.icon
@@ -42,11 +42,17 @@ export function BottomNav() {
                 href={`/${locale}${item.href}`}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "flex min-h-14 flex-col items-center justify-center gap-1 text-xs",
-                  isActive ? "text-primary" : "text-muted-foreground",
+                  "ease-spring flex min-h-12 flex-col items-center justify-center gap-1 rounded-full px-1 text-[0.65rem] font-semibold transition-[background-color,color,transform] duration-300",
+                  isActive
+                    ? "bg-primary text-primary-foreground ring-1 ring-inset ring-foreground/10"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
-                <Icon className="size-6" aria-hidden="true" />
+                <Icon
+                  className="size-5"
+                  weight={isActive ? "fill" : "regular"}
+                  aria-hidden="true"
+                />
                 {t(item.labelKey)}
               </Link>
             </li>

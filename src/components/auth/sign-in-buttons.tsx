@@ -10,14 +10,17 @@ export function SignInButtons({ callbackUrl = "/" }: { callbackUrl?: string }) {
   const t = useTranslations("auth")
   return (
     <div className="flex w-full flex-col gap-3">
-      <Button onClick={() => signIn("google", { callbackUrl })} className="h-12">
+      <Button
+        onClick={() => signIn("google", { callbackUrl })}
+        className="h-13 w-full text-base"
+      >
         <GoogleLogo className="size-5" aria-hidden="true" />
         {t("signInWithGoogle")}
       </Button>
       <Button
         variant="secondary"
         onClick={() => signIn("facebook", { callbackUrl })}
-        className="h-12"
+        className="h-13 w-full text-base"
       >
         <FacebookLogo className="size-5" aria-hidden="true" />
         {t("signInWithFacebook")}

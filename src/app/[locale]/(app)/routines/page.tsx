@@ -17,9 +17,9 @@ function RoutinesSkeleton({ label }: { label: string }) {
   return (
     <div className="space-y-3" role="status" aria-busy="true">
       <span className="sr-only">{label}</span>
-      <Skeleton className="h-28 w-full rounded-xl" />
-      <Skeleton className="h-28 w-full rounded-xl" />
-      <Skeleton className="h-28 w-full rounded-xl" />
+      <Skeleton className="h-32 w-full rounded-3xl" />
+      <Skeleton className="h-32 w-full rounded-3xl" />
+      <Skeleton className="h-32 w-full rounded-3xl" />
     </div>
   )
 }
@@ -37,7 +37,9 @@ export default function RoutinesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="font-heading text-2xl font-bold">{tNav("routines")}</h1>
+        <h1 className="font-heading text-3xl font-bold tracking-tight">
+          {tNav("routines")}
+        </h1>
         <Button asChild className="h-12">
           <Link href={`/${locale}/routines/new`}>{t("new")}</Link>
         </Button>

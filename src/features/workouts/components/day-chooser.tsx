@@ -1,5 +1,6 @@
 "use client"
 
+import { Barbell, CalendarCheck } from "@phosphor-icons/react"
 import { useLocale, useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
@@ -25,24 +26,51 @@ export function DayChooser({ routine, onPick }: DayChooserProps) {
 
   return (
     <section className="flex flex-col gap-4" aria-label={t("startChooseDay")}>
-      <h1 className="font-heading text-2xl font-bold">{t("startChooseDay")}</h1>
+      <h1 className="font-heading text-3xl font-bold tracking-tight">
+        {t("startChooseDay")}
+      </h1>
       <ul className="flex flex-col gap-3">
-        {days.map((day) => {
+        {days.map((day, index) => {
           const label = day.label ?? weekdayLabel(locale, day.weekday)
           const isToday = day.weekday === today
           return (
-            <li key={day.id}>
+            <li
+              key={day.id}
+              className="animate-rise"
+              style={{ animationDelay: `${index * 60}ms` }}
+            >
               <Button
                 type="button"
                 variant="outline"
                 data-today={isToday ? "true" : undefined}
                 className={cn(
-                  "h-auto min-h-14 w-full justify-start py-3 text-left",
-                  isToday && "border-primary ring-primary/30 ring-2",
+                  "h-20 w-full justify-start gap-3 rounded-3xl px-4 text-left",
+                  isToday &&
+                    "border-primary bg-primary/10 ring-2 ring-primary/40",
                 )}
                 onClick={() => onPick(day.id)}
               >
-                <span className="font-medium">{label}</span>
+                <span
+                  className={cn(
+                    "flex size-11 shrink-0 items-center justify-center rounded-2xl",
+                    isToday
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  <CalendarCheck
+                    className="size-5"
+                    weight={isToday ? "fill" : "duotone"}
+                    aria-hidden="true"
+                  />
+                </span>
+                <span className="font-heading flex-1 text-lg font-bold">
+                  {label}
+                </span>
+                <Barbell
+                  className="text-muted-foreground size-5 shrink-0"
+                  aria-hidden="true"
+                />
               </Button>
             </li>
           )

@@ -24,7 +24,7 @@ import type {
 import { cn } from "@/lib/utils"
 
 const selectClassName =
-  "border-input bg-transparent focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full min-w-0 rounded-lg border px-2.5 py-1 text-base outline-none focus-visible:ring-3 md:text-sm dark:bg-input/30"
+  "border-input bg-muted/40 focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full min-w-0 rounded-2xl border px-3 py-1 text-base outline-none focus-visible:ring-3 md:text-sm"
 
 type DayCardProps = {
   day: DraftDay
@@ -71,14 +71,14 @@ export function DayCard({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "border-border bg-card flex flex-col gap-4 rounded-xl border p-4",
+        "border-border bg-card flex flex-col gap-4 rounded-3xl border p-4 ring-1 ring-(--surface-ring)",
         isDragging && "opacity-60",
       )}
     >
       <div className="flex items-start gap-1">
         <button
           type="button"
-          className="text-muted-foreground focus-visible:ring-ring/50 mt-1 flex size-11 shrink-0 touch-none items-center justify-center rounded-lg outline-none focus-visible:ring-3"
+          className="text-muted-foreground focus-visible:ring-ring/50 mt-1 flex size-11 shrink-0 touch-none items-center justify-center rounded-2xl outline-none focus-visible:ring-3"
           aria-label={t("reorderDay")}
           {...attributes}
           {...listeners}

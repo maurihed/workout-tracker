@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import { EQUIPMENT } from "@/features/exercises/schemas/exercise"
+import { cn } from "@/lib/utils"
 
 const LOCATIONS = [
   { id: "gym", icon: Buildings },
@@ -32,47 +33,75 @@ export function EquipmentStep({
   const t = useTranslations("onboarding.equipment")
   return (
     <section className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4">
-        <h2 className="font-heading text-lg">{t("label")}</h2>
+      <div className="flex flex-col gap-3">
+        <h2 className="font-heading text-2xl font-bold tracking-tight">
+          {t("label")}
+        </h2>
         <p className="text-muted-foreground text-sm">{t("location")}</p>
         <div
           role="group"
           aria-label={t("location")}
-          className="flex flex-col gap-3"
+          className="grid grid-cols-3 gap-2"
         >
-          {LOCATIONS.map(({ id, icon: LocationIcon }) => (
-            <Button
-              key={id}
-              type="button"
-              variant={location === id ? "default" : "secondary"}
-              aria-pressed={location === id}
-              className="h-12 justify-start gap-3"
-              onClick={() => onLocationChange(id)}
-            >
-              <LocationIcon className="size-5" aria-hidden="true" />
-              {t(id)}
-            </Button>
-          ))}
+          {LOCATIONS.map(({ id, icon: LocationIcon }) => {
+            const selected = location === id
+            return (
+              <Button
+                key={id}
+                type="button"
+                variant="outline"
+                aria-pressed={selected}
+                className={cn(
+                  "h-20 flex-col gap-1.5 rounded-2xl px-2 text-xs",
+                  selected &&
+                    "border-primary bg-primary/15 ring-2 ring-primary/40 hover:bg-primary/20",
+                )}
+                onClick={() => onLocationChange(id)}
+              >
+                <LocationIcon
+                  className={cn("size-6", selected && "text-primary")}
+                  weight={selected ? "fill" : "duotone"}
+                  aria-hidden="true"
+                />
+                <span className="font-semibold">{t(id)}</span>
+              </Button>
+            )
+          })}
         </div>
       </div>
 
       <div role="group" aria-label={t("label")} className="flex flex-col gap-3">
-        {EQUIPMENT.map((item) => {
+        {EQUIPMENT.map((item, index) => {
           const selected = equipment.includes(item)
           return (
             <Button
               key={item}
               type="button"
-              variant={selected ? "default" : "secondary"}
+              variant="outline"
               aria-pressed={selected}
-              className="h-12 justify-start gap-3"
+              className={cn(
+                "animate-rise h-14 justify-start gap-3 rounded-2xl px-4",
+                selected &&
+                  "border-primary bg-primary/15 ring-2 ring-primary/40 hover:bg-primary/20",
+              )}
+              style={{ animationDelay: `${index * 30}ms` }}
               onClick={() => onEquipmentChange(toggle(equipment, item))}
             >
-              <Check
-                className={selected ? "size-5" : "size-5 opacity-0"}
-                aria-hidden="true"
-              />
-              {t(`items.${item}`)}
+              <span
+                className={cn(
+                  "flex size-7 shrink-0 items-center justify-center rounded-full border-2",
+                  selected
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border",
+                )}
+              >
+                {selected ? (
+                  <Check className="size-4" weight="bold" aria-hidden="true" />
+                ) : null}
+              </span>
+              <span className="flex-1 text-left font-medium">
+                {t(`items.${item}`)}
+              </span>
             </Button>
           )
         })}

@@ -25,6 +25,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import type { RoutineSummary } from "@/features/routines/hooks/use-routines"
+import { cn } from "@/lib/utils"
 
 type RoutineCardProps = {
   routine: RoutineSummary
@@ -44,14 +45,19 @@ export function RoutineCard({
   const locale = useLocale()
 
   return (
-    <Card>
+    <Card
+      className={cn(
+        "animate-rise",
+        routine.isActive && "ring-2 ring-primary/40",
+      )}
+    >
       <Link
         href={`/${locale}/routines/${routine.id}`}
-        className="focus-visible:ring-ring/50 flex flex-col gap-(--card-spacing) rounded-t-xl focus-visible:ring-3 focus-visible:outline-none"
+        className="focus-visible:ring-ring/60 flex flex-col gap-(--card-spacing) rounded-t-3xl focus-visible:ring-3 focus-visible:outline-none"
       >
         <CardHeader>
           <div className="flex items-center gap-2">
-            <CardTitle className="truncate">{routine.name}</CardTitle>
+            <CardTitle className="truncate text-lg">{routine.name}</CardTitle>
             {routine.isActive ? <Badge>{t("active")}</Badge> : null}
           </div>
           {routine.description ? (
@@ -62,11 +68,10 @@ export function RoutineCard({
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
-            <span>
+            <span className="bg-muted rounded-full px-2.5 py-0.5 font-medium">
               {routine.dayCount} {t("dayCount")}
             </span>
-            <span aria-hidden="true">·</span>
-            <span>
+            <span className="bg-muted rounded-full px-2.5 py-0.5 font-medium">
               {routine.exerciseCount} {t("exerciseCount")}
             </span>
           </p>
@@ -76,12 +81,12 @@ export function RoutineCard({
       <CardFooter className="gap-2">
         <Button
           type="button"
-          variant="secondary"
+          variant={routine.isActive ? "outline" : "default"}
           className="h-11 flex-1"
           disabled={routine.isActive}
           onClick={() => onActivate(routine.id)}
         >
-          <Play className="size-4" aria-hidden="true" />
+          <Play className="size-4" weight="fill" aria-hidden="true" />
           {t("activate")}
         </Button>
         <Button

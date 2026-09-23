@@ -16,12 +16,12 @@ export function SaveBar({ isDirty, isPending, error, onSave }: SaveBarProps) {
   const t = useTranslations("routineEditor")
 
   return (
-    <div className="bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky bottom-0 z-10 -mx-4 flex flex-col gap-2 border-t px-4 py-3 backdrop-blur">
+    <div className="bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky bottom-0 z-10 -mx-4 flex flex-col gap-2 border-t border-border/60 px-4 py-3 backdrop-blur-xl">
       {error ? (
         <p
           role="alert"
           aria-live="assertive"
-          className="text-destructive text-sm"
+          className="bg-destructive text-destructive-foreground rounded-2xl px-3 py-2 text-sm font-medium"
         >
           {error}
         </p>

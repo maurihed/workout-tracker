@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { formatClock } from "@/features/workouts/lib/format-time"
 import type { TimerState } from "@/features/workouts/lib/timer"
+import { cn } from "@/lib/utils"
 
 type IntervalTimerProps = {
   timer: TimerState
@@ -25,28 +26,37 @@ export function IntervalTimer({
     timer.total > 0
       ? Math.min(100, Math.max(0, (timer.remaining / timer.total) * 100))
       : 0
+  const isWork = timer.phase === "work"
+  const fg = isWork ? "text-accent-foreground" : "text-secondary-foreground"
 
   return (
     <section
-      className="bg-card border-border flex flex-col gap-2 rounded-lg border p-3"
+      className={cn(
+        "flex flex-col gap-3 rounded-3xl p-4 ring-1 ring-inset ring-foreground/10",
+        isWork ? "bg-accent text-accent-foreground" : "bg-secondary text-secondary-foreground",
+      )}
       aria-label={t("interval")}
     >
       <div className="flex items-baseline justify-between gap-3">
-        <span className="font-heading text-2xl font-bold tabular-nums" role="timer" aria-live="polite">
+        <span
+          className="font-heading text-3xl font-bold tabular-nums"
+          role="timer"
+          aria-live="polite"
+        >
           {formatClock(timer.remaining)}
         </span>
-        <span className="text-muted-foreground text-xs">
+        <span className="rounded-full bg-foreground/15 px-2.5 py-0.5 text-xs font-semibold">
           {t("round", { round: timer.round, rounds: timer.rounds })}
         </span>
       </div>
 
-      <span className="text-muted-foreground text-xs">
-        {timer.phase === "work" ? t("work") : t("rest")}
+      <span className="text-sm font-semibold tracking-wide uppercase opacity-90">
+        {isWork ? t("work") : t("rest")}
       </span>
 
-      <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
+      <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/20">
         <div
-          className="bg-primary h-full rounded-full transition-[width]"
+          className="bg-primary h-full origin-left rounded-full transition-[width] duration-500 ease-spring"
           style={{ width: `${percent}%` }}
         />
       </div>
@@ -55,25 +65,27 @@ export function IntervalTimer({
         <Button
           type="button"
           variant="outline"
-          className="h-11 flex-1"
+          className={cn(
+            "h-11 flex-1 bg-foreground/10 hover:bg-foreground/20",
+            fg,
+          )}
           aria-label={timer.running ? t("pause") : t("start")}
           onClick={() => (timer.running ? onPause() : onStart())}
         >
           {timer.running ? (
-            <Pause className="size-4" aria-hidden="true" />
+            <Pause className="size-4" weight="fill" aria-hidden="true" />
           ) : (
-            <Play className="size-4" aria-hidden="true" />
+            <Play className="size-4" weight="fill" aria-hidden="true" />
           )}
           {timer.running ? t("pause") : t("start")}
         </Button>
         <Button
           type="button"
-          variant="secondary"
           className="h-11 flex-1"
           aria-label={t("skipRound")}
           onClick={onSkipRound}
         >
-          <SkipForward className="size-4" aria-hidden="true" />
+          <SkipForward className="size-4" weight="fill" aria-hidden="true" />
           {t("skipRound")}
         </Button>
       </div>

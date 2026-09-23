@@ -83,9 +83,11 @@ function TemplateList({
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="font-heading text-lg">{t("fromTemplate")}</h2>
+      <h2 className="font-heading text-xl font-bold tracking-tight">
+        {t("fromTemplate")}
+      </h2>
       <div className="flex flex-col gap-3">
-        {templates.map((template) => {
+        {templates.map((template, index) => {
           const name =
             locale === "es"
               ? template.nameEs || template.name
@@ -98,18 +100,21 @@ function TemplateList({
             <Button
               key={template.slug}
               type="button"
-              variant="secondary"
-              className="h-auto min-h-12 flex-col items-start gap-1 p-4 text-left whitespace-normal"
+              variant="outline"
+              className="animate-rise h-auto min-h-20 flex-col items-start gap-1.5 rounded-2xl p-4 text-left whitespace-normal"
+              style={{ animationDelay: `${index * 50}ms` }}
               disabled={isChoosing}
               onClick={() => onChoose(template.slug)}
             >
-              <span className="font-heading text-base">{name}</span>
+              <span className="font-heading text-lg font-bold">{name}</span>
               {description ? (
-                <span className="text-muted-foreground text-xs font-normal">
+                <span className="text-muted-foreground text-sm font-normal">
                   {description}
                 </span>
               ) : null}
-              <span className="text-xs">{t("chooseTemplate")}</span>
+              <span className="text-primary text-xs font-semibold">
+                {t("chooseTemplate")}
+              </span>
             </Button>
           )
         })}
@@ -185,7 +190,7 @@ export function NewRoutineForm() {
           <Label htmlFor="routine-goal">{t("goal")}</Label>
           <select
             id="routine-goal"
-            className="border-input bg-transparent focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full min-w-0 rounded-lg border px-2.5 py-1 text-base outline-none focus-visible:ring-3 md:text-sm dark:bg-input/30"
+            className="border-input bg-muted/40 focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full min-w-0 rounded-2xl border px-3 py-1 text-base outline-none focus-visible:ring-3 md:text-sm"
             aria-invalid={form.formState.errors.goal ? true : undefined}
             {...form.register("goal", {
               setValueAs: (value: string) => (value === "" ? null : value),
@@ -200,8 +205,8 @@ export function NewRoutineForm() {
           </select>
         </div>
 
-        <Button type="submit" className="h-12" disabled={isPending}>
-          <Plus className="size-5" aria-hidden="true" />
+        <Button type="submit" className="h-13" disabled={isPending}>
+          <Plus className="size-5" weight="bold" aria-hidden="true" />
           {t("createBlank")}
         </Button>
       </form>

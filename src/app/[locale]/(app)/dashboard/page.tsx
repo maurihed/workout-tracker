@@ -12,11 +12,14 @@ import { useActiveRoutine } from "@/features/routines/hooks/use-active-routine"
 
 function DashboardSkeleton({ label }: { label: string }) {
   return (
-    <div className="space-y-4" role="status" aria-busy="true">
+    <div className="space-y-3" role="status" aria-busy="true">
       <span className="sr-only">{label}</span>
-      <Skeleton className="h-7 w-48" />
-      <Skeleton className="h-24 w-full rounded-xl" />
-      <Skeleton className="h-24 w-full rounded-xl" />
+      <Skeleton className="h-44 w-full rounded-3xl" />
+      <div className="grid grid-cols-2 gap-3">
+        <Skeleton className="h-28 w-full rounded-3xl" />
+        <Skeleton className="h-28 w-full rounded-3xl" />
+      </div>
+      <Skeleton className="h-24 w-full rounded-3xl" />
     </div>
   )
 }
@@ -29,8 +32,10 @@ export default function DashboardPage() {
   const { data: routine, isLoading, isError, refetch } = useActiveRoutine()
 
   return (
-    <div className="space-y-6">
-      <h1 className="font-heading text-2xl font-bold">{tNav("dashboard")}</h1>
+    <div className="flex flex-col gap-5">
+      <h1 className="font-heading text-3xl font-bold tracking-tight">
+        {tNav("dashboard")}
+      </h1>
 
       {isLoading ? <DashboardSkeleton label={tCommon("loading")} /> : null}
 
