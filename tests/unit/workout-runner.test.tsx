@@ -15,6 +15,9 @@ vi.mock("@/features/workouts/components/swap-exercise-sheet", () => ({
   SwapExerciseSheet: () => null,
 }))
 
+const toastError = vi.hoisted(() => vi.fn())
+vi.mock("sonner", () => ({ toast: { error: toastError } }))
+
 const sync = vi.hoisted(() => ({
   status: { online: true, pending: 0, syncing: false, flush: vi.fn() },
   enqueueState: vi.fn(),
@@ -101,6 +104,7 @@ beforeEach(() => {
   sync.status.online = true
   sync.status.pending = 0
   sync.status.syncing = false
+  toastError.mockReset()
   push.mockReset()
   window.localStorage.clear()
 })
@@ -192,6 +196,31 @@ describe("WorkoutRunner finish and discard", () => {
     await user.click(within(dialog).getByRole("button", { name: "discard" }))
 
     expect(sync.abandon).toHaveBeenCalled()
+    expect(push).toHaveBeenCalledWith("/en/dashboard")
+  })
+
+  it("still navigates to the summary when completing fails", async () => {
+    sync.complete.mockRejectedValueOnce(new Error("offline"))
+    const user = userEvent.setup()
+    render(<WorkoutRunner session={session} />)
+
+    await user.click(screen.getByRole("button", { name: "finish" }))
+    const dialog = screen.getByRole("alertdialog")
+    await user.click(within(dialog).getByRole("button", { name: "finish" }))
+
+    expect(toastError).toHaveBeenCalledWith("save.finishError")
+    expect(push).toHaveBeenCalledWith("/en/workout/summary/s1")
+  })
+
+  it("still navigates to the dashboard when discarding fails", async () => {
+    sync.abandon.mockRejectedValueOnce(new Error("offline"))
+    const user = userEvent.setup()
+    render(<WorkoutRunner session={session} />)
+
+    await user.click(screen.getByRole("button", { name: "discard" }))
+    const dialog = screen.getByRole("alertdialog")
+    await user.click(within(dialog).getByRole("button", { name: "discard" }))
+
     expect(push).toHaveBeenCalledWith("/en/dashboard")
   })
 })

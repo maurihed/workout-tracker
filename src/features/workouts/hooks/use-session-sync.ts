@@ -72,7 +72,12 @@ export function useSessionSync(
         debounceRef.current = null
       }
       const payload = useSessionStore.getState().toUpsertPayload(activeSeconds)
-      if (payload) await enqueue("complete", sessionId, { state: payload, activeSeconds })
+      if (payload) {
+        await enqueue("complete", sessionId, { state: payload, activeSeconds }).catch(
+          () => undefined,
+        )
+      }
+      void registerBackgroundSync()
       const store = useSessionStore.getState()
       await saveActiveSession({
         source: {
@@ -98,7 +103,10 @@ export function useSessionSync(
       window.clearTimeout(debounceRef.current)
       debounceRef.current = null
     }
-    await enqueue("abandon", sessionId, { state: null, activeSeconds: 0 })
+    await enqueue("abandon", sessionId, { state: null, activeSeconds: 0 }).catch(
+      () => undefined,
+    )
+    void registerBackgroundSync()
     await clearActiveSession()
     void flushOutbox()
   }, [sessionId])

@@ -16,6 +16,7 @@ import {
 import { useLocale, useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { toast } from "sonner"
 
 import {
   AlertDialog,
@@ -452,13 +453,21 @@ export function WorkoutRunner({
     pausedRef.current = true
     setPaused(true)
     const seconds = useSessionStore.getState().activeSeconds
-    await sync.complete(seconds)
+    try {
+      await sync.complete(seconds)
+    } catch {
+      toast.error(t("save.finishError"))
+    }
     reset()
     router.push(`/${locale}/workout/summary/${session.id}`)
   }
 
   async function discardSession() {
-    await sync.abandon()
+    try {
+      await sync.abandon()
+    } catch {
+      // The session is abandoned locally regardless of the outbox outcome.
+    }
     reset()
     router.push(`/${locale}/dashboard`)
   }
