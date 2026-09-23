@@ -22,3 +22,10 @@ describe("isPublicPath", () => {
     }
   })
 })
+
+describe("offline route access", () => {
+  it("treats the localized offline route as public", () => {
+    expect(isPublicPath("/en/offline")).toBe(true)
+    expect(isPublicPath("/es/offline")).toBe(true)
+  })
+})

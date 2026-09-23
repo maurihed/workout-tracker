@@ -1,6 +1,6 @@
 import { routing } from "@/i18n/routing"
 
-const PUBLIC_PREFIXES = ["/login", "/legal", "/api/health", "/api/auth"] as const
+const PUBLIC_PREFIXES = ["/login", "/legal", "/offline", "/api/health", "/api/auth"] as const
 const PUBLIC_EXACT = ["/api/health"] as const
 
 export function stripLocale(pathname: string): {
