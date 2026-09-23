@@ -10,7 +10,7 @@ export type RoutineSummary = {
   description: string | null
   source: "manual" | "ai" | "template"
   isActive: boolean
-  updatedAt: Date
+  updatedAt: string
   dayCount: number
   exerciseCount: number
 }

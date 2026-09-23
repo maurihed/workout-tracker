@@ -99,7 +99,7 @@ export type RoutineSummary = {
   description: string | null
   source: "manual" | "ai" | "template"
   isActive: boolean
-  updatedAt: Date
+  updatedAt: string
   dayCount: number
   exerciseCount: number
 }
@@ -125,7 +125,7 @@ export async function listByUser(userId: string): Promise<RoutineSummary[]> {
     description: r.description,
     source: r.source,
     isActive: r.isActive,
-    updatedAt: r.updatedAt,
+    updatedAt: r.updatedAt.toISOString(),
     dayCount: r._count.days,
     exerciseCount: r.days.reduce((sum, d) => sum + d._count.exercises, 0),
   }))
