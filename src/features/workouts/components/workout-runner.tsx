@@ -47,6 +47,12 @@ import type { UnitSystem } from "@/features/workouts/components/set-row"
 import { useSessionSync } from "@/features/workouts/hooks/use-session-sync"
 import { useSoundPreference } from "@/features/workouts/hooks/use-sound-preference"
 import {
+  notificationPermission,
+  requestNotificationPermission,
+  scheduleTimerNotification,
+  type NotificationPermissionState,
+} from "@/features/workouts/lib/timer-notifications"
+import {
   adjust as adjustTimer,
   pause as pauseTimer,
   resume as resumeTimer,
@@ -138,6 +144,9 @@ export function WorkoutRunner({
   const [finishOpen, setFinishOpen] = useState(false)
   const [discardOpen, setDiscardOpen] = useState(false)
   const [soundOn, setSoundOn] = useSoundPreference()
+  const [permission, setPermission] = useState<NotificationPermissionState>(() =>
+    notificationPermission(),
+  )
 
   const timerRef = useRef<TimerState | null>(initialTimer)
   const pausedRef = useRef(false)
@@ -360,6 +369,17 @@ export function WorkoutRunner({
       document.removeEventListener("visibilitychange", handleVisibility)
   }, [applyTimer])
 
+  // Schedule a single end-of-timer notification keyed on the wall-clock
+  // deadline (not the ticking state, which would reschedule every second).
+  const timerDeadline = timer?.deadline ?? null
+  const timerRunning = timer?.running ?? false
+  const timerKind = timer?.kind ?? null
+  useEffect(() => {
+    if (!timerRunning || timerDeadline === null || permission !== "granted") return
+    const title = tTimers(timerKind === "interval" ? "interval" : "rest")
+    return scheduleTimerNotification(timerDeadline, title, tTimers("running"))
+  }, [timerDeadline, timerRunning, permission, timerKind, tTimers])
+
   // Debounced push: any edit (isDirty) schedules an upsert ~2s after the last edit.
   useEffect(() => {
     if (!isDirty) return
@@ -511,6 +531,21 @@ export function WorkoutRunner({
             <SpeakerSlash className="size-4" aria-hidden="true" />
           )}
           {soundOn ? tTimers("soundOn") : tTimers("soundOff")}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-9 shrink-0"
+          aria-pressed={permission === "granted"}
+          disabled={permission === "unsupported"}
+          onClick={async () => setPermission(await requestNotificationPermission())}
+        >
+          {permission === "granted"
+            ? tTimers("notifyOn")
+            : permission === "denied"
+              ? tTimers("notifyBlocked")
+              : tTimers("notifyOff")}
         </Button>
       </div>
 
