@@ -152,6 +152,28 @@ describe("WorkoutRunner save status", () => {
     expect(screen.getByRole("status")).toHaveTextContent("save.saved")
   })
 
+  it("does not retry a terminal 4xx save and refetches the session on 409", async () => {
+    vi.useFakeTimers()
+    const onSessionConflict = vi.fn()
+    const conflict = Object.assign(new Error("conflict"), { status: 409 })
+    mutation.mutateAsync.mockRejectedValueOnce(conflict)
+    render(
+      <WorkoutRunner session={session} onSessionConflict={onSessionConflict} />,
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: "pause" }))
+    await flush(0)
+    await flush(0)
+
+    expect(screen.getByRole("status")).toHaveTextContent("save.error")
+    expect(onSessionConflict).toHaveBeenCalledTimes(1)
+
+    const calls = mutation.mutateAsync.mock.calls.length
+    // Advance far past the max backoff: a terminal failure must not loop.
+    await flush(60_000)
+    expect(mutation.mutateAsync).toHaveBeenCalledTimes(calls)
+  })
+
   it("logs a set, marks the exercise dirty, and starts the rest timer", async () => {
     const user = userEvent.setup()
     render(<WorkoutRunner session={session} />)

@@ -50,6 +50,10 @@ import { useCompleteSession } from "@/features/workouts/hooks/use-complete-sessi
 import { useSoundPreference } from "@/features/workouts/hooks/use-sound-preference"
 import { useUpdateSession } from "@/features/workouts/hooks/use-update-session"
 import {
+  getHttpStatus,
+  isRetryableSaveError,
+} from "@/features/workouts/lib/save-errors"
+import {
   adjust as adjustTimer,
   pause as pauseTimer,
   resume as resumeTimer,
@@ -89,7 +93,18 @@ function buildExerciseTimer(
   )
 }
 
-export function WorkoutRunner({ session }: { session: SessionDTO }) {
+export function WorkoutRunner({
+  session,
+  onSessionConflict,
+}: {
+  session: SessionDTO
+  /**
+   * Called when a save fails because the session is no longer in progress
+   * (409) — e.g. another tab finished it. The page refetches the active session
+   * so the runner exits instead of retrying the doomed save forever.
+   */
+  onSessionConflict?: () => void
+}) {
   const t = useTranslations("runner")
   const tTimers = useTranslations("timers")
   const tCommon = useTranslations("common")
@@ -148,6 +163,7 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
   const updateRef = useRef(update)
   const reducedMotionRef = useRef(false)
   const soundOnRef = useRef(soundOn)
+  const sessionConflictRef = useRef(onSessionConflict)
 
   // Serializes every write through one promise chain so an older payload can
   // never land after a newer one (debounce + visibility/finish can race).
@@ -167,6 +183,10 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
   useEffect(() => {
     soundOnRef.current = soundOn
   }, [soundOn])
+
+  useEffect(() => {
+    sessionConflictRef.current = onSessionConflict
+  }, [onSessionConflict])
 
   const applyTimer = useCallback((nextTimer: TimerState | null) => {
     timerRef.current = nextTimer
@@ -288,6 +308,8 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
     pushKeepaliveRef.current = false
     setSaveStatus("saving")
     let failed = false
+    let retryable = true
+    let sessionConflict = false
     let versionMismatch = false
     try {
       await enqueuePush(async () => {
@@ -300,8 +322,10 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
           versionMismatch = true
         }
       })
-    } catch {
+    } catch (error) {
       failed = true
+      retryable = isRetryableSaveError(error)
+      sessionConflict = getHttpStatus(error) === 409
     } finally {
       pushingRef.current = false
     }
@@ -312,6 +336,15 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
 
     if (failed) {
       setSaveStatus("error")
+      // A 409 means the session is no longer in progress (another tab finished
+      // or abandoned it). Refresh the active query so the runner exits/updates.
+      if (sessionConflict) sessionConflictRef.current?.()
+      // Retry only transient failures (network / timeout / 5xx). A terminal 4xx
+      // stops the loop and leaves the explicit retry button to the user.
+      if (!retryable) {
+        retryAttemptRef.current = 0
+        return
+      }
       retryAttemptRef.current += 1
       const backoff = Math.min(
         PUSH_DEBOUNCE_MS * 2 ** retryAttemptRef.current,

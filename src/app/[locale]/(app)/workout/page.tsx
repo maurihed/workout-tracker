@@ -3,7 +3,7 @@
 import { Barbell, WarningCircle } from "@phosphor-icons/react"
 import { useLocale, useTranslations } from "next-intl"
 import Link from "next/link"
-import { useEffect, useMemo, useRef } from "react"
+import { useCallback, useEffect, useMemo, useRef } from "react"
 
 import { EmptyState } from "@/components/shared/empty-state"
 import { Button } from "@/components/ui/button"
@@ -47,6 +47,21 @@ export default function WorkoutPage() {
   // It is deliberately NOT re-armed on a failed start: a persistent 409 must
   // not turn into a retry storm. Only the explicit retry button re-arms it.
   const autoStartedRef = useRef(false)
+  // Single-flight guard. The auto-start effect re-runs on every render (the
+  // `useMutation` result is a fresh object each time) and the explicit retry
+  // handler also starts; both funnel through `requestStart`, which collapses
+  // them into one in-flight `POST` per attempt.
+  const startingRef = useRef(false)
+
+  const requestStart = useCallback(
+    (dayId: string) => {
+      if (startingRef.current) return
+      startingRef.current = true
+      start.mutate(dayId)
+    },
+    [start],
+  )
+
   useEffect(() => {
     if (session.isLoading || routine.isLoading) return
     if (activeSession) {
@@ -58,9 +73,9 @@ export default function WorkoutPage() {
     if (autoStartedRef.current) return
     if (days.length === 1) {
       autoStartedRef.current = true
-      start.mutate(days[0]!.id)
+      requestStart(days[0]!.id)
     }
-  }, [activeSession, days, routine.isLoading, session.isLoading, start])
+  }, [activeSession, days, routine.isLoading, session.isLoading, requestStart])
 
   // A 409 means a session is already in progress (typically another tab).
   // Refresh the active query once so the runner takes over instead of looping.
@@ -89,7 +104,12 @@ export default function WorkoutPage() {
   }
 
   if (activeSession) {
-    return <WorkoutRunner session={activeSession} />
+    return (
+      <WorkoutRunner
+        session={activeSession}
+        onSessionConflict={() => void sessionRefetch()}
+      />
+    )
   }
 
   if (session.isLoading || routine.isLoading) {
@@ -110,7 +130,11 @@ export default function WorkoutPage() {
               start.reset()
               // An explicit retry is the only thing that re-arms auto-start.
               autoStartedRef.current = false
-              if (days.length === 1) start.mutate(days[0]!.id)
+              // The mutation has settled (we are in its error state), so allow
+              // this attempt to start; the guard makes the effect's re-run a
+              // no-op, yielding exactly one `POST`.
+              startingRef.current = false
+              if (days.length === 1) requestStart(days[0]!.id)
               else void routine.refetch()
             }}
           >

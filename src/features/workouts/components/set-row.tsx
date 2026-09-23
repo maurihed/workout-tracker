@@ -44,6 +44,11 @@ function weightToDraft(weightKg: number | null, unitSystem: UnitSystem): string 
   return weightKg == null ? "" : String(displayWeight(weightKg, unitSystem))
 }
 
+/** Display string for a reps value, or `""` when unset. */
+function repsToDraft(reps: number | null): string {
+  return reps == null ? "" : String(reps)
+}
+
 export function SetRow({
   set,
   unitSystem,
@@ -75,6 +80,17 @@ export function SetRow({
     if (weightFocused.current) return
     setWeightDraft(weightToDraft(weightValue, unitSystem))
   }, [weightValue, unitSystem])
+
+  // Reps get the same local-draft treatment: once the user has touched the
+  // field, the `lastPerformance` prefill is never re-applied over their input,
+  // so clearing a prefilled field actually sticks.
+  const [repsDraft, setRepsDraft] = useState(() => repsToDraft(repsValue))
+  const repsTouched = useRef(false)
+
+  useEffect(() => {
+    if (repsTouched.current) return
+    setRepsDraft(repsToDraft(repsValue))
+  }, [repsValue])
 
   return (
     <li
@@ -127,8 +143,12 @@ export function SetRow({
             type="number"
             inputMode="numeric"
             min={0}
-            value={repsValue ?? ""}
-            onChange={(event) => onChange({ reps: toNumberOrNull(event.target.value) })}
+            value={repsDraft}
+            onChange={(event) => {
+              repsTouched.current = true
+              setRepsDraft(event.target.value)
+              onChange({ reps: toNumberOrNull(event.target.value) })
+            }}
             className={cn("h-11 text-center", completed && "text-muted-foreground")}
           />
         </div>

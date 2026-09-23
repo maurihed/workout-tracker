@@ -2,6 +2,7 @@
 
 import { useMutation } from "@tanstack/react-query"
 import { api } from "@/lib/axios"
+import { HttpError } from "@/features/workouts/lib/save-errors"
 import type { SessionStateInput } from "@/features/workouts/schemas/session"
 
 export type UpdateSessionArgs = {
@@ -29,7 +30,9 @@ export function useUpdateSession(id: string) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(input),
         })
-        if (!res.ok) throw new Error(`Session update failed: ${res.status}`)
+        if (!res.ok) {
+          throw new HttpError(res.status, `Session update failed: ${res.status}`)
+        }
         return
       }
       await api.put(`/sessions/${id}`, input)

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const hooks = vi.hoisted(() => ({
@@ -17,8 +17,11 @@ vi.mock("@/features/workouts/hooks/use-active-session", () => ({
 vi.mock("@/features/routines/hooks/use-active-routine", () => ({
   useActiveRoutine: hooks.activeRoutine,
 }))
+// `useMutation` returns a fresh result object every render, which is what made
+// the auto-start effect re-run after the retry handler re-armed it. Mirror that
+// here so the single-flight guard is actually exercised.
 vi.mock("@/features/workouts/hooks/use-start-session", () => ({
-  useStartSession: () => hooks.start,
+  useStartSession: () => ({ ...hooks.start }),
 }))
 vi.mock("@/features/workouts/components/workout-runner", () => ({
   WorkoutRunner: () => <div data-testid="runner" />,
@@ -55,6 +58,8 @@ beforeEach(() => {
   hooks.activeRoutine.mockReset()
   hooks.start.mutate.mockReset()
   hooks.start.reset.mockReset()
+  hooks.start.isError = false
+  hooks.start.isPending = false
 })
 
 describe("WorkoutPage auto-start", () => {
@@ -81,5 +86,23 @@ describe("WorkoutPage auto-start", () => {
 
     expect(hooks.start.mutate).toHaveBeenCalledTimes(1)
     expect(hooks.start.mutate).toHaveBeenCalledWith("d1")
+  })
+
+  it("issues exactly one start POST per attempt when Retry re-arms a single-day routine", () => {
+    hooks.activeRoutine.mockReturnValue(query(routine))
+    hooks.activeSession.mockReturnValue(query(null))
+    // Simulate the auto-start having failed: the error state (and Retry) shows.
+    hooks.start.isError = true
+
+    const { rerender } = render(<WorkoutPage />)
+    expect(hooks.start.mutate).toHaveBeenCalledTimes(1)
+
+    // Clicking Retry re-arms auto-start; without the single-flight guard the
+    // re-run effect would fire a second POST for the same attempt.
+    fireEvent.click(screen.getByRole("button", { name: "retry" }))
+    rerender(<WorkoutPage />)
+
+    expect(hooks.start.mutate).toHaveBeenCalledTimes(2)
+    expect(hooks.start.mutate).toHaveBeenLastCalledWith("d1")
   })
 })

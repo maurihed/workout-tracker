@@ -50,6 +50,38 @@ describe("SetRow", () => {
     expect(screen.getByLabelText(/weight/i)).toHaveValue(40)
   })
 
+  it("clears a prefilled reps field and keeps it cleared across rerenders", async () => {
+    const onChange = vi.fn()
+    const { rerender } = render(
+      <SetRow
+        set={set}
+        unitSystem="metric"
+        prefill={{ reps: 10, weightKg: null }}
+        onChange={onChange}
+        onComplete={vi.fn()}
+      />,
+    )
+    const reps = screen.getByLabelText(/reps/i)
+    expect(reps).toHaveValue(10)
+
+    await userEvent.clear(reps)
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ reps: null }))
+    expect(reps).toHaveValue(null)
+
+    // The parent re-renders (the store still reports `reps: null` while the
+    // prefill remains): the cleared draft must not be overwritten.
+    rerender(
+      <SetRow
+        set={set}
+        unitSystem="metric"
+        prefill={{ reps: 10, weightKg: null }}
+        onChange={onChange}
+        onComplete={vi.fn()}
+      />,
+    )
+    expect(screen.getByLabelText(/reps/i)).toHaveValue(null)
+  })
+
   it("prefers the set's own values over the prefill", () => {
     render(
       <SetRow
