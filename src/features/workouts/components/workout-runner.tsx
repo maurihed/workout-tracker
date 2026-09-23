@@ -369,8 +369,6 @@ export function WorkoutRunner({
       document.removeEventListener("visibilitychange", handleVisibility)
   }, [applyTimer])
 
-  // Schedule a single end-of-timer notification keyed on the wall-clock
-  // deadline (not the ticking state, which would reschedule every second).
   const timerDeadline = timer?.deadline ?? null
   const timerRunning = timer?.running ?? false
   const timerKind = timer?.kind ?? null
@@ -521,7 +519,7 @@ export function WorkoutRunner({
           type="button"
           variant="outline"
           size="sm"
-          className="h-9 shrink-0 gap-1.5"
+          className="h-11 shrink-0 gap-1.5"
           aria-pressed={soundOn}
           onClick={() => setSoundOn(!soundOn)}
         >
@@ -536,7 +534,7 @@ export function WorkoutRunner({
           type="button"
           variant="outline"
           size="sm"
-          className="h-9 shrink-0"
+          className="h-11 shrink-0"
           aria-pressed={permission === "granted"}
           disabled={permission === "unsupported"}
           onClick={async () => setPermission(await requestNotificationPermission())}

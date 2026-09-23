@@ -3,7 +3,10 @@ import {
   notificationPermission, requestNotificationPermission, scheduleTimerNotification,
 } from "@/features/workouts/lib/timer-notifications"
 
-afterEach(() => { vi.unstubAllGlobals() })
+afterEach(() => {
+  vi.useRealTimers()
+  vi.unstubAllGlobals()
+})
 
 describe("timer notifications", () => {
   it("reports unsupported when Notification is absent", () => {
@@ -27,5 +30,16 @@ describe("timer notifications", () => {
     await new Promise((resolve) => setTimeout(resolve, 40))
     expect(showNotification).toHaveBeenCalledOnce()
     cancel()
+  })
+
+  it("does not fire once the schedule is cancelled", async () => {
+    vi.useFakeTimers()
+    const showNotification = vi.fn(async () => undefined)
+    vi.stubGlobal("Notification", { permission: "granted" })
+    vi.stubGlobal("navigator", { ...navigator, serviceWorker: { ready: Promise.resolve({ showNotification }) } })
+    const cancel = scheduleTimerNotification(Date.now() + 1000, "Rest", "Go")
+    cancel()
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(showNotification).not.toHaveBeenCalled()
   })
 })
