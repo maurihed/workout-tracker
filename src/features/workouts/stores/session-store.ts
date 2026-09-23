@@ -194,7 +194,8 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
   ...emptyState,
 
   hydrate: (session) => {
-    if (session.id === get().sessionId) return
+    const current = get()
+    if (session.id === current.sessionId && current.isDirty) return
     set({
       sessionId: session.id,
       name: session.name,
@@ -243,7 +244,8 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
   },
 
   completeExercise: (exerciseId, completed) => {
-    if (!get().exercises.some((item) => item.id === exerciseId)) return
+    const exercise = get().exercises.find((item) => item.id === exerciseId)
+    if (!exercise || exercise.completed === completed) return
     set((state) => ({
       exercises: replaceExercise(state.exercises, exerciseId, (current) => ({
         ...current,
@@ -254,7 +256,8 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
   },
 
   skipExercise: (exerciseId, skipped) => {
-    if (!get().exercises.some((item) => item.id === exerciseId)) return
+    const exercise = get().exercises.find((item) => item.id === exerciseId)
+    if (!exercise || exercise.skipped === skipped) return
     set((state) => ({
       exercises: replaceExercise(state.exercises, exerciseId, (current) => ({
         ...current,
@@ -272,14 +275,15 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
         ...current,
         exerciseId: target.exerciseId,
         nameSnapshot: target.nameSnapshot,
-        swappedFromId: current.exerciseId,
+        swappedFromId: current.swappedFromId ?? current.exerciseId,
       })),
       isDirty: true,
     }))
   },
 
   setNotes: (exerciseId, notes) => {
-    if (!get().exercises.some((item) => item.id === exerciseId)) return
+    const exercise = get().exercises.find((item) => item.id === exerciseId)
+    if (!exercise || exercise.notes === notes) return
     set((state) => ({
       exercises: replaceExercise(state.exercises, exerciseId, (current) => ({
         ...current,
@@ -289,7 +293,11 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
     }))
   },
 
-  setActiveSeconds: (seconds) => set({ activeSeconds: seconds, isDirty: true }),
+  setActiveSeconds: (seconds) => {
+    const next = Math.max(0, Math.floor(seconds))
+    if (next === get().activeSeconds) return
+    set({ activeSeconds: next })
+  },
 
   goTo: (index) =>
     set((state) => ({
