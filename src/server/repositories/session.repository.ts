@@ -52,6 +52,18 @@ export const sessionSelect = {
 
 export type SessionRecord = Prisma.WorkoutSessionGetPayload<{ select: typeof sessionSelect }>
 
+/** Minimal header projection for write acknowledgements (no nested reads). */
+export const sessionAckSelect = {
+  id: true,
+  status: true,
+  activeSeconds: true,
+  completedAt: true,
+} satisfies Prisma.WorkoutSessionSelect
+
+export type SessionAckRecord = Prisma.WorkoutSessionGetPayload<{
+  select: typeof sessionAckSelect
+}>
+
 const ownedDaySelect = {
   id: true,
   weekday: true,
@@ -67,6 +79,7 @@ const ownedDaySelect = {
       targetSets: true,
       targetReps: true,
       restSeconds: true,
+      targetWeightKg: true,
       timerType: true,
       workSeconds: true,
       rounds: true,
@@ -114,11 +127,12 @@ function buildSnapshot(day: OwnedDay) {
     label: day.label,
     exercises: day.exercises.map((exercise) => ({
       order: exercise.order,
-      name: exercise.customName ?? exercise.exercise?.name ?? null,
+      name: exercise.customName ?? exercise.exercise?.name ?? "Unknown exercise",
       nameEs: exercise.exercise?.nameEs ?? null,
       targetSets: exercise.targetSets,
       targetReps: exercise.targetReps,
       restSeconds: exercise.restSeconds,
+      targetWeightKg: exercise.targetWeightKg,
       timerType: exercise.timerType,
       workSeconds: exercise.workSeconds,
       rounds: exercise.rounds,
@@ -126,7 +140,37 @@ function buildSnapshot(day: OwnedDay) {
   } satisfies Prisma.InputJsonObject
 }
 
-/** Creates the session (with its snapshot) and copied exercise rows in one write. */
+/**
+ * Parses the numeric part of a prescription (`"10"` → `10`). Ranges (`"8-12"`),
+ * AMRAP, and other free-form text yield `null` so the set stays blank for the
+ * user to fill in.
+ */
+export function parseTargetReps(targetReps: string | null): number | null {
+  if (!targetReps) return null
+  const trimmed = targetReps.trim()
+  return /^\d+$/.test(trimmed) ? Number(trimmed) : null
+}
+
+/** Max seeded rows per exercise, matching the set-input schema's `max(50)`. */
+const MAX_SEEDED_SETS = 50
+
+/** Builds the prescribed `SetLog` rows for a routine exercise (all uncompleted). */
+function buildSeededSets(exercise: OwnedDay["exercises"][number]) {
+  const count = Math.min(Math.max(exercise.targetSets ?? 0, 0), MAX_SEEDED_SETS)
+  const reps = parseTargetReps(exercise.targetReps)
+  return Array.from({ length: count }, (_, index) => ({
+    setNumber: index + 1,
+    type: "working" as const,
+    reps,
+    weightKg: exercise.targetWeightKg,
+  }))
+}
+
+/**
+ * Creates the session (with its snapshot), copied exercise rows, and the
+ * prescribed `SetLog` rows in one write, so the runner opens with the user's
+ * target sets already in place.
+ */
 export function createSessionWithExercises(
   tx: Prisma.TransactionClient,
   { userId, day }: { userId: string; day: OwnedDay },
@@ -151,6 +195,7 @@ export function createSessionWithExercises(
           timerType: exercise.timerType,
           workSeconds: exercise.workSeconds,
           rounds: exercise.rounds,
+          sets: { create: buildSeededSets(exercise) },
         })),
       },
     },
@@ -226,16 +271,16 @@ export async function replaceSets(
   }
 }
 
-/** Updates the session header (e.g. `activeSeconds`) and returns the fresh DTO. */
+/** Updates the session header (e.g. `activeSeconds`) and returns the ack projection. */
 export function updateHeader(
   tx: Prisma.TransactionClient,
   id: string,
   data: { activeSeconds: number },
 ) {
-  return tx.workoutSession.update({ where: { id }, data, select: sessionSelect })
+  return tx.workoutSession.update({ where: { id }, data, select: sessionAckSelect })
 }
 
-/** Sets the session status (plus optional completion fields) and returns the DTO. */
+/** Sets the session status (plus optional completion fields) and returns the ack projection. */
 export function setStatus(
   id: string,
   status: SessionStatus,
@@ -244,7 +289,7 @@ export function setStatus(
   return prisma.workoutSession.update({
     where: { id },
     data: { ...data, status },
-    select: sessionSelect,
+    select: sessionAckSelect,
   })
 }
 

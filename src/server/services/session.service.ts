@@ -59,24 +59,57 @@ export type SessionDTO = {
 }
 
 /**
- * Serializes the Prisma record to the wire DTO (datetimes as ISO strings) and
- * attaches the previous-performance hint per catalog exercise.
+ * Lean write acknowledgement. Write responses deliberately omit `exercises` and
+ * `lastPerformance` so a debounced `PUT` (which fires constantly) does not pay
+ * the 2×N previous-performance lookup cost; the client already holds the
+ * authoritative state and discards the response.
  */
-async function toSessionDTO(userId: string, session: repos.SessionRecord): Promise<SessionDTO> {
-  const exerciseIds = [
-    ...new Set(
-      session.exercises
-        .map((exercise) => exercise.exerciseId)
-        .filter((id): id is string => id !== null),
-    ),
-  ]
-  const performances = await Promise.all(
-    exerciseIds.map(async (exerciseId) => {
-      const lastPerformance = await repos.findLastPerformance(userId, exerciseId)
-      return [exerciseId, lastPerformance] as const
-    }),
-  )
-  const byExerciseId = new Map(performances)
+export type SessionStateAck = {
+  id: string
+  status: SessionStatus
+  activeSeconds: number
+  completedAt: string | null
+}
+
+function toStateAck(session: repos.SessionAckRecord): SessionStateAck {
+  return {
+    id: session.id,
+    status: session.status,
+    activeSeconds: session.activeSeconds,
+    completedAt: session.completedAt ? session.completedAt.toISOString() : null,
+  }
+}
+
+/**
+ * Serializes the Prisma record to the wire DTO (datetimes as ISO strings) and,
+ * for reads, attaches the previous-performance hint per catalog exercise. The
+ * hint costs two queries per distinct exercise, so write responses opt out
+ * (`withLastPerformance: false`); it is only needed on GET (active/detail).
+ */
+async function toSessionDTO(
+  userId: string,
+  session: repos.SessionRecord,
+  { withLastPerformance = true }: { withLastPerformance?: boolean } = {},
+): Promise<SessionDTO> {
+  const byExerciseId = new Map<string, repos.LastPerformance | null>()
+  if (withLastPerformance) {
+    const exerciseIds = [
+      ...new Set(
+        session.exercises
+          .map((exercise) => exercise.exerciseId)
+          .filter((id): id is string => id !== null),
+      ),
+    ]
+    const performances = await Promise.all(
+      exerciseIds.map(async (exerciseId) => {
+        const lastPerformance = await repos.findLastPerformance(userId, exerciseId)
+        return [exerciseId, lastPerformance] as const
+      }),
+    )
+    for (const [exerciseId, lastPerformance] of performances) {
+      byExerciseId.set(exerciseId, lastPerformance)
+    }
+  }
 
   return {
     ...session,
@@ -88,9 +121,10 @@ async function toSessionDTO(userId: string, session: repos.SessionRecord): Promi
         ...set,
         completedAt: set.completedAt ? set.completedAt.toISOString() : null,
       })),
-      lastPerformance: exercise.exerciseId
-        ? (byExerciseId.get(exercise.exerciseId) ?? null)
-        : null,
+      lastPerformance:
+        withLastPerformance && exercise.exerciseId
+          ? (byExerciseId.get(exercise.exerciseId) ?? null)
+          : null,
     })),
   }
 }
@@ -107,7 +141,8 @@ export async function startSession(userId: string, routineDayId: string): Promis
     repos.createSessionWithExercises(tx, { userId, day }),
   )
   logger.info({ event: "session.started", userId, sessionId: session.id }, "session started")
-  return toSessionDTO(userId, session)
+  // Start is a write: skip the last-performance lookup (the active GET supplies it).
+  return toSessionDTO(userId, session, { withLastPerformance: false })
 }
 
 export async function getActiveSession(userId: string): Promise<SessionDTO | null> {
@@ -125,7 +160,7 @@ export async function replaceSessionState(
   userId: string,
   id: string,
   input: SessionStateInput,
-): Promise<SessionDTO> {
+): Promise<SessionStateAck> {
   const session = await repos.findByIdForUser(userId, id)
   if (!session) throw new NotFoundError("Session not found")
   if (session.status !== "in_progress") throw new ConflictError("Session is not in progress")
@@ -135,21 +170,21 @@ export async function replaceSessionState(
     return repos.updateHeader(tx, id, { activeSeconds: input.activeSeconds })
   })
   logger.info({ event: "session.updated", userId, sessionId: id }, "session updated")
-  return toSessionDTO(userId, updated)
+  return toStateAck(updated)
 }
 
 export async function completeSession(
   userId: string,
   id: string,
   activeSeconds: number,
-): Promise<SessionDTO> {
+): Promise<SessionStateAck> {
   const session = await repos.findByIdForUser(userId, id)
   if (!session) throw new NotFoundError("Session not found")
   if (session.status !== "in_progress") throw new ConflictError("Session is not in progress")
 
   const done = await repos.setStatus(id, "completed", { completedAt: new Date(), activeSeconds })
   logger.info({ event: "session.completed", userId, sessionId: id }, "session completed")
-  return toSessionDTO(userId, done)
+  return toStateAck(done)
 }
 
 export async function abandonSession(userId: string, id: string): Promise<void> {

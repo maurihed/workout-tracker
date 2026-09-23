@@ -1,18 +1,14 @@
 "use client"
 
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { api, type ApiEnvelope } from "@/lib/axios"
-import type { SessionDTO } from "./use-active-session"
+import { api } from "@/lib/axios"
 import { sessionKeys } from "./query-keys"
 
 export function useCompleteSession(id: string) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (activeSeconds: number) => {
-      const res = await api.post<ApiEnvelope<SessionDTO>>(`/sessions/${id}/complete`, {
-        activeSeconds,
-      })
-      return res.data.data
+      await api.post(`/sessions/${id}/complete`, { activeSeconds })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: sessionKeys.active() })

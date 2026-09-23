@@ -14,7 +14,7 @@ async function makeUserWithRoutine() {
   const routine = await prisma.routine.create({
     data: {
       userId: user.id, name: "Push", source: "manual", isActive: true,
-      days: { create: [{ weekday: 1, label: "Push", order: 0, exercises: { create: [{ exerciseId: exercise.id, order: 0, targetSets: 3, targetReps: "8-12", restSeconds: 90 }] } }] },
+      days: { create: [{ weekday: 1, label: "Push", order: 0, exercises: { create: [{ exerciseId: exercise.id, order: 0, targetSets: 3, targetReps: "10", targetWeightKg: 40, restSeconds: 90 }] } }] },
     },
     include: { days: true },
   })
@@ -36,6 +36,19 @@ describe("session service", () => {
     expect(started.exercises[0]?.nameSnapshot).toBeTruthy()
     await expect(startSession(user.id, day.id)).rejects.toThrow(/in progress/i)
     expect(await prisma.workoutSession.count({ where: { userId: user.id, status: "in_progress" } })).toBe(1)
+  })
+
+  it("seeds the prescribed number of sets (with parsed reps/weight) at start", async () => {
+    const { user, day } = await makeUserWithRoutine()
+    const started = await startSession(user.id, day.id)
+    const sets = started.exercises[0]!.sets
+    expect(sets).toHaveLength(3)
+    expect(sets.map((set) => set.setNumber)).toEqual([1, 2, 3])
+    expect(sets.every((set) => set.type === "working")).toBe(true)
+    expect(sets.every((set) => set.reps === 10)).toBe(true)
+    expect(sets.every((set) => set.weightKg === 40)).toBe(true)
+    expect(sets.every((set) => set.completedAt === null)).toBe(true)
+    expect(await prisma.setLog.count({ where: { sessionExercise: { sessionId: started.id } } })).toBe(3)
   })
 
   it("freezes names when the routine is edited mid-session", async () => {
@@ -60,8 +73,11 @@ describe("session service", () => {
         { setNumber: 1, type: "working", reps: 8, weightKg: 40, durationSeconds: null, rpe: 8, restSecondsLogged: 90, completedAt: new Date().toISOString() },
       ] }],
     })
+    // The write response is a lean ack: it must not carry exercises/lastPerformance.
     expect(updated.activeSeconds).toBe(300)
-    expect(updated.exercises[0]?.sets).toHaveLength(1)
+    expect(updated).not.toHaveProperty("exercises")
+    const reopened = await getSession(user.id, started.id)
+    expect(reopened.exercises[0]?.sets).toHaveLength(1)
     const done = await completeSession(user.id, started.id, 600)
     expect(done.status).toBe("completed")
     expect(done.activeSeconds).toBe(600)
