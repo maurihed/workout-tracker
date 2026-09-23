@@ -47,6 +47,14 @@ export function useSessionSync(
     })
   }, [sessionId])
 
+  useEffect(() => {
+    return useSessionStore.subscribe((state, prev) => {
+      if (state.exercises === prev.exercises) return
+      if (!state.sessionId) return
+      persist()
+    })
+  }, [persist])
+
   const pushUpsert = useCallback(async () => {
     persist()
     const store = useSessionStore.getState()

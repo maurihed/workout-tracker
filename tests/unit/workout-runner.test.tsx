@@ -104,6 +104,7 @@ beforeEach(() => {
   sync.status.online = true
   sync.status.pending = 0
   sync.status.syncing = false
+  sync.status.flush.mockReset()
   toastError.mockReset()
   push.mockReset()
   window.localStorage.clear()
@@ -152,6 +153,15 @@ describe("WorkoutRunner sync status", () => {
     sync.status.pending = 2
     render(<WorkoutRunner session={session} />)
     expect(screen.getByRole("status")).toHaveTextContent("save.pending")
+  })
+
+  it("renders a retry button while online with pending rows and flushes on tap", () => {
+    sync.status.pending = 2
+    render(<WorkoutRunner session={session} />)
+
+    fireEvent.click(screen.getByRole("button", { name: "save.retry" }))
+
+    expect(sync.status.flush).toHaveBeenCalledTimes(1)
   })
 
   it("enqueues the session when the user pauses", () => {

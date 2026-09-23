@@ -36,6 +36,23 @@ describe("useSessionSync", () => {
     expect((await listOutbox()).length).toBe(0)
   })
 
+  it("persists an exercise edit to IndexedDB before the debounce fires", async () => {
+    useSessionStore.getState().hydrate(
+      { id: "s1", name: "Push", status: "in_progress", startedAt: "2026-01-01T00:00:00.000Z", activeSeconds: 0, exercises: [{ id: "se1", exerciseId: "e1", nameSnapshot: "Squat", targetSets: 1, targetReps: "10", restSeconds: 0, timerType: "none", workSeconds: null, rounds: null, completed: false, skipped: false, swappedFromId: null, notes: null, sets: [] }] },
+      { snapshot, routineDayId: "d1" },
+    )
+    renderHook(() => useSessionSync("s1", () => null, () => false))
+
+    await act(async () => {
+      useSessionStore.getState().addSet("se1")
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+
+    const persisted = await loadActiveSession()
+    expect(persisted?.source.exercises[0]?.sets).toHaveLength(1)
+    expect(await listOutbox()).toHaveLength(0)
+  })
+
   it("persists a completed session and resolves when the outbox enqueue rejects", async () => {
     useSessionStore.getState().hydrate(
       { id: "s1", name: "Push", status: "in_progress", startedAt: "2026-01-01T00:00:00.000Z", activeSeconds: 0, exercises: [{ id: "se1", exerciseId: "e1", nameSnapshot: "Squat", targetSets: 1, targetReps: "10", restSeconds: 0, timerType: "none", workSeconds: null, rounds: null, completed: false, skipped: false, swappedFromId: null, notes: null, sets: [] }] },

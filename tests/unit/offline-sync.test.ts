@@ -51,6 +51,41 @@ describe("sync engine", () => {
     ])
   })
 
+  it("clears a complete row when the PUT reports the session already finalized", async () => {
+    const calls: { url: string; method: string }[] = []
+    const fetchImpl = (async (url: string, init?: RequestInit) => {
+      calls.push({ url: String(url), method: init?.method ?? "GET" })
+      return json(409)
+    }) as unknown as typeof fetch
+    await enqueue("complete", "s1", { state: { v: 1 }, activeSeconds: 7 })
+    const result = await flushOutbox({ fetchImpl })
+    expect(result).toEqual({ synced: 1, pending: 0, failed: false })
+    expect(await listOutbox()).toHaveLength(0)
+    expect(calls).toEqual([{ url: "/api/sessions/s1", method: "PUT" }])
+  })
+
+  it("clears a complete row when POST /complete returns 404", async () => {
+    const fetchImpl = (async (url: string) =>
+      String(url).endsWith("/complete") ? json(404) : json(200)) as unknown as typeof fetch
+    await enqueue("complete", "s1", { state: { v: 1 }, activeSeconds: 7 })
+    const result = await flushOutbox({ fetchImpl })
+    expect(result).toEqual({ synced: 1, pending: 0, failed: false })
+    expect(await listOutbox()).toHaveLength(0)
+  })
+
+  it("continues past a non-retryable error so a later row still syncs", async () => {
+    const fetchImpl = (async (url: string) =>
+      String(url).includes("/s1") ? json(400) : json(200)) as unknown as typeof fetch
+    let clock = 1000
+    const now = () => clock++
+    await enqueue("upsert", "s1", { state: {}, activeSeconds: 0 }, { now })
+    await enqueue("upsert", "s2", { state: {}, activeSeconds: 0 }, { now })
+    const result = await flushOutbox({ fetchImpl, now })
+    expect(result).toEqual({ synced: 1, pending: 1, failed: true })
+    expect((await getOutbox("s1"))?.status).toBe("error")
+    expect(await getOutbox("s2")).toBeUndefined()
+  })
+
   it("keeps the row on a retryable 500 and reports failure", async () => {
     const fetchImpl = vi.fn(async () => json(500)) as unknown as typeof fetch
     await enqueue("upsert", "s1", { state: {}, activeSeconds: 0 })

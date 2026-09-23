@@ -373,6 +373,46 @@ describe("WorkoutPage auto-start", () => {
     expect(useSessionStore.getState().toUpsertPayload(0)).not.toBeNull()
   })
 
+  it("carries the routine's exercise media into an offline local session's runner", async () => {
+    runner.real = true
+    const routineWithMedia = {
+      ...routine,
+      days: [
+        {
+          ...routine.days[0]!,
+          exercises: [
+            {
+              id: "re1",
+              order: 0,
+              exerciseId: "e1",
+              customName: null,
+              targetSets: 3,
+              targetReps: "10",
+              restSeconds: 60,
+              targetWeightKg: null,
+              timerType: "none" as const,
+              workSeconds: null,
+              rounds: null,
+              notes: null,
+              exercise: { id: "e1", name: "Squat", nameEs: null, images: ["squat.png"] },
+            },
+          ],
+        },
+      ],
+    }
+    hooks.persistence.loadActiveSession.mockResolvedValue(localSession)
+    hooks.activeRoutine.mockReturnValue(query(routineWithMedia))
+    hooks.activeSession.mockReturnValue(query(null))
+
+    const { container } = render(<WorkoutPage />)
+    await act(async () => {})
+
+    expect(container.querySelector("img")).toHaveAttribute(
+      "src",
+      expect.stringContaining("squat.png"),
+    )
+  })
+
   it("hydrates canonical exercise ids and names with the real runner for an offline local-wins resume", async () => {
     runner.real = true
     hooks.persistence.loadActiveSession.mockResolvedValue(localSession)

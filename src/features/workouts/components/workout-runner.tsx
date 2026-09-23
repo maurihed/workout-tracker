@@ -515,6 +515,17 @@ export function WorkoutRunner({
             <span>{t("save.saved")}</span>
           ) : null}
         </div>
+        {sync.status.online && !sync.status.syncing && sync.status.pending > 0 ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-11 shrink-0"
+            onClick={() => sync.status.flush()}
+          >
+            {t("save.retry")}
+          </Button>
+        ) : null}
         <Button
           type="button"
           variant="outline"

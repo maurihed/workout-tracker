@@ -69,9 +69,10 @@ async function flushRecord(fetchImpl: typeof fetch, record: OutboxRecord): Promi
     }
     // complete: push the final state, then finalize.
     const put = await send(fetchImpl, `/api/sessions/${record.sessionId}`, "PUT", payload.state)
+    if (put.status === 409 || put.status === 404) return "synced"
     if (!put.ok) return isRetryableStatus(put.status) ? "retry" : "error"
     const post = await send(fetchImpl, `/api/sessions/${record.sessionId}/complete`, "POST", { activeSeconds: payload.activeSeconds })
-    if (post.ok) return "synced"
+    if (post.ok || post.status === 404) return "synced"
     return isRetryableStatus(post.status) ? "retry" : "error"
   } catch {
     return "retry"
@@ -114,7 +115,6 @@ export async function flushOutbox(deps: SyncDeps = {}): Promise<FlushResult> {
         await putOutbox({ ...current, status: "error" })
       }
       failed = true
-      break
     }
     const pending = (await listOutbox()).length
     notify()

@@ -38,7 +38,12 @@ function WorkoutSkeleton({ label }: { label: string }) {
   )
 }
 
-function toRunnerInput(persisted: PersistedSession): RunnerSessionInput {
+type ExerciseMedia = { id: string; name: string; nameEs: string | null; images: string[] }
+
+function toRunnerInput(
+  persisted: PersistedSession,
+  mediaByExerciseId: Map<string, ExerciseMedia>,
+): RunnerSessionInput {
   return {
     id: persisted.source.id,
     exercises: persisted.source.exercises.map((exercise) => ({
@@ -47,7 +52,9 @@ function toRunnerInput(persisted: PersistedSession): RunnerSessionInput {
       workSeconds: exercise.workSeconds,
       restSeconds: exercise.restSeconds,
       rounds: exercise.rounds,
-      exercise: null,
+      exercise: exercise.exerciseId
+        ? (mediaByExerciseId.get(exercise.exerciseId) ?? null)
+        : null,
       lastPerformance: null,
     })),
   }
@@ -102,9 +109,22 @@ export default function WorkoutPage() {
       (!serverSession || serverSession.id !== localSource.id),
   )
 
+  const mediaByExerciseId = useMemo(() => {
+    const media = new Map<string, ExerciseMedia>()
+    for (const day of routine.data?.days ?? []) {
+      for (const exercise of day.exercises) {
+        if (exercise.exercise) media.set(exercise.exercise.id, exercise.exercise)
+      }
+    }
+    for (const exercise of serverSession?.exercises ?? []) {
+      if (exercise.exercise) media.set(exercise.exercise.id, exercise.exercise)
+    }
+    return media
+  }, [routine.data, serverSession])
+
   const chosen = useMemo<RunnerSessionInput | null>(
-    () => (localWins && local ? toRunnerInput(local) : serverSession),
-    [localWins, local, serverSession],
+    () => (localWins && local ? toRunnerInput(local, mediaByExerciseId) : serverSession),
+    [localWins, local, serverSession, mediaByExerciseId],
   )
   const chosenSource = useMemo<SessionStoreSource | null>(
     () => (localWins && local ? local.source : serverSession),
