@@ -259,5 +259,78 @@
   },
   "profile": {
     "title": "Profile"
+  },
+  "runner": {
+    "title": "Workout",
+    "resume": "Resume workout",
+    "startChooseDay": "Choose a workout",
+    "noActiveRoutine": "No active routine",
+    "emptyCta": "Pick a routine",
+    "overview": {
+      "title": "Overview",
+      "description": "Jump to any exercise in this workout.",
+      "setCount": "{count, plural, one {# set} other {# sets}}",
+      "skipped": "Skipped",
+      "completed": "Completed"
+    },
+    "prev": "Previous",
+    "next": "Next",
+    "swap": {
+      "title": "Swap exercise"
+    },
+    "skip": "Skip",
+    "unskip": "Unskip",
+    "finish": "Finish",
+    "discard": "Discard",
+    "finishConfirm": "You still have unfinished sets. Finish this workout anyway?",
+    "discardConfirm": "This discards your progress and deletes this workout session. This can't be undone.",
+    "pause": "Pause",
+    "resumeSession": "Resume",
+    "progress": "Workout progress",
+    "lastPerformance": "Last time: {reps} reps · {weight}",
+    "exerciseOf": "Exercise {index} of {total}",
+    "addSet": "Add set",
+    "target": "{sets} × {reps}",
+    "targetWithRest": "{sets} × {reps} · {rest}s rest",
+    "unknownDay": "That day is no longer in your routine.",
+    "error": "Couldn't load your workout",
+    "retry": "Retry",
+    "sets": {
+      "reps": "Reps",
+      "weight": "Weight",
+      "warmup": "Warm-up set",
+      "working": "Working set",
+      "rpe": "RPE",
+      "notes": "Notes",
+      "complete": "Mark set complete",
+      "completed": "Completed",
+      "setNumber": "Set {number}",
+      "number": "Set {number}",
+      "addSet": "Add set"
+    }
+  },
+  "timers": {
+    "rest": "Rest",
+    "interval": "Interval timer",
+    "round": "Round {round} of {rounds}",
+    "work": "Work",
+    "running": "Running",
+    "paused": "Paused",
+    "adjust": "Adjust rest timer",
+    "skip": "Skip rest",
+    "skipRound": "Skip round",
+    "start": "Start",
+    "pause": "Pause",
+    "addTime": "Add 15 seconds",
+    "subtractTime": "Subtract 15 seconds",
+    "soundOn": "Turn sound on",
+    "soundOff": "Turn sound off"
+  },
+  "summary": {
+    "title": "Workout summary",
+    "duration": "Duration",
+    "sets": "Sets completed",
+    "volume": "Total volume",
+    "done": "Done"
   }
 }

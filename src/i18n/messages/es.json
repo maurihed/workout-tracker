@@ -259,5 +259,78 @@
   },
   "profile": {
     "title": "Perfil"
+  },
+  "runner": {
+    "title": "Entrenamiento",
+    "resume": "Reanudar entrenamiento",
+    "startChooseDay": "Elige un entrenamiento",
+    "noActiveRoutine": "No tienes una rutina activa",
+    "emptyCta": "Elegir una rutina",
+    "overview": {
+      "title": "Resumen",
+      "description": "Salta a cualquier ejercicio de este entrenamiento.",
+      "setCount": "{count, plural, one {# serie} other {# series}}",
+      "skipped": "Omitido",
+      "completed": "Completado"
+    },
+    "prev": "Anterior",
+    "next": "Siguiente",
+    "swap": {
+      "title": "Cambiar ejercicio"
+    },
+    "skip": "Omitir",
+    "unskip": "Restaurar",
+    "finish": "Finalizar",
+    "discard": "Descartar",
+    "finishConfirm": "Aún tienes series sin terminar. ¿Quieres finalizar el entrenamiento de todos modos?",
+    "discardConfirm": "Esto descarta tu progreso y elimina la sesión de entrenamiento. No se puede deshacer.",
+    "pause": "Pausar",
+    "resumeSession": "Reanudar",
+    "progress": "Progreso del entrenamiento",
+    "lastPerformance": "La última vez: {reps} repeticiones · {weight}",
+    "exerciseOf": "Ejercicio {index} de {total}",
+    "addSet": "Añadir serie",
+    "target": "{sets} × {reps}",
+    "targetWithRest": "{sets} × {reps} · {rest}s de descanso",
+    "unknownDay": "Ese día ya no está en tu rutina.",
+    "error": "No se pudo cargar tu entrenamiento",
+    "retry": "Reintentar",
+    "sets": {
+      "reps": "Repeticiones",
+      "weight": "Peso",
+      "warmup": "Serie de calentamiento",
+      "working": "Serie de trabajo",
+      "rpe": "RPE",
+      "notes": "Notas",
+      "complete": "Marcar serie como completada",
+      "completed": "Completada",
+      "setNumber": "Serie {number}",
+      "number": "Serie {number}",
+      "addSet": "Añadir serie"
+    }
+  },
+  "timers": {
+    "rest": "Descanso",
+    "interval": "Temporizador de intervalos",
+    "round": "Ronda {round} de {rounds}",
+    "work": "Trabajo",
+    "running": "En marcha",
+    "paused": "En pausa",
+    "adjust": "Ajustar el temporizador de descanso",
+    "skip": "Saltar descanso",
+    "skipRound": "Saltar ronda",
+    "start": "Iniciar",
+    "pause": "Pausar",
+    "addTime": "Añadir 15 segundos",
+    "subtractTime": "Quitar 15 segundos",
+    "soundOn": "Activar el sonido",
+    "soundOff": "Desactivar el sonido"
+  },
+  "summary": {
+    "title": "Resumen del entrenamiento",
+    "duration": "Duración",
+    "sets": "Series completadas",
+    "volume": "Volumen total",
+    "done": "Listo"
   }
 }

@@ -575,7 +575,7 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
           onClick={() => setOverviewOpen(true)}
         >
           <ListBullets className="size-5" aria-hidden="true" />
-          {t("overview")}
+          {t("overview.title")}
         </Button>
         <Button
           type="button"
@@ -585,7 +585,7 @@ export function WorkoutRunner({ session }: { session: SessionDTO }) {
           onClick={() => setSwapOpen(true)}
         >
           <ArrowsLeftRight className="size-5" aria-hidden="true" />
-          {t("swap")}
+          {t("swap.title")}
         </Button>
         <Button
           type="button"
