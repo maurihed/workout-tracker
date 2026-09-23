@@ -55,7 +55,18 @@ describe("NewRoutineForm", () => {
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({ name: "My Plan" }),
     )
-    expect(push).toHaveBeenCalledWith("/en/routines/r9")
+    await waitFor(() =>
+      expect(push).toHaveBeenCalledWith("/en/routines/r9"),
+    )
+  })
+
+  it("does not create when the name is empty", async () => {
+    render(<NewRoutineForm />)
+    await userEvent.click(
+      screen.getByRole("button", { name: /create\s*blank|^create$/i }),
+    )
+    expect(create).not.toHaveBeenCalled()
+    expect(push).not.toHaveBeenCalled()
   })
 
   it("creates a routine from a template and navigates to the editor", async () => {
@@ -75,6 +86,7 @@ describe("NewRoutineForm", () => {
     await userEvent.click(
       screen.getByRole("button", { name: /Full Body 3x/ }),
     )
+    expect(createFromTemplate).toHaveBeenCalledTimes(1)
     expect(createFromTemplate).toHaveBeenCalledWith("full-body-3x")
     await waitFor(() =>
       expect(push).toHaveBeenCalledWith("/en/routines/r10"),

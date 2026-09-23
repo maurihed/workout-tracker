@@ -48,7 +48,7 @@ function TemplateList({
   onRetry,
   onChoose,
 }: TemplateListProps) {
-  const t = useTranslations("routines.new")
+  const t = useTranslations("routines.create")
   const tTemplates = useTranslations("onboarding.templates")
   const tCommon = useTranslations("common")
   const locale = useLocale()
@@ -119,7 +119,7 @@ function TemplateList({
 }
 
 export function NewRoutineForm() {
-  const t = useTranslations("routines.new")
+  const t = useTranslations("routines.create")
   const tGoals = useTranslations("onboarding.goals")
   const tCommon = useTranslations("common")
   const locale = useLocale()
