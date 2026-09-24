@@ -8,6 +8,7 @@ type SummarySet = {
   reps: number | null
   weightKg: number | null
   completedAt: string | null
+  type?: string
 }
 
 type SummaryExercise = {
@@ -29,6 +30,7 @@ export function computeSummary(session: SummaryInput): Summary {
         continue
       }
       completedSets += 1
+      if (set.type === "warmup") continue
       totalVolumeKg += set.reps * set.weightKg
     }
   }

@@ -15,7 +15,9 @@ function toItem(row: repos.HistoryRecord): HistoryItemDTO {
       if (set.isPr) prCount += 1
       if (set.completedAt) {
         setCount += 1
-        if (set.reps != null && set.weightKg != null) totalVolumeKg += set.reps * set.weightKg
+        if (set.type !== "warmup" && set.reps != null && set.weightKg != null) {
+          totalVolumeKg += set.reps * set.weightKg
+        }
       }
     }
   }

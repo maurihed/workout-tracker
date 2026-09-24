@@ -57,11 +57,16 @@ export function StatsHeader() {
     )
   }
 
-  const unlockedIds = new Set(
-    (achievements.data?.unlocked ?? []).map((u) => u.achievementId),
+  const catalogById = new Map(
+    (achievements.data?.achievements ?? []).map((a) => [a.id, a]),
   )
-  const badges = (achievements.data?.achievements ?? [])
-    .filter((a) => unlockedIds.has(a.id))
+  const badges = (achievements.data?.unlocked ?? [])
+    .slice()
+    .sort((a, b) => Date.parse(b.unlockedAt) - Date.parse(a.unlockedAt))
+    .flatMap((u) => {
+      const badge = catalogById.get(u.achievementId)
+      return badge ? [badge] : []
+    })
     .slice(0, 5)
 
   return (

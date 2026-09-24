@@ -5,7 +5,7 @@ import type { Prisma } from "@/generated/prisma/client"
 export const historySelect = {
   id: true, name: true, startedAt: true, completedAt: true, activeSeconds: true,
   routineId: true, routineDayId: true,
-  exercises: { select: { sets: { select: { reps: true, weightKg: true, completedAt: true, isPr: true } } } },
+  exercises: { select: { sets: { select: { reps: true, weightKg: true, completedAt: true, isPr: true, type: true } } } },
 } satisfies Prisma.WorkoutSessionSelect
 export type HistoryRecord = Prisma.WorkoutSessionGetPayload<{ select: typeof historySelect }>
 

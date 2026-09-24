@@ -35,15 +35,16 @@ export function useNewAchievements(
 
   useEffect(() => {
     const marker = readMarker()
-    const markerTime = marker ? new Date(marker).getTime() : null
+    if (marker === null) {
+      writeMarker(new Date().toISOString())
+      return
+    }
+    const markerTime = new Date(marker).getTime()
     const byId = new Map(catalog.map((achievement) => [achievement.id, achievement]))
 
     const fresh = unlocked
       .filter((entry) => !seen.current.has(entry.achievementId))
-      .filter(
-        (entry) =>
-          markerTime === null || new Date(entry.unlockedAt).getTime() > markerTime,
-      )
+      .filter((entry) => new Date(entry.unlockedAt).getTime() > markerTime)
       .sort(
         (a, b) => new Date(a.unlockedAt).getTime() - new Date(b.unlockedAt).getTime(),
       )

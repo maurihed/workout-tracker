@@ -17,11 +17,11 @@ const session = {
 }
 
 describe("computeSummary", () => {
-  it("counts completed sets and sums volume over completed sets only", () => {
+  it("counts completed sets and sums working-set volume (warm-ups excluded)", () => {
     const s = computeSummary(session as never)
     expect(s.durationSeconds).toBe(1800)
     expect(s.completedSets).toBe(3)
-    expect(s.totalVolumeKg).toBe(10 * 40 + 8 * 50 + 12 * 20)
+    expect(s.totalVolumeKg).toBe(10 * 40 + 8 * 50)
   })
 
   it("ignores completed sets missing reps or weight", () => {

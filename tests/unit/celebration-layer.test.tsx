@@ -10,9 +10,18 @@ vi.mock("@/features/gamification/hooks/use-achievements", () => ({ useAchievemen
 beforeEach(() => localStorage.clear())
 
 describe("CelebrationLayer", () => {
-  it("shows the badge modal for a newly unlocked achievement", async () => {
+  it("shows the badge modal for an achievement unlocked after the last celebration", async () => {
+    localStorage.setItem(
+      "gym.lastCelebratedAt",
+      new Date(Date.now() - 60_000).toISOString(),
+    )
     render(<NextIntlClientProvider locale="en" messages={en}><CelebrationLayer /></NextIntlClientProvider>)
     expect(await screen.findByText(/Badge unlocked/i)).toBeInTheDocument()
     expect(screen.getByText("First Workout")).toBeInTheDocument()
+  })
+
+  it("does not celebrate pre-existing badges on first load", () => {
+    render(<NextIntlClientProvider locale="en" messages={en}><CelebrationLayer /></NextIntlClientProvider>)
+    expect(screen.queryByText(/Badge unlocked/i)).not.toBeInTheDocument()
   })
 })
