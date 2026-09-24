@@ -13,4 +13,8 @@ describe("GET /api/history", () => {
     const res = await GET(new Request("http://x/api/history?limit=999"))
     expect(res.status).toBe(400)
   })
+  it("rejects a malformed cursor", async () => {
+    const res = await GET(new Request("http://x/api/history?cursor=garbage"))
+    expect(res.status).toBe(400)
+  })
 })
