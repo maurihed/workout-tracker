@@ -76,6 +76,23 @@ export async function getStats(userId: string): Promise<StatsDTO> {
   }
 }
 
+export async function getAchievements(userId: string) {
+  const [catalog, unlocked] = await Promise.all([repos.listAchievements(), repos.listUserAchievements(userId)])
+  return {
+    achievements: catalog.map((a) => ({
+      id: a.id,
+      slug: a.slug,
+      name: a.name,
+      nameEs: a.nameEs,
+      description: a.description,
+      descriptionEs: a.descriptionEs,
+      icon: a.icon,
+      xpReward: a.xpReward,
+    })),
+    unlocked: unlocked.map((u) => ({ achievementId: u.achievementId, unlockedAt: u.unlockedAt.toISOString() })),
+  }
+}
+
 export async function getUnlockedAchievements(_userId: string, slugs: string[]): Promise<AchievementDTO[]> {
   if (slugs.length === 0) return []
   const rows = await repos.listAchievements()
