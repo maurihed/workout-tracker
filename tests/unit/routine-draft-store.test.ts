@@ -95,6 +95,70 @@ describe("routine draft store", () => {
     )
   })
 
+  it("synthesizes per-set targets from the legacy prescription on hydrate", () => {
+    useRoutineDraftStore.getState().hydrate({
+      ...routine,
+      days: [
+        {
+          id: "d1",
+          weekday: 1,
+          label: "Push",
+          exercises: [
+            {
+              id: "x1",
+              exerciseId: "c1",
+              customName: null,
+              targetSets: 3,
+              targetReps: "10",
+              restSeconds: 60,
+              targetWeightKg: 40,
+              timerType: "none",
+              workSeconds: null,
+              rounds: null,
+              notes: null,
+            },
+          ],
+        },
+      ],
+    })
+    const ex = useRoutineDraftStore.getState().days[0]!.exercises[0]!
+    expect(ex.setTargets).toEqual([
+      { reps: 10, weightKg: 40, rpe: null },
+      { reps: 10, weightKg: 40, rpe: null },
+      { reps: 10, weightKg: 40, rpe: null },
+    ])
+  })
+
+  it("emits setTargets in toRoutineInput", () => {
+    useRoutineDraftStore.getState().hydrate({
+      ...routine,
+      days: [
+        {
+          id: "d1",
+          weekday: 1,
+          label: "Push",
+          exercises: [
+            {
+              id: "x1",
+              exerciseId: "c1",
+              customName: null,
+              targetSets: 2,
+              targetReps: "10",
+              restSeconds: 60,
+              targetWeightKg: null,
+              timerType: "none",
+              workSeconds: null,
+              rounds: null,
+              notes: null,
+            },
+          ],
+        },
+      ],
+    })
+    const input = useRoutineDraftStore.getState().toRoutineInput()
+    expect(input.days[0]!.exercises[0]!.setTargets).toHaveLength(2)
+  })
+
   it("marks dirty and reorders days when the move is real", () => {
     useRoutineDraftStore.getState().hydrate({
       ...routine,
