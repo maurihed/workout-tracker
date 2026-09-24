@@ -45,6 +45,7 @@ export const sessionSelect = {
           rpe: true,
           restSecondsLogged: true,
           completedAt: true,
+          isPr: true,
         },
       },
     },

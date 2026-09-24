@@ -22,6 +22,7 @@ export type SessionSetDTO = {
   rpe: number | null
   restSecondsLogged: number | null
   completedAt: string | null
+  isPr: boolean
 }
 
 export type SessionExerciseDTO = {

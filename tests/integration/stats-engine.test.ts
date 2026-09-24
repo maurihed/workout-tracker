@@ -61,6 +61,14 @@ describe("stats engine", () => {
     expect(await prisma.setLog.count({ where: { sessionExercise: { sessionId }, isPr: true } })).toBe(1)
   })
 
+  it("exposes isPr on the session set DTO", async () => {
+    const { user, routine } = await makeUser()
+    const sessionId = await complete(user.id, routine, 0, new Date("2026-01-05T10:00:00Z"))
+    const { getSession } = await import("@/server/services/session.service")
+    const dto = await getSession(user.id, sessionId)
+    expect(dto.exercises[0]?.sets.some((set) => set.isPr)).toBe(true)
+  })
+
   it("repairs drift", async () => {
     const { user, routine } = await makeUser()
     await complete(user.id, routine, 0, new Date())
