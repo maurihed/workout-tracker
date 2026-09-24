@@ -21,6 +21,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import type { RoutineDTO } from "@/features/routines/hooks/use-active-routine"
+import { repsSummary } from "@/features/routines/lib/set-targets"
 import { weekdayLabel } from "@/features/routines/lib/weekdays"
 
 const RING_RADIUS = 42
@@ -268,21 +269,26 @@ export function RoutinePreview({ routine }: { routine: RoutineDTO }) {
               </CardHeader>
               <CardContent>
                 <ul className="flex flex-col gap-2">
-                  {day.exercises.map((item) => (
-                    <li
-                      key={item.id}
-                      className="flex items-baseline justify-between gap-3"
-                    >
-                      <span className="font-medium">
-                        {item.exercise
-                          ? exerciseName(item.exercise)
-                          : (item.customName ?? "")}
-                      </span>
-                      <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold tabular-nums">
-                        {item.targetSets} × {item.targetReps}
-                      </span>
-                    </li>
-                  ))}
+                  {day.exercises.map((item) => {
+                    const reps =
+                      repsSummary(item.setTargets) ??
+                      (item.targetReps.trim() === "" ? null : item.targetReps)
+                    return (
+                      <li
+                        key={item.id}
+                        className="flex items-baseline justify-between gap-3"
+                      >
+                        <span className="font-medium">
+                          {item.exercise
+                            ? exerciseName(item.exercise)
+                            : (item.customName ?? "")}
+                        </span>
+                        <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold tabular-nums">
+                          {reps ? `${item.targetSets} × ${reps}` : item.targetSets}
+                        </span>
+                      </li>
+                    )
+                  })}
                 </ul>
               </CardContent>
             </Card>

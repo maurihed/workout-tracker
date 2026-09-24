@@ -143,8 +143,9 @@ export function migrateDraftState(
     exercises: (day.exercises ?? []).map((exercise) => ({
       ...exercise,
       setTargets:
-        exercise.setTargets ??
-        legacyTargetsToSetTargets(
+        exercise.setTargets?.length
+          ? exercise.setTargets
+          : legacyTargetsToSetTargets(
           exercise.targetSets,
           exercise.targetReps,
           exercise.targetWeightKg,
@@ -157,6 +158,9 @@ export function migrateDraftState(
 function createId(): string {
   return crypto.randomUUID()
 }
+
+const DEFAULT_SET_COUNT = 3
+const DEFAULT_REPS = "10"
 
 function toDraftDay(day: RoutineDraftSource["days"][number]): DraftDay {
   return {
@@ -172,8 +176,9 @@ function toDraftDay(day: RoutineDraftSource["days"][number]): DraftDay {
       restSeconds: exercise.restSeconds,
       targetWeightKg: exercise.targetWeightKg,
       setTargets:
-        exercise.setTargets ??
-        legacyTargetsToSetTargets(
+        exercise.setTargets?.length
+          ? exercise.setTargets
+          : legacyTargetsToSetTargets(
           exercise.targetSets,
           exercise.targetReps,
           exercise.targetWeightKg,
@@ -244,11 +249,11 @@ export const useRoutineDraftStore = create<DraftState>()(
                       id: createId(),
                       exerciseId: item.exerciseId,
                       name: item.name,
-                      targetSets: 3,
-                      targetReps: "10",
+                      targetSets: DEFAULT_SET_COUNT,
+                      targetReps: DEFAULT_REPS,
                       restSeconds: 60,
                       targetWeightKg: null,
-                      setTargets: legacyTargetsToSetTargets(3, "10", null),
+                      setTargets: legacyTargetsToSetTargets(DEFAULT_SET_COUNT, DEFAULT_REPS, null),
                       timerType: "none" as const,
                       workSeconds: null,
                       rounds: null,

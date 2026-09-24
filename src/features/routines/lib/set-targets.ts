@@ -33,6 +33,18 @@ export type SyncedSetTargets = {
   targetWeightKg: number | null
 }
 
+export function repsSummary(
+  setTargets: RoutineSetTarget[] | null | undefined,
+): string | null {
+  const reps = (setTargets ?? [])
+    .map((target) => target.reps)
+    .filter((value): value is number => value != null)
+  if (reps.length === 0) return null
+  const min = Math.min(...reps)
+  const max = Math.max(...reps)
+  return min === max ? String(min) : `${min}-${max}`
+}
+
 export function syncSetTargets(next: RoutineSetTarget[]): SyncedSetTargets {
   const first = next[0] ?? { reps: null, weightKg: null, rpe: null }
   return {

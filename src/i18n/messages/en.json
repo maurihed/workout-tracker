@@ -337,7 +337,8 @@
       "notes": "Notes",
       "complete": "Mark set complete",
       "completed": "Completed",
-      "setNumber": "Set {number}",
+    "setNumber": "Set {number}",
+    "perSetTargets": "Per-set targets",
       "number": "Set {number}",
       "addSet": "Add set"
     }
