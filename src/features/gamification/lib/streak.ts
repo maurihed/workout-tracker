@@ -36,7 +36,7 @@ function daysBetween(from: string, to: string): number {
 export function computeStreak(input: StreakInput): StreakResult {
   const hits = new Set(input.hitDates)
   if (hits.size === 0) {
-    return { current: 0, longest: 0, lastHitDate: null, freezesUsed: 0, freezesRemaining: input.freezesAvailable }
+    return { current: 0, longest: 0, lastHitDate: null, freezesUsed: 0, freezesRemaining: Math.max(0, input.freezesAvailable) }
   }
 
   const sorted = [...hits].sort()
@@ -53,7 +53,7 @@ export function computeStreak(input: StreakInput): StreakResult {
       lastHitDate = day
     } else if (input.scheduledWeekdays.has(weekdayOf(day))) {
       const recent = daysBetween(day, input.today) <= FREEZE_WINDOW_DAYS
-      if (recent && freezesRemaining > 0) {
+      if (recent && freezesRemaining > 0 && current > 0) {
         freezesRemaining -= 1
         freezesUsed += 1
       } else {
