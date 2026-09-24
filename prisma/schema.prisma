@@ -24,6 +24,7 @@ model User {
   stats           UserStats?
   xpEvents        XpEvent[]
   achievements    UserAchievement[]
+  bodyMetrics     BodyMetric[]
 }
 
 model Account {
@@ -297,6 +298,21 @@ model SetLog {
   sessionExercise SessionExercise @relation(fields: [sessionExerciseId], references: [id], onDelete: Cascade)
 
   @@index([sessionExerciseId])
+}
+
+model BodyMetric {
+  id         String   @id @default(cuid())
+  userId     String
+  recordedOn DateTime
+  weightKg   Float?
+  bodyFatPct Float?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recordedOn])
+  @@index([userId, recordedOn])
 }
 
 model UserStats {
