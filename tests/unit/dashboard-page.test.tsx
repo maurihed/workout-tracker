@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const useActiveRoutineMock = vi.hoisted(() => vi.fn())
+const useAnalyticsOverviewMock = vi.hoisted(() => vi.fn())
 
 vi.mock("@/features/routines/hooks/use-active-routine", () => ({
   useActiveRoutine: useActiveRoutineMock,
@@ -32,6 +33,12 @@ vi.mock("@/features/gamification/hooks/use-achievements", () => ({
     isLoading: false,
     isError: false,
   }),
+}))
+vi.mock("@/features/progress/hooks/use-analytics-overview", () => ({
+  useAnalyticsOverview: useAnalyticsOverviewMock,
+}))
+vi.mock("@/features/profile/hooks/use-profile", () => ({
+  useProfile: () => ({ data: { unitSystem: "metric" } }),
 }))
 vi.mock("next-intl", () => ({
   useTranslations: () => (k: string) => k,
@@ -83,8 +90,19 @@ const routine: RoutineDTO = {
   ],
 }
 
+function emptyAnalytics() {
+  return {
+    data: { volumeByWeek: [], muscleVolume: [], recentPrs: [] },
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }
+}
+
 beforeEach(() => {
   useActiveRoutineMock.mockReset()
+  useAnalyticsOverviewMock.mockReset()
+  useAnalyticsOverviewMock.mockReturnValue(emptyAnalytics())
 })
 
 describe("DashboardPage", () => {
@@ -133,5 +151,50 @@ describe("DashboardPage", () => {
     })
     render(<DashboardPage />)
     expect(screen.queryByText("pickRoutine")).not.toBeInTheDocument()
+  })
+
+  it("prompts to log a workout when there is no analytics data", () => {
+    useActiveRoutineMock.mockReturnValue({
+      data: routine,
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    })
+    render(<DashboardPage />)
+    expect(screen.getByText("empty")).toBeInTheDocument()
+  })
+
+  it("mounts the analytics section when data exists", async () => {
+    useActiveRoutineMock.mockReturnValue({
+      data: routine,
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    })
+    useAnalyticsOverviewMock.mockReturnValue({
+      data: {
+        volumeByWeek: [
+          { weekStart: "2026-01-05", volumeKg: 1200, sessions: 2 },
+        ],
+        muscleVolume: [{ muscle: "chest", volumeKg: 800 }],
+        recentPrs: [
+          {
+            sessionId: "s1",
+            date: "2026-01-05",
+            exerciseId: "e1",
+            name: "Back Squat",
+            nameEs: null,
+            weightKg: 100,
+            reps: 5,
+          },
+        ],
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    })
+    render(<DashboardPage />)
+    expect(await screen.findByText("volume")).toBeInTheDocument()
+    expect(screen.getByText("recentPrs")).toBeInTheDocument()
   })
 })
