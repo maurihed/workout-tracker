@@ -7,6 +7,7 @@ import Link from "next/link"
 import { EmptyState } from "@/components/shared/empty-state"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { CelebrationLayer } from "@/features/gamification/components/celebration-layer"
 import { StatsHeader } from "@/features/gamification/components/stats-header"
 import { RoutinePreview } from "@/features/routines/components/routine-preview"
 import { useActiveRoutine } from "@/features/routines/hooks/use-active-routine"
@@ -75,6 +76,8 @@ export default function DashboardPage() {
           }
         />
       ) : null}
+
+      <CelebrationLayer />
     </div>
   )
 }

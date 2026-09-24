@@ -9,6 +9,7 @@ import { useEffect, useState } from "react"
 import { EmptyState } from "@/components/shared/empty-state"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { CelebrationLayer } from "@/features/gamification/components/celebration-layer"
 import { SessionSummary } from "@/features/workouts/components/session-summary"
 import { useSession } from "@/features/workouts/hooks/use-session"
 import { loadActiveSession } from "@/features/workouts/lib/session-persistence"
@@ -82,6 +83,7 @@ export default function SessionSummaryPage() {
       <Button asChild size="lg" className="w-full">
         <Link href={`/${locale}/dashboard`}>{t("done")}</Link>
       </Button>
+      <CelebrationLayer />
     </div>
   )
 }
