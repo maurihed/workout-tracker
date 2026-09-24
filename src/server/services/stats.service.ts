@@ -1,10 +1,10 @@
 import "server-only"
 import { logger } from "@/lib/logger"
-import { levelForXp } from "@/features/gamification/lib/level"
+import { levelForXp, xpToNextLevel, levelProgress } from "@/features/gamification/lib/level"
 import { XP_AWARDS, STREAK_MILESTONES } from "@/features/gamification/lib/xp"
 import { epley1rm, selectPrSet } from "@/features/gamification/lib/pr"
 import { computeStreak } from "@/features/gamification/lib/streak"
-import { weeksGoalMet } from "@/features/gamification/lib/week"
+import { weekStart, weeksGoalMet } from "@/features/gamification/lib/week"
 import { evaluateAchievements } from "@/features/gamification/lib/achievements"
 import { withTransaction } from "@/server/repositories/routine.repository"
 import * as profileRepo from "@/server/repositories/profile.repository"
@@ -20,6 +20,60 @@ export type AchievementDTO = {
   descriptionEs: string
   icon: string
   xpReward: number
+}
+
+export type StatsDTO = {
+  currentStreak: number
+  longestStreak: number
+  lastHitDate: string | null
+  streakFreezes: number
+  totalSessions: number
+  totalVolumeKg: number
+  xp: number
+  level: number
+  xpToNextLevel: number
+  levelProgress: number
+  weeklyGoal: { target: number; completed: number; weekStart: string }
+}
+
+export async function getStats(userId: string): Promise<StatsDTO> {
+  const stats = (await repos.findStatsByUser(userId)) ?? {
+    userId,
+    currentStreak: 0,
+    longestStreak: 0,
+    lastHitDate: null,
+    streakFreezes: 2,
+    totalSessions: 0,
+    totalVolumeKg: 0,
+    xp: 0,
+    level: 1,
+  }
+  const profile = await profileRepo.findByUserId(userId)
+  const timeZone = profile?.timezone ?? "UTC"
+  const weekStartsOn = profile?.weekStartsOn ?? 1
+  const target = profile?.daysPerWeek ?? 3
+  const sessions = await repos.listCompletedSessions(userId)
+  const today = localDate(new Date(), timeZone)
+  const start = weekStart(today, weekStartsOn)
+  const completed = sessions.filter(
+    (s) =>
+      s.completedAt &&
+      localDate(s.completedAt, timeZone) >= start &&
+      localDate(s.completedAt, timeZone) <= today,
+  ).length
+  return {
+    currentStreak: stats.currentStreak,
+    longestStreak: stats.longestStreak,
+    lastHitDate: stats.lastHitDate ? stats.lastHitDate.toISOString().slice(0, 10) : null,
+    streakFreezes: stats.streakFreezes,
+    totalSessions: stats.totalSessions,
+    totalVolumeKg: stats.totalVolumeKg,
+    xp: stats.xp,
+    level: stats.level,
+    xpToNextLevel: xpToNextLevel(stats.xp),
+    levelProgress: levelProgress(stats.xp),
+    weeklyGoal: { target, completed, weekStart: start },
+  }
 }
 
 export async function getUnlockedAchievements(_userId: string, slugs: string[]): Promise<AchievementDTO[]> {
