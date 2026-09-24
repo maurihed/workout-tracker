@@ -77,8 +77,8 @@ export function seedSets(exercise: RoutineExerciseDTO): {
   weightKg: number | null
   rpe: number | null
 }[] {
-  if (exercise.setTargets && exercise.setTargets.length > 0) {
-    return exercise.setTargets.slice(0, MAX_SEEDED_SETS).map((target, index) => ({
+  if (exercise.setTargets?.length) {
+    return exercise.setTargets.map((target, index) => ({
       setNumber: index + 1,
       type: "working" as const,
       reps: target.reps,

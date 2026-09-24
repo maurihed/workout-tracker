@@ -248,3 +248,41 @@ describe("routine draft store", () => {
     ])
   })
 })
+
+describe("routine draft store per-set targets", () => {
+  beforeEach(() => useRoutineDraftStore.getState().clearDraft())
+
+  it("treats an empty setTargets array as missing and synthesizes from legacy", () => {
+    useRoutineDraftStore.getState().hydrate({
+      id: "r-empty",
+      name: "Plan",
+      description: null,
+      days: [
+        {
+          id: "d1",
+          weekday: 1,
+          label: null,
+          exercises: [
+            {
+              id: "x1",
+              exerciseId: "c1",
+              customName: null,
+              targetSets: 3,
+              targetReps: "10",
+              restSeconds: 60,
+              targetWeightKg: null,
+              setTargets: [],
+              timerType: "none",
+              workSeconds: null,
+              rounds: null,
+              notes: null,
+            },
+          ],
+        },
+      ],
+    })
+    const ex = useRoutineDraftStore.getState().days[0]!.exercises[0]!
+    expect(ex.setTargets).toHaveLength(3)
+    expect(ex.setTargets[0]).toEqual({ reps: 10, weightKg: null, rpe: null })
+  })
+})

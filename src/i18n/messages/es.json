@@ -337,7 +337,8 @@
       "notes": "Notas",
       "complete": "Marcar serie como completada",
       "completed": "Completada",
-      "setNumber": "Serie {number}",
+    "setNumber": "Serie {number}",
+    "perSetTargets": "Objetivos por serie",
       "number": "Serie {number}",
       "addSet": "Añadir serie"
     }

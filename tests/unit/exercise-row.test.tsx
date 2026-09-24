@@ -7,7 +7,7 @@ vi.mock("@/features/profile/hooks/use-profile", () => ({
 
 import { ExerciseRow } from "@/features/routines/components/exercise-row"
 
-const exercise = { id: "x1", exerciseId: "e1", name: "Squat", targetSets: 3, targetReps: "10", restSeconds: 60, targetWeightKg: null, setTargets: [{ reps: 10, weightKg: null, rpe: null }], timerType: "none" as const, workSeconds: null, rounds: null, notes: null }
+const exercise = { id: "x1", exerciseId: "e1", name: "Squat", targetSets: 1, targetReps: "10", restSeconds: 60, targetWeightKg: null, setTargets: [{ reps: 10, weightKg: null, rpe: null }], timerType: "none" as const, workSeconds: null, rounds: null, notes: null }
 
 describe("ExerciseRow", () => {
   it("shows the name and fires an edit on reps change", () => {

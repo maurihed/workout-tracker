@@ -81,4 +81,46 @@ describe("RoutinePreview", () => {
     expect(screen.getByText("Sentadilla con barra")).toBeInTheDocument()
     expect(screen.queryByText("Full Body 3x")).not.toBeInTheDocument()
   })
+
+  it("summarizes per-set reps as a range, preferring setTargets over legacy reps", () => {
+    render(
+      <RoutinePreview
+        routine={withExercise({
+          targetReps: "8-12",
+          setTargets: [
+            { reps: 12, weightKg: null, rpe: null },
+            { reps: 10, weightKg: null, rpe: null },
+            { reps: 8, weightKg: null, rpe: null },
+          ],
+        })}
+      />,
+    )
+    expect(screen.getByText("3 × 8-12")).toBeInTheDocument()
+  })
+
+  it("omits the reps factor when no set prescribes reps", () => {
+    render(
+      <RoutinePreview
+        routine={withExercise({
+          targetReps: "",
+          setTargets: [
+            { reps: null, weightKg: null, rpe: null },
+            { reps: null, weightKg: null, rpe: null },
+            { reps: null, weightKg: null, rpe: null },
+          ],
+        })}
+      />,
+    )
+    expect(screen.queryByText(/×/)).not.toBeInTheDocument()
+  })
 })
+
+function withExercise(
+  overrides: Partial<RoutineDTO["days"][number]["exercises"][number]>,
+): RoutineDTO {
+  const exercise = { ...routine.days[0]!.exercises[0]!, ...overrides }
+  return {
+    ...routine,
+    days: [{ ...routine.days[0]!, exercises: [exercise] }],
+  }
+}

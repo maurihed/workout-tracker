@@ -95,69 +95,90 @@ export function ExerciseFields({ exercise, onChange }: ExerciseFieldsProps) {
 
   return (
     <div className="grid grid-cols-2 gap-3">
-      <div className="col-span-2 flex flex-col gap-2">
+      <div className="col-span-2 flex flex-col gap-3">
+        <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+          {t("perSetTargets")}
+        </p>
         {setTargets.map((target, index) => {
           const setNumber = index + 1
           const repsId = `sets.${exercise.id}.${setNumber}.reps`
           const weightId = `sets.${exercise.id}.${setNumber}.weight`
           const rpeId = `sets.${exercise.id}.${setNumber}.rpe`
           return (
-            <div key={setNumber} className="flex items-end gap-2">
-              <span className="text-muted-foreground w-14 shrink-0 pb-2 text-sm font-semibold">
-                {t("setNumber", { number: setNumber })}
-              </span>
-              <div className="flex flex-1 flex-col gap-1">
-                <Label htmlFor={repsId}>{t("reps")}</Label>
-                <Input
-                  id={repsId}
-                  aria-label={repsId}
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  max={100}
-                  value={target.reps ?? ""}
-                  onChange={(event) => {
-                    const parsed = Number.parseInt(event.target.value, 10)
-                    updateSet(index, { reps: Number.isNaN(parsed) ? null : parsed })
-                  }}
-                />
+            <div
+              key={setNumber}
+              className="border-border bg-muted/30 flex flex-col gap-2 rounded-2xl border p-2.5"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-semibold">
+                  {t("setNumber", { number: setNumber })}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  title={t("removeSet")}
+                  aria-label={`sets.${exercise.id}.${setNumber}.remove`}
+                  disabled={setTargets.length <= 1}
+                  onClick={() => removeSet(index)}
+                >
+                  <Minus className="size-4" aria-hidden="true" />
+                </Button>
               </div>
-              <div className="flex flex-1 flex-col gap-1">
-                <Label htmlFor={weightId}>{t("weight")}</Label>
-                <WeightField
-                  id={weightId}
-                  ariaLabel={weightId}
-                  unitSystem={unitSystem}
-                  weightKg={target.weightKg}
-                  onCommit={(weightKg) => updateSet(index, { weightKg })}
-                />
+              <div className="grid grid-cols-3 gap-2">
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor={repsId}>{t("reps")}</Label>
+                  <Input
+                    id={repsId}
+                    aria-label={repsId}
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={100}
+                    value={target.reps ?? ""}
+                    onChange={(event) => {
+                      const parsed = Number.parseInt(event.target.value, 10)
+                      updateSet(index, {
+                        reps:
+                          Number.isNaN(parsed) || parsed < 1 || parsed > 100
+                            ? null
+                            : parsed,
+                      })
+                    }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor={weightId}>{t("weight")}</Label>
+                  <WeightField
+                    id={weightId}
+                    ariaLabel={weightId}
+                    unitSystem={unitSystem}
+                    weightKg={target.weightKg}
+                    onCommit={(weightKg) => updateSet(index, { weightKg })}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor={rpeId}>{t("rpe")}</Label>
+                  <Input
+                    id={rpeId}
+                    aria-label={rpeId}
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={10}
+                    value={target.rpe ?? ""}
+                    onChange={(event) => {
+                      const parsed = Number.parseInt(event.target.value, 10)
+                      updateSet(index, {
+                        rpe:
+                          Number.isNaN(parsed) || parsed < 1 || parsed > 10
+                            ? null
+                            : parsed,
+                      })
+                    }}
+                  />
+                </div>
               </div>
-              <div className="flex w-20 flex-col gap-1">
-                <Label htmlFor={rpeId}>{t("rpe")}</Label>
-                <Input
-                  id={rpeId}
-                  aria-label={rpeId}
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  max={10}
-                  value={target.rpe ?? ""}
-                  onChange={(event) => {
-                    const parsed = Number.parseInt(event.target.value, 10)
-                    updateSet(index, { rpe: Number.isNaN(parsed) ? null : parsed })
-                  }}
-                />
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label={`sets.${exercise.id}.${setNumber}.remove`}
-                disabled={setTargets.length <= 1}
-                onClick={() => removeSet(index)}
-              >
-                <Minus className="size-4" aria-hidden="true" />
-              </Button>
             </div>
           )
         })}

@@ -3,6 +3,7 @@ import {
   legacyTargetsToSetTargets,
   normalizeRoutineSetTargets,
   parseSetTargets,
+  repsSummary,
   syncSetTargets,
 } from "@/features/routines/lib/set-targets"
 
@@ -91,5 +92,33 @@ describe("normalizeRoutineSetTargets", () => {
       { reps: 10, weightKg: 40, rpe: 8 },
     ])
     expect(out.days[0]!.exercises[1]!.setTargets).toBeNull()
+  })
+})
+
+describe("repsSummary", () => {
+  it("returns null when no set prescribes reps", () => {
+    expect(repsSummary(null)).toBeNull()
+    expect(repsSummary(undefined)).toBeNull()
+    expect(repsSummary([])).toBeNull()
+    expect(repsSummary([{ reps: null, weightKg: null, rpe: null }])).toBeNull()
+  })
+
+  it("collapses equal reps to a single value", () => {
+    expect(
+      repsSummary([
+        { reps: 10, weightKg: null, rpe: null },
+        { reps: 10, weightKg: null, rpe: null },
+      ]),
+    ).toBe("10")
+  })
+
+  it("collapses varying reps to a min-max range, ignoring blanks", () => {
+    expect(
+      repsSummary([
+        { reps: 12, weightKg: null, rpe: null },
+        { reps: null, weightKg: null, rpe: null },
+        { reps: 8, weightKg: null, rpe: null },
+      ]),
+    ).toBe("8-12")
   })
 })
