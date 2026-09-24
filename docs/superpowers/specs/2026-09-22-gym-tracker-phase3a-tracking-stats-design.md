@@ -233,10 +233,11 @@ filters `from`/`to` (dates) and `routineId`; only `completed` sessions, ownershi
 - **Dashboard stats header** (`dashboard`): current/longest streak, level + XP bar, weekly-goal
   progress, recent badges; loading/error/empty states; a link to history. Rendered above the
   existing routine preview.
-- **History** (`/[locale]/(app)/history`): cursor "Load more", date-range + routine filters,
-  completed-session rows (date, name, duration, volume, PR count) → `/[locale]/(app)/history/[sessionId]`
-  read-only detail (exercises/sets from the snapshot, PR markers, duration, volume). Linked from
-  the dashboard; bottom nav unchanged.
+- **History** (`/[locale]/(app)/progress`, replacing the `ComingSoon` stub so the existing
+  bottom-nav **progress** tab hosts it): cursor "Load more", date-range + routine filters,
+  completed-session rows (date, name, duration, volume, PR count) →
+  `/[locale]/(app)/progress/[sessionId]` read-only detail (exercises/sets from the snapshot, PR
+  markers, duration, volume). The dashboard stats header links to `/progress`; bottom nav unchanged.
 - **Celebration:** XP toast + badge modal on the summary (online finish) and a `useNewAchievements`
   modal on the dashboard.
 - Mobile-first, ≥44px targets, visible focus, `aria-live` for the XP toast; no hardcoded copy.
