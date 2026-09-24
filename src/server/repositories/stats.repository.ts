@@ -59,6 +59,20 @@ export function listCompletedSessions(userId: string) {
   })
 }
 
+export function findCompletedSessionStats(userId: string, sessionId: string) {
+  return prisma.workoutSession.findFirst({
+    where: { id: sessionId, userId, status: "completed", completedAt: { not: null } },
+    select: completedSessionStatsSelect,
+  })
+}
+
+export function listCompletedAtBetween(userId: string, fromUtc: Date, toUtc: Date) {
+  return prisma.workoutSession.findMany({
+    where: { userId, status: "completed", completedAt: { gte: fromUtc, lt: toUtc } },
+    select: { completedAt: true },
+  })
+}
+
 export function listPriorSets(userId: string, exerciseIds: string[], before: Date, excludeSessionId: string) {
   return prisma.setLog.findMany({
     where: {

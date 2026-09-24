@@ -52,10 +52,12 @@ export async function getStats(userId: string): Promise<StatsDTO> {
   const timeZone = profile?.timezone ?? "UTC"
   const weekStartsOn = profile?.weekStartsOn ?? 1
   const target = profile?.daysPerWeek ?? 3
-  const sessions = await repos.listCompletedSessions(userId)
   const today = localDate(new Date(), timeZone)
   const start = weekStart(today, weekStartsOn)
-  const completed = sessions.filter(
+  const windowStart = new Date(Date.parse(`${start}T00:00:00Z`) - DAY_MS)
+  const windowEnd = new Date(Date.parse(`${today}T00:00:00Z`) + 2 * DAY_MS)
+  const weekSessions = await repos.listCompletedAtBetween(userId, windowStart, windowEnd)
+  const completed = weekSessions.filter(
     (s) =>
       s.completedAt &&
       localDate(s.completedAt, timeZone) >= start &&
@@ -110,6 +112,8 @@ export async function getUnlockedAchievements(_userId: string, slugs: string[]):
     }))
 }
 
+const DAY_MS = 86_400_000
+
 function localDate(iso: Date, timeZone: string): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(iso)
 }
@@ -120,7 +124,7 @@ function freezeBalance(createdAt: Date, now: Date): number {
 }
 
 export async function markPersonalRecords(userId: string, sessionId: string): Promise<void> {
-  const session = await repos.listCompletedSessions(userId).then((rows) => rows.find((r) => r.id === sessionId))
+  const session = await repos.findCompletedSessionStats(userId, sessionId)
   if (!session || !session.completedAt) return
   const exerciseIds = session.exercises.map((e) => e.exerciseId).filter((id): id is string => id !== null)
   if (exerciseIds.length === 0) return
@@ -169,7 +173,7 @@ export async function recomputeUserStats(userId: string) {
     for (const exercise of session.exercises) {
       for (const set of exercise.sets) {
         if (set.isPr) prCount += 1
-        if (set.completedAt && set.reps != null && set.weightKg != null) totalVolumeKg += set.reps * set.weightKg
+        if (set.completedAt && set.reps != null && set.weightKg != null && set.type !== "warmup") totalVolumeKg += set.reps * set.weightKg
       }
     }
   }

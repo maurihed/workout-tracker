@@ -24,6 +24,14 @@ describe("computeStreak", () => {
     expect(r.freezesUsed).toBe(0)
   })
 
+  it("does not penalize a scheduled day that is today and still unhit", () => {
+    const r = computeStreak({ hitDates: ["2026-01-05", "2026-01-12"], scheduledWeekdays: mon, today: "2026-01-19", freezesAvailable: 2 })
+    expect(r.current).toBe(2)
+    expect(r.longest).toBe(2)
+    expect(r.freezesUsed).toBe(0)
+    expect(r.freezesRemaining).toBe(2)
+  })
+
   it("auto-consumes a freeze for a recent missed scheduled day within 48h", () => {
     const r = computeStreak({ hitDates: ["2026-01-12"], scheduledWeekdays: mon, today: "2026-01-20", freezesAvailable: 2 })
     expect(r.current).toBe(1)

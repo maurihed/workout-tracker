@@ -51,7 +51,7 @@ export function computeStreak(input: StreakInput): StreakResult {
     if (hits.has(day)) {
       current += 1
       lastHitDate = day
-    } else if (input.scheduledWeekdays.has(weekdayOf(day))) {
+    } else if (input.scheduledWeekdays.has(weekdayOf(day)) && toUtc(day) < toUtc(input.today)) {
       const recent = daysBetween(day, input.today) <= FREEZE_WINDOW_DAYS
       if (recent && freezesRemaining > 0 && current > 0) {
         freezesRemaining -= 1
