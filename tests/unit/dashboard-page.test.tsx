@@ -6,6 +6,33 @@ const useActiveRoutineMock = vi.hoisted(() => vi.fn())
 vi.mock("@/features/routines/hooks/use-active-routine", () => ({
   useActiveRoutine: useActiveRoutineMock,
 }))
+vi.mock("@/features/gamification/hooks/use-stats", () => ({
+  useStats: () => ({
+    data: {
+      currentStreak: 0,
+      longestStreak: 0,
+      lastHitDate: null,
+      streakFreezes: 0,
+      totalSessions: 0,
+      totalVolumeKg: 0,
+      xp: 0,
+      level: 1,
+      xpToNextLevel: 100,
+      levelProgress: 0,
+      weeklyGoal: { target: 3, completed: 0, weekStart: "2026-01-05" },
+    },
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
+}))
+vi.mock("@/features/gamification/hooks/use-achievements", () => ({
+  useAchievements: () => ({
+    data: { achievements: [], unlocked: [] },
+    isLoading: false,
+    isError: false,
+  }),
+}))
 vi.mock("next-intl", () => ({
   useTranslations: () => (k: string) => k,
   useLocale: () => "en",
