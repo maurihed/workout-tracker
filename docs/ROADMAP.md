@@ -3,7 +3,7 @@
 Single entry point for picking up work in a fresh session.
 
 - **Product spec (binding authority):** `docs/superpowers/specs/2026-09-22-gym-tracker-design.md`
-- **Current branch:** `main` — last shipped commit is the tip of `main`.
+- **Current branch:** `phase3a-tracking-stats` — Phase 3A complete, pending merge to `main`.
 - **Delivery process:** per-phase → brainstorm → spec (`docs/superpowers/specs/`) → plan (`docs/superpowers/plans/`) → subagent-driven TDD execution, with an audit trail in `.superpowers/sdd/<plan-slug>/`.
 
 ## Phase status
@@ -15,20 +15,22 @@ Single entry point for picking up work in a fresh session.
 | 2A | Routine Builder | Done (merged) | `.../specs/2026-09-22-gym-tracker-phase2a-routine-builder-design.md` | `.../plans/2026-09-22-gym-tracker-phase2a-routine-builder.md` | `.superpowers/sdd/2026-09-22-gym-tracker-phase2a-routine-builder/` |
 | 2B | Workout Runner & Timers | Done (merged) | `.../specs/2026-09-22-gym-tracker-phase2b-workout-runner-design.md` | `.../plans/2026-09-22-gym-tracker-phase2b-workout-runner.md` | `.superpowers/sdd/2026-09-22-gym-tracker-phase2b-workout-runner/` |
 | 2C | PWA / Offline | Done (merged) | `.../specs/2026-09-22-gym-tracker-phase2c-pwa-offline-design.md` | `.../plans/2026-09-22-gym-tracker-phase2c-pwa-offline.md` | `.superpowers/sdd/2026-09-22-gym-tracker-phase2c-pwa-offline/` |
-| 3 | Tracking + Gamification | **Not started** | — | — | — |
+| 3A | Tracking + Gamification (streaks, XP, badges, history) | Done | `.../specs/2026-09-22-gym-tracker-phase3a-tracking-stats-design.md` | `.../plans/2026-09-22-gym-tracker-phase3a-tracking-stats.md` | `.superpowers/sdd/2026-09-22-gym-tracker-phase3a-tracking-stats/` |
+| 3B | Progress Dashboard (charts, heatmap, PR views, body-metric log) | **Not started** | — | — | — |
 | 4 | AI | **Not started** | — | — | — |
 
 Paths above are relative to repo root; `.../` = `docs/superpowers`.
 
 ## Remaining phases
 
-- **3 — Tracking + Gamification** (depends on 2). Workout-history list/browse, streaks / XP / badges / weekly goal, dashboard charts, muscle heatmap, PR detection, body-metric log. Core session logging (snapshots) already exists from 2B. Server-side stats cached in `UserStats` with a nightly repair job.
-- **4 — AI** (depends on 2, 3). Generation pipeline via Ollama/Qwen + pg-boss job queue, personalization, structured output validation + fallback, provenance, safety disclaimer. Includes a spike on inference hosting (GPU VPS vs local vs hosted).
+- **3A — Tracking + Gamification** (Done; depends on 2). Workout-history list/browse + read-only detail, streaks / XP / badges / weekly goal, PR detection/marking, stats + achievements APIs, dashboard stats header, completion celebration, and a nightly stats-repair job. Server-side stats cached in `UserStats`.
+- **3B — Progress Dashboard** (next; depends on 3A). Dashboard charts, muscle heatmap, PR views, and a body-metric log.
+- **4 — AI** (depends on 2, 3A, 3B). Generation pipeline via Ollama/Qwen + pg-boss job queue, personalization, structured output validation + fallback, provenance, safety disclaimer. Includes a spike on inference hosting (GPU VPS vs local vs hosted).
 
 ## How to continue (next phase)
 
 1. Start a fresh session and point it at this file.
-2. Pick the next phase (**3** unless told otherwise). Use the `brainstorming` skill to explore intent, then write the phase spec under `docs/superpowers/specs/`.
+2. Pick the next phase (**3B** unless told otherwise). Use the `brainstorming` skill to explore intent, then write the phase spec under `docs/superpowers/specs/`.
 3. Derive an implementation plan under `docs/superpowers/plans/` (use `writing-plans`).
 4. Execute with `subagent-driven-development`: fresh implementer subagent per task, independent reviewer per task, fix rounds (≤5), one final whole-branch review, then `finishing-a-development-branch`. Keep the audit trail in `.superpowers/sdd/<plan-slug>/`.
 
