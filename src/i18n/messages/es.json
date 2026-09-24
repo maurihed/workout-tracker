@@ -117,7 +117,15 @@
     "comingSoon": "Próximamente",
     "noRoutine": "Aún no tienes rutina",
     "pickRoutine": "Elegir una rutina",
-    "finishSetup": "Termina la configuración para obtener una rutina personalizada."
+    "finishSetup": "Termina la configuración para obtener una rutina personalizada.",
+    "stats": {
+      "streak": "Racha de {count} días",
+      "longest": "Más larga: {count}",
+      "level": "Nivel {level}",
+      "weeklyGoal": "{completed} de {target} esta semana",
+      "badges": "Insignias recientes",
+      "viewHistory": "Ver historial"
+    }
   },
   "routines": {
     "title": "Mis rutinas",
@@ -369,6 +377,27 @@
     "sets": "Series completadas",
     "volume": "Volumen total",
     "done": "Listo"
+  },
+  "history": {
+    "title": "Historial",
+    "filters": "Filtros",
+    "from": "Desde",
+    "to": "Hasta",
+    "routine": "Rutina",
+    "allRoutines": "Todas las rutinas",
+    "loadMore": "Cargar más",
+    "empty": "Aún no hay entrenamientos",
+    "pr": "RP",
+    "volume": "Volumen",
+    "duration": "Duración",
+    "sets": "Series",
+    "close": "Cerrar"
+  },
+  "celebration": {
+    "xpGained": "+{count} XP",
+    "levelUp": "¡Nivel {level}!",
+    "badgeUnlocked": "Insignia desbloqueada",
+    "continue": "Continuar"
   },
   "offline": {
     "status": { "offline": "Sin conexión", "syncing": "Sincronizando ({count})", "synced": "Sincronizado", "pending": "{count} por sincronizar" },

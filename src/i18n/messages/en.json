@@ -117,7 +117,15 @@
     "comingSoon": "Coming soon",
     "noRoutine": "No routine yet",
     "pickRoutine": "Pick a routine",
-    "finishSetup": "Finish setting up to get a personalized routine."
+    "finishSetup": "Finish setting up to get a personalized routine.",
+    "stats": {
+      "streak": "{count}-day streak",
+      "longest": "Longest {count}",
+      "level": "Level {level}",
+      "weeklyGoal": "{completed} of {target} this week",
+      "badges": "Recent badges",
+      "viewHistory": "View history"
+    }
   },
   "routines": {
     "title": "My routines",
@@ -369,6 +377,27 @@
     "sets": "Sets completed",
     "volume": "Total volume",
     "done": "Done"
+  },
+  "history": {
+    "title": "History",
+    "filters": "Filters",
+    "from": "From",
+    "to": "To",
+    "routine": "Routine",
+    "allRoutines": "All routines",
+    "loadMore": "Load more",
+    "empty": "No workouts yet",
+    "pr": "PR",
+    "volume": "Volume",
+    "duration": "Duration",
+    "sets": "Sets",
+    "close": "Close"
+  },
+  "celebration": {
+    "xpGained": "+{count} XP",
+    "levelUp": "Level {level}!",
+    "badgeUnlocked": "Badge unlocked",
+    "continue": "Continue"
   },
   "offline": {
     "status": { "offline": "Offline", "syncing": "Syncing ({count})", "synced": "Synced", "pending": "{count} to sync" },
