@@ -51,4 +51,23 @@ describe("buildLocalSession", () => {
     expect(payload.snapshot.routineDayId).toBe("d1")
     expect(payload.exercises[0]?.sets).toHaveLength(2)
   })
+
+  it("carries per-set reps, weight and rpe into the built session", () => {
+    const day = {
+      ...routine.days[0]!,
+      exercises: [{
+        ...routine.days[0]!.exercises[0]!,
+        targetSets: 2,
+        setTargets: [
+          { reps: 12, weightKg: 40, rpe: 7 },
+          { reps: 10, weightKg: 45, rpe: 8 },
+        ],
+      }],
+    }
+    const local = buildLocalSession(routine, day, { newId: seqIds() })
+    const sets = local.source.exercises[0]?.sets ?? []
+    expect(sets).toHaveLength(2)
+    expect(sets[0]).toMatchObject({ setNumber: 1, reps: 12, weightKg: 40, rpe: 7 })
+    expect(sets[1]).toMatchObject({ setNumber: 2, reps: 10, weightKg: 45, rpe: 8 })
+  })
 })
