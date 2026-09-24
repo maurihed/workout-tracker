@@ -21,6 +21,9 @@ model User {
   profile         Profile?
   routines        Routine[]
   workoutSessions WorkoutSession[]
+  stats           UserStats?
+  xpEvents        XpEvent[]
+  achievements    UserAchievement[]
 }
 
 model Account {
@@ -250,6 +253,7 @@ model WorkoutSession {
 
   @@index([userId, status])
   @@index([userId, startedAt])
+  @@index([userId, status, completedAt])
 }
 
 model SessionExercise {
@@ -288,8 +292,74 @@ model SetLog {
   rpe               Int?
   restSecondsLogged Int?
   completedAt       DateTime?
+  isPr              Boolean   @default(false)
 
   sessionExercise SessionExercise @relation(fields: [sessionExerciseId], references: [id], onDelete: Cascade)
 
   @@index([sessionExerciseId])
+}
+
+model UserStats {
+  userId        String    @id
+  currentStreak Int       @default(0)
+  longestStreak Int       @default(0)
+  lastHitDate   DateTime?
+  streakFreezes Int       @default(2)
+  totalSessions Int       @default(0)
+  totalVolumeKg Float     @default(0)
+  xp            Int       @default(0)
+  level         Int       @default(1)
+  updatedAt     DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum XpReason {
+  session
+  weekly_goal
+  pr
+  streak_milestone
+  achievement
+}
+
+model XpEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  amount    Int
+  reason    XpReason
+  refType   String?
+  refId     String?
+  key       String   @unique
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Achievement {
+  id            String @id @default(cuid())
+  slug          String @unique
+  name          String
+  nameEs        String
+  description   String
+  descriptionEs String
+  icon          String
+  criteria      Json
+  xpReward      Int
+  order         Int
+
+  users UserAchievement[]
+}
+
+model UserAchievement {
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@id([userId, achievementId])
+  @@index([userId, unlockedAt])
 }
