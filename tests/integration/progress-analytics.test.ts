@@ -106,6 +106,8 @@ describe("progress analytics service", () => {
     const thisWeek = weekStart(today, 1)
     const lastWeek = addDays(thisWeek, -7)
     const outside = addDays(thisWeek, -28)
+    const midWeek = addDays(thisWeek, 2)
+    const secondSessionDate = midWeek <= today ? midWeek : today
 
     await seedSession({
       userId: user.id,
@@ -126,7 +128,7 @@ describe("progress analytics service", () => {
 
     await seedSession({
       userId: user.id,
-      date: addDays(thisWeek, 2),
+      date: secondSessionDate,
       exercises: [
         {
           exerciseId: null,
