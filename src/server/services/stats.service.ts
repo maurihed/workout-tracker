@@ -1,0 +1,144 @@
+import "server-only"
+import { logger } from "@/lib/logger"
+import { levelForXp } from "@/features/gamification/lib/level"
+import { XP_AWARDS, STREAK_MILESTONES } from "@/features/gamification/lib/xp"
+import { epley1rm, selectPrSet } from "@/features/gamification/lib/pr"
+import { computeStreak } from "@/features/gamification/lib/streak"
+import { weeksGoalMet } from "@/features/gamification/lib/week"
+import { evaluateAchievements } from "@/features/gamification/lib/achievements"
+import { withTransaction } from "@/server/repositories/routine.repository"
+import * as profileRepo from "@/server/repositories/profile.repository"
+import * as routineRepo from "@/server/repositories/routine.repository"
+import * as repos from "@/server/repositories/stats.repository"
+
+function localDate(iso: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(iso)
+}
+
+function freezeBalance(createdAt: Date, now: Date): number {
+  const months = (now.getUTCFullYear() - createdAt.getUTCFullYear()) * 12 + (now.getUTCMonth() - createdAt.getUTCMonth())
+  return Math.min(3, 2 + Math.max(0, months))
+}
+
+export async function markPersonalRecords(userId: string, sessionId: string): Promise<void> {
+  const session = await repos.listCompletedSessions(userId).then((rows) => rows.find((r) => r.id === sessionId))
+  if (!session || !session.completedAt) return
+  const exerciseIds = session.exercises.map((e) => e.exerciseId).filter((id): id is string => id !== null)
+  if (exerciseIds.length === 0) return
+  const prior = await repos.listPriorSets(userId, exerciseIds, session.completedAt, sessionId)
+  const priorBest = new Map<string, number>()
+  for (const set of prior) {
+    const id = set.sessionExercise.exerciseId
+    const oneRm = epley1rm(set.weightKg, set.reps)
+    if (id && oneRm != null) priorBest.set(id, Math.max(priorBest.get(id) ?? 0, oneRm))
+  }
+  const chosen: string[] = []
+  for (const exercise of session.exercises) {
+    if (!exercise.exerciseId) continue
+    const candidates = exercise.sets.map((set) => ({ id: set.id, reps: set.reps, weightKg: set.weightKg }))
+    const prSetId = selectPrSet(candidates, priorBest.get(exercise.exerciseId) ?? null)
+    if (prSetId) chosen.push(prSetId)
+  }
+  if (chosen.length > 0) {
+    await withTransaction((tx) => tx.setLog.updateMany({ where: { id: { in: chosen } }, data: { isPr: true } }))
+  }
+}
+
+export async function recomputeUserStats(userId: string) {
+  const [profile, user, sessions, routine] = await Promise.all([
+    profileRepo.findByUserId(userId),
+    repos.findUserCreatedAt(userId),
+    repos.listCompletedSessions(userId),
+    routineRepo.findActiveByUser(userId),
+  ])
+  const timeZone = profile?.timezone ?? "UTC"
+  const weekStartsOn = profile?.weekStartsOn ?? 1
+  const weeklyGoal = profile?.daysPerWeek ?? 3
+  const today = localDate(new Date(), timeZone)
+  const scheduledWeekdays = new Set((routine?.days ?? []).map((day) => day.weekday))
+  const hasRoutine = scheduledWeekdays.size > 0
+
+  const allDates: string[] = []
+  const hitDates: string[] = []
+  let totalVolumeKg = 0
+  let prCount = 0
+  for (const session of sessions) {
+    if (!session.completedAt) continue
+    const date = localDate(session.completedAt, timeZone)
+    allDates.push(date)
+    if (session.routineDayId !== null || !hasRoutine) hitDates.push(date)
+    for (const exercise of session.exercises) {
+      for (const set of exercise.sets) {
+        if (set.isPr) prCount += 1
+        if (set.completedAt && set.reps != null && set.weightKg != null) totalVolumeKg += set.reps * set.weightKg
+      }
+    }
+  }
+
+  const balance = user ? freezeBalance(user.createdAt, new Date()) : 2
+  const streak = computeStreak({ hitDates, scheduledWeekdays, today, freezesAvailable: balance })
+  const metWeeks = weeksGoalMet(allDates, weeklyGoal, weekStartsOn)
+  const unlockedSlugs = evaluateAchievements({
+    totalSessions: sessions.length,
+    longestStreak: streak.longest,
+    totalVolumeKg,
+    prCount,
+    weeksGoalMet: metWeeks.length,
+  })
+
+  const before = await repos.findStatsByUser(userId)
+  const xpBefore = before?.xp ?? 0
+
+  const stats = await withTransaction(async (tx) => {
+    const ensure = (data: { key: string; amount: number; reason: Parameters<typeof repos.ensureXpEvent>[1]["reason"]; refType: string; refId: string }) =>
+      repos.ensureXpEvent(tx, { userId, ...data })
+
+    for (const session of sessions) {
+      await ensure({ key: `session:${session.id}`, amount: XP_AWARDS.session, reason: "session", refType: "session", refId: session.id })
+    }
+    for (const week of metWeeks) {
+      await ensure({ key: `weekly_goal:${week}`, amount: XP_AWARDS.weeklyGoal, reason: "weekly_goal", refType: "week", refId: week })
+    }
+    for (const session of sessions) {
+      for (const exercise of session.exercises) {
+        for (const set of exercise.sets) {
+          if (set.isPr) await ensure({ key: `pr:${set.id}`, amount: XP_AWARDS.pr, reason: "pr", refType: "set", refId: set.id })
+        }
+      }
+    }
+    for (const milestone of STREAK_MILESTONES) {
+      if (streak.longest >= milestone) {
+        await ensure({ key: `streak_milestone:${milestone}`, amount: XP_AWARDS.streakMilestones[milestone] ?? 0, reason: "streak_milestone", refType: "streak", refId: String(milestone) })
+      }
+    }
+    const unlocked = await repos.findAchievementIdsBySlugs(unlockedSlugs)
+    const newlyUnlocked = unlocked.filter((a) => unlockedSlugs.includes(a.slug))
+    if (newlyUnlocked.length > 0) {
+      await repos.insertUserAchievements(tx, userId, newlyUnlocked.map((a) => a.id))
+      for (const a of newlyUnlocked) {
+        await ensure({ key: `achievement:${a.id}`, amount: a.xpReward, reason: "achievement", refType: "achievement", refId: a.id })
+      }
+    }
+    const sum = await repos.sumXp(userId, tx)
+    const xp = sum._sum.amount ?? 0
+    return repos.upsertStats(tx, userId, {
+      currentStreak: streak.current,
+      longestStreak: streak.longest,
+      lastHitDate: streak.lastHitDate ? new Date(`${streak.lastHitDate}T00:00:00Z`) : null,
+      streakFreezes: streak.freezesRemaining,
+      totalSessions: sessions.length,
+      totalVolumeKg,
+      xp,
+      level: levelForXp(xp),
+    })
+  })
+
+  return { stats, unlockedSlugs, xpBefore }
+}
+
+export async function repairAllStats(): Promise<{ repaired: number }> {
+  const users = await repos.listUserIds()
+  for (const { id } of users) await recomputeUserStats(id)
+  logger.info({ event: "stats.repaired", users: users.length }, "stats repaired")
+  return { repaired: users.length }
+}
