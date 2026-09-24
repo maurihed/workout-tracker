@@ -58,7 +58,6 @@ export function buildLocalSession(
       ...set,
       id: newId(),
       durationSeconds: null,
-      rpe: null,
       restSecondsLogged: null,
       completedAt: null,
     })),

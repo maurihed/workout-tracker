@@ -1,4 +1,5 @@
 import type { RoutineDTO } from "@/features/routines/hooks/use-active-routine"
+import type { RoutineSetTarget } from "@/features/routines/schemas/routine"
 
 export type RoutineDay = RoutineDTO["days"][number]
 export type RoutineExerciseDTO = RoutineDay["exercises"][number]
@@ -13,6 +14,7 @@ export type SnapshotExercise = {
   targetReps: string | null
   restSeconds: number | null
   targetWeightKg: number | null
+  setTargets: RoutineSetTarget[] | null
   timerType: SnapshotTimerType | null
   workSeconds: number | null
   rounds: number | null
@@ -60,6 +62,7 @@ export function buildSessionSnapshot(routine: RoutineDTO, day: RoutineDay): Sess
       targetReps: exercise.targetReps,
       restSeconds: exercise.restSeconds,
       targetWeightKg: exercise.targetWeightKg,
+      setTargets: exercise.setTargets ?? null,
       timerType: exercise.timerType,
       workSeconds: exercise.workSeconds,
       rounds: exercise.rounds,
@@ -72,7 +75,17 @@ export function seedSets(exercise: RoutineExerciseDTO): {
   type: "working"
   reps: number | null
   weightKg: number | null
+  rpe: number | null
 }[] {
+  if (exercise.setTargets && exercise.setTargets.length > 0) {
+    return exercise.setTargets.slice(0, MAX_SEEDED_SETS).map((target, index) => ({
+      setNumber: index + 1,
+      type: "working" as const,
+      reps: target.reps,
+      weightKg: target.weightKg,
+      rpe: target.rpe,
+    }))
+  }
   const count = Math.min(Math.max(exercise.targetSets ?? 0, 0), MAX_SEEDED_SETS)
   const reps = parseTargetReps(exercise.targetReps)
   return Array.from({ length: count }, (_, index) => ({
@@ -80,5 +93,6 @@ export function seedSets(exercise: RoutineExerciseDTO): {
     type: "working" as const,
     reps,
     weightKg: exercise.targetWeightKg,
+    rpe: null,
   }))
 }

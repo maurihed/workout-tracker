@@ -33,7 +33,7 @@ describe("session snapshot", () => {
     expect(snap).toMatchObject({ routineId: "r1", routineDayId: "d1", name: "Push", nameEs: "Empuje", weekday: 1, label: "Push" })
     expect(snap.exercises[0]).toEqual({
       order: 0, name: "Squat", nameEs: "Sentadilla", targetSets: 3, targetReps: "8-12",
-      restSeconds: 90, targetWeightKg: 40, timerType: "none", workSeconds: null, rounds: null,
+      restSeconds: 90, targetWeightKg: 40, setTargets: null, timerType: "none", workSeconds: null, rounds: null,
     })
   })
 
@@ -47,9 +47,24 @@ describe("session snapshot", () => {
   it("seeds clamped, uncompleted prescribed sets", () => {
     const sets = seedSets({ ...routine.days[0]!.exercises[0]!, targetSets: 3, targetReps: "10" })
     expect(sets).toEqual([
-      { setNumber: 1, type: "working", reps: 10, weightKg: 40 },
-      { setNumber: 2, type: "working", reps: 10, weightKg: 40 },
-      { setNumber: 3, type: "working", reps: 10, weightKg: 40 },
+      { setNumber: 1, type: "working", reps: 10, weightKg: 40, rpe: null },
+      { setNumber: 2, type: "working", reps: 10, weightKg: 40, rpe: null },
+      { setNumber: 3, type: "working", reps: 10, weightKg: 40, rpe: null },
+    ])
+  })
+
+  it("seeds each set from its own per-set target", () => {
+    const sets = seedSets({
+      ...routine.days[0]!.exercises[0]!,
+      targetSets: 2,
+      setTargets: [
+        { reps: 12, weightKg: 40, rpe: 7 },
+        { reps: 8, weightKg: 50, rpe: 9 },
+      ],
+    })
+    expect(sets).toEqual([
+      { setNumber: 1, type: "working", reps: 12, weightKg: 40, rpe: 7 },
+      { setNumber: 2, type: "working", reps: 8, weightKg: 50, rpe: 9 },
     ])
   })
 

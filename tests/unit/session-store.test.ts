@@ -171,7 +171,7 @@ describe("session store", () => {
 
 const snapshot: SessionSnapshot = {
   routineId: "r1", routineDayId: "d1", name: "Push", nameEs: null, weekday: 1, label: "Push",
-  exercises: [{ order: 0, name: "Squat", nameEs: null, targetSets: 3, targetReps: "10", restSeconds: 60, targetWeightKg: 40, timerType: "none", workSeconds: null, rounds: null }],
+  exercises: [{ order: 0, name: "Squat", nameEs: null, targetSets: 3, targetReps: "10", restSeconds: 60, targetWeightKg: 40, setTargets: null, timerType: "none", workSeconds: null, rounds: null }],
 }
 
 describe("session store upsert meta", () => {
