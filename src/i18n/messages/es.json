@@ -281,6 +281,57 @@
   "progress": {
     "title": "Progreso"
   },
+  "analytics": {
+    "title": "Análisis",
+    "volume": "Volumen",
+    "sessions": "Sesiones",
+    "consistency": "Constancia",
+    "weeks": "Semanas",
+    "empty": "Aún no hay datos. Completa un entrenamiento para ver tu progreso.",
+    "weekOf": "Semana del {date}"
+  },
+  "heatmap": {
+    "title": "Mapa muscular",
+    "legendLow": "Menos",
+    "legendHigh": "Más",
+    "custom": "Incluye ejercicios personalizados",
+    "empty": "Aún no hay datos musculares.",
+    "regions": {
+      "chest": "Pecho",
+      "back": "Espalda",
+      "shoulders": "Hombros",
+      "biceps": "Bíceps",
+      "triceps": "Tríceps",
+      "forearms": "Antebrazos",
+      "abs": "Abdominales",
+      "glutes": "Glúteos",
+      "quads": "Cuádriceps",
+      "hamstrings": "Isquiotibiales",
+      "calves": "Gemelos",
+      "traps": "Trapecios",
+      "custom": "Personalizado"
+    }
+  },
+  "pr": {
+    "recentPrs": "Récords recientes",
+    "empty": "Aún no hay récords",
+    "e1rm": "1RM estimado",
+    "topSet": "Serie máxima",
+    "viewProgress": "Ver progreso"
+  },
+  "metrics": {
+    "title": "Métricas corporales",
+    "addEntry": "Añadir registro",
+    "date": "Fecha",
+    "weight": "Peso",
+    "bodyFat": "Grasa corporal %",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "cancel": "Cancelar",
+    "empty": "Aún no hay registros",
+    "trend": "Tendencia de peso",
+    "invalid": "Introduce un peso o un valor de grasa corporal"
+  },
   "profile": {
     "title": "Perfil"
   },
