@@ -11,6 +11,34 @@ import * as profileRepo from "@/server/repositories/profile.repository"
 import * as routineRepo from "@/server/repositories/routine.repository"
 import * as repos from "@/server/repositories/stats.repository"
 
+export type AchievementDTO = {
+  id: string
+  slug: string
+  name: string
+  nameEs: string
+  description: string
+  descriptionEs: string
+  icon: string
+  xpReward: number
+}
+
+export async function getUnlockedAchievements(_userId: string, slugs: string[]): Promise<AchievementDTO[]> {
+  if (slugs.length === 0) return []
+  const rows = await repos.listAchievements()
+  return rows
+    .filter((a) => slugs.includes(a.slug))
+    .map((a) => ({
+      id: a.id,
+      slug: a.slug,
+      name: a.name,
+      nameEs: a.nameEs,
+      description: a.description,
+      descriptionEs: a.descriptionEs,
+      icon: a.icon,
+      xpReward: a.xpReward,
+    }))
+}
+
 function localDate(iso: Date, timeZone: string): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(iso)
 }
@@ -97,7 +125,7 @@ export async function recomputeUserStats(userId: string) {
       await ensure({ key: `session:${session.id}`, amount: XP_AWARDS.session, reason: "session", refType: "session", refId: session.id })
     }
     for (const week of metWeeks) {
-      await ensure({ key: `weekly_goal:${week}`, amount: XP_AWARDS.weeklyGoal, reason: "weekly_goal", refType: "week", refId: week })
+      await ensure({ key: `weekly_goal:${userId}:${week}`, amount: XP_AWARDS.weeklyGoal, reason: "weekly_goal", refType: "week", refId: week })
     }
     for (const session of sessions) {
       for (const exercise of session.exercises) {
@@ -108,7 +136,7 @@ export async function recomputeUserStats(userId: string) {
     }
     for (const milestone of STREAK_MILESTONES) {
       if (streak.longest >= milestone) {
-        await ensure({ key: `streak_milestone:${milestone}`, amount: XP_AWARDS.streakMilestones[milestone] ?? 0, reason: "streak_milestone", refType: "streak", refId: String(milestone) })
+        await ensure({ key: `streak_milestone:${userId}:${milestone}`, amount: XP_AWARDS.streakMilestones[milestone] ?? 0, reason: "streak_milestone", refType: "streak", refId: String(milestone) })
       }
     }
     const unlocked = await repos.findAchievementIdsBySlugs(unlockedSlugs)
@@ -116,7 +144,7 @@ export async function recomputeUserStats(userId: string) {
     if (newlyUnlocked.length > 0) {
       await repos.insertUserAchievements(tx, userId, newlyUnlocked.map((a) => a.id))
       for (const a of newlyUnlocked) {
-        await ensure({ key: `achievement:${a.id}`, amount: a.xpReward, reason: "achievement", refType: "achievement", refId: a.id })
+        await ensure({ key: `achievement:${userId}:${a.id}`, amount: a.xpReward, reason: "achievement", refType: "achievement", refId: a.id })
       }
     }
     const sum = await repos.sumXp(userId, tx)

@@ -1,6 +1,7 @@
 import "server-only"
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/api-error"
 import { logger } from "@/lib/logger"
+import { levelForXp } from "@/features/gamification/lib/level"
 import type { SessionUpsertInput } from "@/features/workouts/schemas/session"
 import type {
   Prisma,
@@ -9,6 +10,9 @@ import type {
   TimerType,
 } from "@/generated/prisma/client"
 import * as repos from "@/server/repositories/session.repository"
+import * as statsRepos from "@/server/repositories/stats.repository"
+import * as statsService from "@/server/services/stats.service"
+import type { AchievementDTO } from "@/server/services/stats.service"
 import { withTransaction } from "@/server/repositories/routine.repository"
 
 export type SessionSetDTO = {
@@ -70,6 +74,15 @@ export type SessionStateAck = {
   activeSeconds: number
   completedAt: string | null
 }
+
+export type SessionCelebration = {
+  xpGained: number
+  level: number
+  leveledUp: boolean
+  unlocked: AchievementDTO[]
+}
+
+export type SessionCompletionResult = SessionStateAck & { celebration: SessionCelebration }
 
 function toStateAck(session: repos.SessionAckRecord): SessionStateAck {
   return {
@@ -187,14 +200,38 @@ export async function completeSession(
   userId: string,
   id: string,
   activeSeconds: number,
-): Promise<SessionStateAck> {
+): Promise<SessionCompletionResult> {
   const session = await repos.findByIdForUser(userId, id)
   if (!session) throw new NotFoundError("Session not found")
-  if (session.status === "completed") return toStateAck(session)
+  if (session.status === "completed") {
+    const stats = await statsRepos.findStatsByUser(userId)
+    return {
+      ...toStateAck(session),
+      celebration: { xpGained: 0, level: stats?.level ?? 1, leveledUp: false, unlocked: [] },
+    }
+  }
   if (session.status === "abandoned") throw new ConflictError("Session is not in progress")
+
   const done = await repos.setStatus(id, "completed", { completedAt: new Date(), activeSeconds })
+  let celebration: SessionCelebration = { xpGained: 0, level: 1, leveledUp: false, unlocked: [] }
+  try {
+    await statsService.markPersonalRecords(userId, id)
+    const result = await statsService.recomputeUserStats(userId)
+    const unlocked = await statsService.getUnlockedAchievements(userId, result.unlockedSlugs)
+    celebration = {
+      xpGained: result.stats.xp - result.xpBefore,
+      level: result.stats.level,
+      leveledUp: levelForXp(result.xpBefore) !== result.stats.level,
+      unlocked,
+    }
+  } catch (error) {
+    logger.error(
+      { event: "stats.completion_failed", userId, sessionId: id, error },
+      "stats recompute failed",
+    )
+  }
   logger.info({ event: "session.completed", userId, sessionId: id }, "session completed")
-  return toStateAck(done)
+  return { ...toStateAck(done), celebration }
 }
 
 export async function abandonSession(userId: string, id: string): Promise<void> {
