@@ -34,6 +34,30 @@ describe("session schemas", () => {
     expect(sessionUpsertSchema.safeParse({ ...good, snapshot: { ...snapshot, exercises: [] } }).success).toBe(false)
   })
 
+  it("preserves per-set targets in the session snapshot", () => {
+    const setTargets = [
+      { reps: 12, weightKg: 40, rpe: 7 },
+      { reps: 8, weightKg: 50, rpe: 9 },
+    ]
+    const withTargets = {
+      ...snapshot,
+      exercises: [{ ...snapshot.exercises[0], setTargets }],
+    }
+    const good = { id: "33333333-3333-4333-8333-333333333333", routineDayId: "d1", name: "Push", startedAt: new Date().toISOString(), activeSeconds: 0, snapshot: withTargets, exercises: [ex] }
+    const result = sessionUpsertSchema.safeParse(good)
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(result.data.snapshot.exercises[0]?.setTargets).toEqual(setTargets)
+  })
+
+  it("defaults a missing snapshot setTargets to null", () => {
+    const good = { id: "33333333-3333-4333-8333-333333333333", routineDayId: "d1", name: "Push", startedAt: new Date().toISOString(), activeSeconds: 0, snapshot, exercises: [ex] }
+    const result = sessionUpsertSchema.safeParse(good)
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(result.data.snapshot.exercises[0]?.setTargets).toBeNull()
+  })
+
   it("rejects an over-long note and a non-integer weight", () => {
     expect(sessionStateSchema.safeParse({ activeSeconds: 0, exercises: [{ ...ex, notes: "x".repeat(501) }] }).success).toBe(false)
     expect(sessionStateSchema.safeParse({ activeSeconds: 0, exercises: [{ ...ex, sets: [{ ...set, weightKg: -1 }] }] }).success).toBe(false)

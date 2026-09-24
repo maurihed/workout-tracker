@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest"
 import {
+  migrateDraftState,
   OrphanedExerciseError,
   useRoutineDraftStore,
 } from "@/features/routines/stores/routine-draft-store"
@@ -171,5 +172,79 @@ describe("routine draft store", () => {
     expect(useRoutineDraftStore.getState().isDirty).toBe(true)
     expect(useRoutineDraftStore.getState().days[0]?.weekday).toBe(2)
     expect(useRoutineDraftStore.getState().days[1]?.weekday).toBe(1)
+  })
+
+  it("migrates a v0 draft by backfilling setTargets from the legacy prescription", () => {
+    const persisted = {
+      routineId: "r1",
+      name: "Plan",
+      description: null,
+      goal: null,
+      isDirty: false,
+      days: [
+        {
+          id: "d1",
+          weekday: 1,
+          label: "Push",
+          exercises: [
+            {
+              id: "x1",
+              exerciseId: "c1",
+              name: "Squat",
+              targetSets: 2,
+              targetReps: "10",
+              restSeconds: 60,
+              targetWeightKg: 40,
+              timerType: "none",
+              workSeconds: null,
+              rounds: null,
+              notes: null,
+            },
+          ],
+        },
+      ],
+    }
+    const migrated = migrateDraftState(persisted, 0)
+    expect(migrated.days[0]!.exercises[0]!.setTargets).toEqual([
+      { reps: 10, weightKg: 40, rpe: null },
+      { reps: 10, weightKg: 40, rpe: null },
+    ])
+  })
+
+  it("leaves a current v1 draft untouched", () => {
+    const persisted = {
+      routineId: "r1",
+      name: "Plan",
+      description: null,
+      goal: null,
+      isDirty: false,
+      days: [
+        {
+          id: "d1",
+          weekday: 1,
+          label: null,
+          exercises: [
+            {
+              id: "x1",
+              exerciseId: "c1",
+              name: "Squat",
+              targetSets: 1,
+              targetReps: "",
+              restSeconds: 60,
+              targetWeightKg: null,
+              setTargets: [{ reps: null, weightKg: null, rpe: null }],
+              timerType: "none",
+              workSeconds: null,
+              rounds: null,
+              notes: null,
+            },
+          ],
+        },
+      ],
+    }
+    const migrated = migrateDraftState(persisted, 1)
+    expect(migrated.days[0]!.exercises[0]!.setTargets).toEqual([
+      { reps: null, weightKg: null, rpe: null },
+    ])
   })
 })

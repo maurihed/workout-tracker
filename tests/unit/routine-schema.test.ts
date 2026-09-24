@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { syncSetTargets } from "@/features/routines/lib/set-targets"
 import { createRoutineSchema, routineInputSchema } from "@/features/routines/schemas/routine"
 
 const day = {
@@ -73,5 +74,36 @@ describe("routineInputSchema", () => {
       routineInputSchema.safeParse({ name: "R", description: null, goal: null, days: [{ ...day, exercises: [ex] }] })
         .success,
     ).toBe(false)
+  })
+
+  it("accepts an empty targetReps when per-set targets carry the prescription", () => {
+    const ex = {
+      ...day.exercises[0],
+      targetSets: 1,
+      targetReps: "",
+      setTargets: [{ reps: null, weightKg: null, rpe: null }],
+    }
+    expect(
+      routineInputSchema.safeParse({ name: "R", description: null, goal: null, days: [{ ...day, exercises: [ex] }] })
+        .success,
+    ).toBe(true)
+  })
+
+  it("keeps a syncSetTargets patch valid when the first set has no reps", () => {
+    const patch = syncSetTargets([{ reps: null, weightKg: null, rpe: null }])
+    const ex = {
+      ...day.exercises[0],
+      targetSets: patch.targetSets,
+      targetReps: patch.targetReps,
+      targetWeightKg: patch.targetWeightKg,
+      setTargets: patch.setTargets,
+    }
+    const result = routineInputSchema.safeParse({
+      name: "R",
+      description: null,
+      goal: null,
+      days: [{ ...day, exercises: [ex] }],
+    })
+    expect(result.success).toBe(true)
   })
 })

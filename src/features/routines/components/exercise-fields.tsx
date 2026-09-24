@@ -13,7 +13,7 @@ import type {
   DraftExercise,
   TimerType,
 } from "@/features/routines/stores/routine-draft-store"
-import { displayWeight, parseWeightToKg } from "@/features/workouts/lib/units"
+import { WeightField } from "@/features/workouts/components/weight-field"
 
 const TIMER_TYPES: TimerType[] = ["none", "interval", "emom", "amrap"]
 
@@ -65,6 +65,7 @@ export function ExerciseFields({ exercise, onChange }: ExerciseFieldsProps) {
   const t = useTranslations("routineEditor")
   const { data: profile } = useProfile()
   const unitSystem = profile?.unitSystem ?? "metric"
+  const setTargets = exercise.setTargets ?? []
 
   const restId = `${exercise.id}-rest`
   const timerId = `${exercise.id}-timer`
@@ -78,24 +79,24 @@ export function ExerciseFields({ exercise, onChange }: ExerciseFieldsProps) {
 
   function updateSet(index: number, patch: Partial<RoutineSetTarget>) {
     commit(
-      exercise.setTargets.map((target, i) => (i === index ? { ...target, ...patch } : target)),
+      setTargets.map((target, i) => (i === index ? { ...target, ...patch } : target)),
     )
   }
 
   function addSet() {
-    const last = exercise.setTargets.at(-1)
-    commit([...exercise.setTargets, last ? { ...last } : { reps: 10, weightKg: null, rpe: null }])
+    const last = setTargets.at(-1)
+    commit([...setTargets, last ? { ...last } : { reps: 10, weightKg: null, rpe: null }])
   }
 
   function removeSet(index: number) {
-    if (exercise.setTargets.length <= 1) return
-    commit(exercise.setTargets.filter((_, i) => i !== index))
+    if (setTargets.length <= 1) return
+    commit(setTargets.filter((_, i) => i !== index))
   }
 
   return (
     <div className="grid grid-cols-2 gap-3">
       <div className="col-span-2 flex flex-col gap-2">
-        {exercise.setTargets.map((target, index) => {
+        {setTargets.map((target, index) => {
           const setNumber = index + 1
           const repsId = `sets.${exercise.id}.${setNumber}.reps`
           const weightId = `sets.${exercise.id}.${setNumber}.weight`
@@ -123,22 +124,12 @@ export function ExerciseFields({ exercise, onChange }: ExerciseFieldsProps) {
               </div>
               <div className="flex flex-1 flex-col gap-1">
                 <Label htmlFor={weightId}>{t("weight")}</Label>
-                <Input
+                <WeightField
                   id={weightId}
-                  aria-label={weightId}
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="0.5"
-                  value={target.weightKg == null ? "" : displayWeight(target.weightKg, unitSystem)}
-                  onChange={(event) => {
-                    const parsed = Number.parseFloat(event.target.value)
-                    const kg =
-                      Number.isNaN(parsed) || parsed <= 0
-                        ? null
-                        : parseWeightToKg(parsed, unitSystem)
-                    updateSet(index, { weightKg: kg })
-                  }}
+                  ariaLabel={weightId}
+                  unitSystem={unitSystem}
+                  weightKg={target.weightKg}
+                  onCommit={(weightKg) => updateSet(index, { weightKg })}
                 />
               </div>
               <div className="flex w-20 flex-col gap-1">
@@ -162,7 +153,7 @@ export function ExerciseFields({ exercise, onChange }: ExerciseFieldsProps) {
                 variant="ghost"
                 size="icon"
                 aria-label={`sets.${exercise.id}.${setNumber}.remove`}
-                disabled={exercise.setTargets.length <= 1}
+                disabled={setTargets.length <= 1}
                 onClick={() => removeSet(index)}
               >
                 <Minus className="size-4" aria-hidden="true" />

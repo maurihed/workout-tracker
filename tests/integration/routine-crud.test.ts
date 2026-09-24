@@ -159,4 +159,48 @@ describe("routine service CRUD", () => {
     expect(await prisma.routine.count({ where: { userId: user.id, isActive: true } })).toBe(0)
     expect(await prisma.routine.count({ where: { id: copy.id } })).toBe(1)
   })
+
+  it("round-trips non-null per-set targets and stores null as SQL NULL", async () => {
+    const user = await makeUser()
+    const exerciseId = await firstExerciseId()
+    const routine = await createBlankRoutine(user.id, { name: "Targets", description: null, goal: null })
+    const setTargets = [
+      { reps: 12, weightKg: 40, rpe: 7 },
+      { reps: 8, weightKg: 50, rpe: 9 },
+    ]
+    await replaceRoutine(user.id, routine.id, {
+      ...input,
+      days: [
+        {
+          ...input.days[0]!,
+          exercises: [
+            { ...input.days[0]!.exercises[0]!, exerciseId, targetSets: 2, setTargets },
+          ],
+        },
+      ],
+    })
+    const fetched = await getRoutine(user.id, routine.id)
+    expect(fetched.days[0]?.exercises[0]?.setTargets).toEqual(setTargets)
+
+    const rawRows = async () =>
+      prisma.$queryRaw<{ isNull: boolean }[]>`
+        SELECT ("setTargets" IS NULL) AS "isNull"
+        FROM "RoutineExercise"
+        WHERE "routineDayId" IN (SELECT id FROM "RoutineDay" WHERE "routineId" = ${routine.id})
+      `
+    expect((await rawRows())[0]?.isNull).toBe(false)
+
+    await replaceRoutine(user.id, routine.id, {
+      ...input,
+      days: [
+        {
+          ...input.days[0]!,
+          exercises: [
+            { ...input.days[0]!.exercises[0]!, exerciseId, targetSets: 4, setTargets: null },
+          ],
+        },
+      ],
+    })
+    expect((await rawRows())[0]?.isNull).toBe(true)
+  })
 })

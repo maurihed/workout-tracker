@@ -127,6 +127,33 @@ const emptyDraft = {
   isDirty: false,
 }
 
+export type PersistedDraft = Pick<
+  DraftState,
+  "routineId" | "name" | "description" | "goal" | "days" | "isDirty"
+>
+
+export function migrateDraftState(
+  persisted: unknown,
+  version: number,
+): PersistedDraft {
+  const state = (persisted ?? {}) as Partial<PersistedDraft>
+  if (version >= 1) return state as PersistedDraft
+  const days = (state.days ?? []).map((day) => ({
+    ...day,
+    exercises: (day.exercises ?? []).map((exercise) => ({
+      ...exercise,
+      setTargets:
+        exercise.setTargets ??
+        legacyTargetsToSetTargets(
+          exercise.targetSets,
+          exercise.targetReps,
+          exercise.targetWeightKg,
+        ),
+    })),
+  }))
+  return { ...state, days } as PersistedDraft
+}
+
 function createId(): string {
   return crypto.randomUUID()
 }
@@ -332,6 +359,8 @@ export const useRoutineDraftStore = create<DraftState>()(
       name: "gym-routine-draft",
       storage: createJSONStorage(() => sessionStorage),
       skipHydration: true,
+      version: 1,
+      migrate: migrateDraftState,
       partialize: (state) => ({
         routineId: state.routineId,
         name: state.name,

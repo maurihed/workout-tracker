@@ -1,9 +1,15 @@
 import { fireEvent, render, screen } from "@testing-library/react"
-import { describe, expect, it, vi } from "vitest"
+import userEvent from "@testing-library/user-event"
+import { useState } from "react"
+import { afterEach, describe, expect, it, vi } from "vitest"
+
+const { profileState } = vi.hoisted(() => ({
+  profileState: { unitSystem: "metric" as "metric" | "imperial" },
+}))
 
 vi.mock("next-intl", () => ({ useTranslations: () => (k: string) => k }))
 vi.mock("@/features/profile/hooks/use-profile", () => ({
-  useProfile: () => ({ data: { unitSystem: "metric" } }),
+  useProfile: () => ({ data: { unitSystem: profileState.unitSystem } }),
 }))
 
 import { ExerciseFields } from "@/features/routines/components/exercise-fields"
@@ -27,7 +33,24 @@ const exercise: DraftExercise = {
   notes: null,
 }
 
+function Harness({ initial }: { initial: DraftExercise }) {
+  const [current, setCurrent] = useState(initial)
+  return (
+    <>
+      <ExerciseFields
+        exercise={current}
+        onChange={(patch) => setCurrent((prev) => ({ ...prev, ...patch }))}
+      />
+      <output data-testid="first-weight">{String(current.setTargets[0]?.weightKg)}</output>
+    </>
+  )
+}
+
 describe("ExerciseFields", () => {
+  afterEach(() => {
+    profileState.unitSystem = "metric"
+  })
+
   it("edits a single set's reps and keeps the set count in sync", () => {
     const onChange = vi.fn()
     render(<ExerciseFields exercise={exercise} onChange={onChange} />)
@@ -72,5 +95,36 @@ describe("ExerciseFields", () => {
         ],
       }),
     )
+  })
+
+  it("commits null when the weight field is cleared", () => {
+    const onChange = vi.fn()
+    render(<ExerciseFields exercise={exercise} onChange={onChange} />)
+    fireEvent.change(screen.getByLabelText("sets.re1.1.weight"), { target: { value: "" } })
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        setTargets: [
+          { reps: 12, weightKg: null, rpe: 7 },
+          { reps: 10, weightKg: 45, rpe: 8 },
+        ],
+      }),
+    )
+  })
+
+  it("keeps a multi-digit imperial draft intact while committing the converted kg", async () => {
+    profileState.unitSystem = "imperial"
+    const noWeight: DraftExercise = {
+      ...exercise,
+      targetWeightKg: null,
+      setTargets: [
+        { reps: 12, weightKg: null, rpe: 7 },
+        { reps: 10, weightKg: 45, rpe: 8 },
+      ],
+    }
+    render(<Harness initial={noWeight} />)
+    const weight = screen.getByLabelText("sets.re1.1.weight")
+    await userEvent.type(weight, "225")
+    expect(weight).toHaveValue(225)
+    expect(screen.getByTestId("first-weight")).toHaveTextContent("102.1")
   })
 })

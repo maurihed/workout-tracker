@@ -25,7 +25,7 @@ export const routineExerciseInputSchema = z
   .object({
     exerciseId: z.string().min(1),
     targetSets: z.number().int().min(1).max(20),
-    targetReps: z.string().trim().min(1).max(20),
+    targetReps: z.string().trim().max(20),
     restSeconds: z.number().int().min(0).max(3600),
     targetWeightKg: z.number().positive().max(1000).nullable().default(null),
     setTargets: routineSetTargetsSchema.nullable().default(null),
