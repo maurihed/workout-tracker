@@ -1,0 +1,44 @@
+import "server-only"
+import { prisma } from "@/lib/prisma"
+import type { Prisma } from "@/generated/prisma/client"
+
+export const bodyMetricSelect = {
+  id: true,
+  recordedOn: true,
+  weightKg: true,
+  bodyFatPct: true,
+} satisfies Prisma.BodyMetricSelect
+
+export type BodyMetricRecord = Prisma.BodyMetricGetPayload<{ select: typeof bodyMetricSelect }>
+
+export function listByUser(userId: string, range: { from?: Date; to?: Date }) {
+  const recordedOn = {
+    ...(range.from ? { gte: range.from } : {}),
+    ...(range.to ? { lte: range.to } : {}),
+  }
+  return prisma.bodyMetric.findMany({
+    where: { userId, ...(range.from || range.to ? { recordedOn } : {}) },
+    orderBy: { recordedOn: "asc" },
+    select: bodyMetricSelect,
+  })
+}
+
+export function upsertForUser(
+  userId: string,
+  recordedOn: Date,
+  values: { weightKg?: number | null | undefined; bodyFatPct?: number | null | undefined },
+) {
+  const data: { weightKg?: number | null; bodyFatPct?: number | null } = {}
+  if (values.weightKg !== undefined) data.weightKg = values.weightKg
+  if (values.bodyFatPct !== undefined) data.bodyFatPct = values.bodyFatPct
+  return prisma.bodyMetric.upsert({
+    where: { userId_recordedOn: { userId, recordedOn } },
+    create: { userId, recordedOn, ...data },
+    update: data,
+    select: bodyMetricSelect,
+  })
+}
+
+export function deleteForUser(userId: string, id: string) {
+  return prisma.bodyMetric.deleteMany({ where: { userId, id } })
+}
