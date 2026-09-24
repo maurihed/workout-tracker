@@ -3,7 +3,7 @@
 Single entry point for picking up work in a fresh session.
 
 - **Product spec (binding authority):** `docs/superpowers/specs/2026-09-22-gym-tracker-design.md`
-- **Current branch:** `phase3a-tracking-stats` — Phase 3A complete, pending merge to `main`.
+- **Current branch:** `main` — Phase 3A merged.
 - **Delivery process:** per-phase → brainstorm → spec (`docs/superpowers/specs/`) → plan (`docs/superpowers/plans/`) → subagent-driven TDD execution, with an audit trail in `.superpowers/sdd/<plan-slug>/`.
 
 ## Phase status
@@ -24,6 +24,8 @@ Paths above are relative to repo root; `.../` = `docs/superpowers`.
 ## Remaining phases
 
 - **3A — Tracking + Gamification** (Done; depends on 2). Workout-history list/browse + read-only detail, streaks / XP / badges / weekly goal, PR detection/marking, stats + achievements APIs, dashboard stats header, completion celebration, and a nightly stats-repair job. Server-side stats cached in `UserStats`.
+
+> **Deploy note (3A):** existing users have no `UserStats` row until they complete a session or the nightly job runs. Run `pnpm job:repair-stats` (or schedule `POST /api/jobs/repair-stats` with `x-job-secret`) once after deploying to backfill.
 - **3B — Progress Dashboard** (next; depends on 3A). Dashboard charts, muscle heatmap, PR views, and a body-metric log.
 - **4 — AI** (depends on 2, 3A, 3B). Generation pipeline via Ollama/Qwen + pg-boss job queue, personalization, structured output validation + fallback, provenance, safety disclaimer. Includes a spike on inference hosting (GPU VPS vs local vs hosted).
 
