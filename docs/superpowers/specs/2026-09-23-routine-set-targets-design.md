@@ -148,10 +148,15 @@ Returns `null` for null/absent; uses `safeParse` and returns `null` for malforme
 - `addExercises`: default 3 working sets `{ reps: 10, weightKg: null, rpe: null }`.
 - `toRoutineInput`: emit `setTargets` and keep `targetSets`/`targetReps`/`targetWeightKg`
   in sync (`targetReps` = first set's reps as string; `targetWeightKg` = first set's weight).
-- New actions:
-  - `updateSetTarget(dayId, exerciseId, setNumber, patch: Partial<RoutineSetTarget>)`
-  - `addSet(dayId, exerciseId)` — appends a copy of the last set (or defaults); updates `targetSets`.
-  - `removeSet(dayId, exerciseId, setNumber)` — removes; min 1 set; updates `targetSets`.
+- New pure helper in `src/features/routines/lib/set-targets.ts`, used by the editor
+  (which is decoupled from the store via `onChange` and has no `dayId`):
+  - `syncSetTargets(exercise, nextTargets)` returns the `ExercisePatch` that keeps
+    `setTargets`, `targetSets`, `targetReps` (first set's reps as string) and
+    `targetWeightKg` (first set's weight) in sync.
+  - The editor renders one row per `setTargets` entry and calls
+    `onChange(syncSetTargets(exercise, next))` for edits, add-set and remove-set
+    (minimum one set). No new store action is required; `updateExercise` already
+    accepts arbitrary `ExercisePatch` values.
 
 ## 7. Routine editor UI
 
@@ -178,8 +183,9 @@ Returns `null` for null/absent; uses `safeParse` and returns `null` for malforme
 - `src/features/workouts/lib/build-local-session.ts`
   - Stop overriding `rpe: null`; pass the seeded `rpe` through.
 - Runner (`ExerciseView` / `SetRow`): no structural change — sets open pre-filled and remain
-  editable. The target chip shows `"{targetSets} sets"` when per-set targets exist;
-  otherwise keeps today's `"{sets} × {reps}"` legacy string.
+  editable. The target chip keeps showing `"{targetSets} × {targetReps}"` where `targetReps`
+  is kept in sync with the first set's reps; a per-set-aware chip is a deliberate follow-up
+  (avoids threading `setTargets` through the session store/schema).
 - `WorkoutSession.snapshot` keeps the full `setTargets` for historical fidelity.
 
 ## 9. i18n
@@ -188,8 +194,6 @@ New keys (parity in `en.json` and `es.json`):
 
 - `routineEditor`: `weight`, `rpe`, `setNumber` (`"Set {number}"`), `addSet`,
   `removeSet`, `perSetTargets` (section label).
-- `runner.sets`: reuse existing `reps`/`weight`/`rpe`; add `setsCount`
-  (`"{count, plural, one {# set} other {# sets}}"`) if the chip switches to a count.
 
 No existing key is renamed or removed.
 
