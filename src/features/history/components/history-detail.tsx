@@ -2,6 +2,7 @@
 
 import { Clock, Stack, Trophy } from "@phosphor-icons/react"
 import { useLocale, useTranslations } from "next-intl"
+import Link from "next/link"
 
 import { Badge } from "@/components/ui/badge"
 import { computeSummary, formatDuration } from "@/features/workouts/lib/summary"
@@ -60,7 +61,16 @@ export function HistoryDetail({
         {session.exercises.map((exercise) => (
           <section key={exercise.id} className="flex flex-col gap-2">
             <h2 className="font-heading text-lg font-bold tracking-tight">
-              {exercise.nameSnapshot}
+              {exercise.exerciseId ? (
+                <Link
+                  href={`/${locale}/progress/exercise/${exercise.exerciseId}`}
+                  className="focus-visible:ring-ring/50 rounded-md outline-none hover:text-primary focus-visible:ring-3"
+                >
+                  {exercise.nameSnapshot}
+                </Link>
+              ) : (
+                exercise.nameSnapshot
+              )}
             </h2>
             <ul className="flex flex-col gap-2">
               {exercise.sets.map((set) => (

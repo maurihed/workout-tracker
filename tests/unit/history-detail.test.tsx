@@ -12,4 +12,12 @@ describe("HistoryDetail", () => {
     expect(screen.getByText("Squat")).toBeInTheDocument()
     expect(screen.getByText("PR")).toBeInTheDocument()
   })
+
+  it("links the exercise name to its per-exercise progress chart", () => {
+    render(<NextIntlClientProvider locale="en" messages={en}><HistoryDetail session={session} /></NextIntlClientProvider>)
+    expect(screen.getByRole("link", { name: "Squat" })).toHaveAttribute(
+      "href",
+      "/en/progress/exercise/e1",
+    )
+  })
 })
