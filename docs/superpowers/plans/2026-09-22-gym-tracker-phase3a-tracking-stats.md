@@ -1243,8 +1243,8 @@ export async function completeSession(
   const session = await repos.findByIdForUser(userId, id)
   if (!session) throw new NotFoundError("Session not found")
   if (session.status === "completed") {
-    const stats = await statsService.getStats(userId)
-    return { ...toStateAck(session), celebration: { xpGained: 0, level: stats.level, leveledUp: false, unlocked: [] } }
+    const stats = await statsRepos.findStatsByUser(userId)
+    return { ...toStateAck(session), celebration: { xpGained: 0, level: stats?.level ?? 1, leveledUp: false, unlocked: [] } }
   }
   if (session.status === "abandoned") throw new ConflictError("Session is not in progress")
 
@@ -1279,7 +1279,7 @@ export async function getUnlockedAchievements(userId: string, slugs: string[]): 
 }
 ```
 
-Update imports in `session.service.ts`: `import * as statsService from "@/server/services/stats.service"` and `import { levelForXp } from "@/features/gamification/lib/level"`.
+Update imports in `session.service.ts`: `import * as statsService from "@/server/services/stats.service"`, `import * as statsRepos from "@/server/repositories/stats.repository"`, and `import { levelForXp } from "@/features/gamification/lib/level"`.
 
 - [ ] **Step 4: Update the complete route**
 
