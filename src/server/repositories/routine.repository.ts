@@ -257,7 +257,7 @@ export async function replaceDays(
               targetReps: e.targetReps,
               restSeconds: e.restSeconds,
               targetWeightKg: e.targetWeightKg,
-              setTargets: e.setTargets ?? Prisma.JsonNull,
+              setTargets: e.setTargets ?? Prisma.DbNull,
               timerType: e.timerType,
               workSeconds: e.workSeconds,
               rounds: e.rounds,
