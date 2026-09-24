@@ -38,13 +38,14 @@ test("builds a routine, activates it, then duplicates and deletes", async ({
   await page.getByRole("checkbox").nth(1).check()
   await page.getByRole("button", { name: /Add \d+ exercise/ }).click()
 
-  // Back on the editor with the two rows present.
   await expect(page).toHaveURL(/\/en\/routines\/[^/]+$/)
-  await expect(page.getByLabel("Sets")).toHaveCount(2)
+  await expect(page.getByRole("button", { name: "Add set" })).toHaveCount(2)
+  const repsInputs = page.getByLabel(/\.reps$/)
+  await expect(repsInputs).toHaveCount(6)
 
-  // Set sets/reps and save.
-  await page.getByLabel("Sets").first().fill("4")
-  await page.getByLabel("Reps").first().fill("12")
+  await repsInputs.first().fill("12")
+  await page.getByRole("button", { name: "Add set" }).first().click()
+  await expect(repsInputs).toHaveCount(7)
   await page.getByRole("button", { name: "Save" }).click()
   await expect(page.getByText("Routine saved")).toBeVisible()
 

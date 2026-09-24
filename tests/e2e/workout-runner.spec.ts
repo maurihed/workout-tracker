@@ -109,7 +109,7 @@ test("runs a workout, logs a set, resumes after a reload, then finishes", async 
     page.getByRole("heading", { name: "Workout summary" }),
   ).toBeVisible()
   await expect(page.getByText("Duration")).toBeVisible()
-  await expect(page.getByText("Sets completed")).toBeVisible()
+  await expect(page.getByText("Sets completed", { exact: true })).toBeVisible()
   await expect(page.getByText("Total volume")).toBeVisible()
   // 10 reps × 20 kg logged on the single completed set.
   await expect(page.getByText("200 kg")).toBeVisible()
