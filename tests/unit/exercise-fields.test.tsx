@@ -31,7 +31,7 @@ describe("ExerciseFields", () => {
   it("edits a single set's reps and keeps the set count in sync", () => {
     const onChange = vi.fn()
     render(<ExerciseFields exercise={exercise} onChange={onChange} />)
-    fireEvent.change(screen.getByLabelText("sets.1.reps"), { target: { value: "15" } })
+    fireEvent.change(screen.getByLabelText("sets.re1.1.reps"), { target: { value: "15" } })
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({
         targetSets: 2,
@@ -49,7 +49,28 @@ describe("ExerciseFields", () => {
     fireEvent.click(screen.getByRole("button", { name: "addSet" }))
     expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ targetSets: 3 }))
     onChange.mockClear()
-    fireEvent.click(screen.getByRole("button", { name: "sets.2.remove" }))
+    fireEvent.click(screen.getByRole("button", { name: "sets.re1.2.remove" }))
     expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ targetSets: 1 }))
+  })
+
+  it("namespaces control ids per exercise to avoid duplicate DOM ids", () => {
+    const onChange = vi.fn()
+    render(<ExerciseFields exercise={exercise} onChange={onChange} />)
+    expect(screen.getByLabelText("sets.re1.1.weight")).toBeInTheDocument()
+    expect(screen.getByLabelText("sets.re1.2.rpe")).toBeInTheDocument()
+  })
+
+  it("ignores a zero weight instead of persisting an invalid value", () => {
+    const onChange = vi.fn()
+    render(<ExerciseFields exercise={exercise} onChange={onChange} />)
+    fireEvent.change(screen.getByLabelText("sets.re1.1.weight"), { target: { value: "0" } })
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        setTargets: [
+          { reps: 12, weightKg: null, rpe: 7 },
+          { reps: 10, weightKg: 45, rpe: 8 },
+        ],
+      }),
+    )
   })
 })

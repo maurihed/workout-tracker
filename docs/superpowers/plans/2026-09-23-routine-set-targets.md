@@ -866,7 +866,7 @@ Replace the old single reps `<Input>` block with the per-set list:
       </div>
 ```
 
-Add imports `Button` from `@/components/ui/button`, and `Minus, Plus` from `@phosphor-icons/react`. The inputs' `aria-label` values (`sets.N.reps` / `sets.N.weight` / `sets.N.rpe`) and the remove button's `sets.N.remove` name are what the tests query.
+Add imports `Button` from `@/components/ui/button`, and `Minus, Plus` from `@phosphor-icons/react`. Namespace every per-set control with the exercise id: `id`/`aria-label` = `sets.${exercise.id}.${setNumber}.reps` / `.weight` / `.rpe`, and the remove button `aria-label` = `sets.${exercise.id}.${setNumber}.remove` (the plan's test must query these namespaced names; the test exercise id is `re1`). This keeps DOM ids unique when a routine has more than one exercise.
 
 - [ ] **Step 5: Run tests to verify they pass**
 

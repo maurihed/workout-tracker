@@ -14,7 +14,7 @@ describe("ExerciseRow", () => {
     const onChange = vi.fn()
     render(<ExerciseRow exercise={exercise} onChange={onChange} onRemove={vi.fn()} />)
     expect(screen.getByText("Squat")).toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText("sets.1.reps"), { target: { value: "5" } })
+    fireEvent.change(screen.getByLabelText("sets.x1.1.reps"), { target: { value: "5" } })
     expect(onChange).toHaveBeenLastCalledWith(
       expect.objectContaining({ targetSets: 1, setTargets: [{ reps: 5, weightKg: null, rpe: null }] }),
     )

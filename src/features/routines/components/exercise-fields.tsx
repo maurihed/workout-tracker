@@ -97,9 +97,9 @@ export function ExerciseFields({ exercise, onChange }: ExerciseFieldsProps) {
       <div className="col-span-2 flex flex-col gap-2">
         {exercise.setTargets.map((target, index) => {
           const setNumber = index + 1
-          const repsId = `sets.${setNumber}.reps`
-          const weightId = `sets.${setNumber}.weight`
-          const rpeId = `sets.${setNumber}.rpe`
+          const repsId = `sets.${exercise.id}.${setNumber}.reps`
+          const weightId = `sets.${exercise.id}.${setNumber}.weight`
+          const rpeId = `sets.${exercise.id}.${setNumber}.rpe`
           return (
             <div key={setNumber} className="flex items-end gap-2">
               <span className="text-muted-foreground w-14 shrink-0 pb-2 text-sm font-semibold">
@@ -133,9 +133,11 @@ export function ExerciseFields({ exercise, onChange }: ExerciseFieldsProps) {
                   value={target.weightKg == null ? "" : displayWeight(target.weightKg, unitSystem)}
                   onChange={(event) => {
                     const parsed = Number.parseFloat(event.target.value)
-                    updateSet(index, {
-                      weightKg: Number.isNaN(parsed) ? null : parseWeightToKg(parsed, unitSystem),
-                    })
+                    const kg =
+                      Number.isNaN(parsed) || parsed <= 0
+                        ? null
+                        : parseWeightToKg(parsed, unitSystem)
+                    updateSet(index, { weightKg: kg })
                   }}
                 />
               </div>
@@ -159,7 +161,7 @@ export function ExerciseFields({ exercise, onChange }: ExerciseFieldsProps) {
                 type="button"
                 variant="ghost"
                 size="icon"
-                aria-label={`sets.${setNumber}.remove`}
+                aria-label={`sets.${exercise.id}.${setNumber}.remove`}
                 disabled={exercise.setTargets.length <= 1}
                 onClick={() => removeSet(index)}
               >
