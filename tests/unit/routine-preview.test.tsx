@@ -40,6 +40,7 @@ const routine: RoutineDTO = {
           targetReps: "8-12",
           restSeconds: 90,
           targetWeightKg: null,
+          setTargets: null,
           timerType: "none",
           workSeconds: null,
           rounds: null,

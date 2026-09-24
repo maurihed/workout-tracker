@@ -17,7 +17,7 @@ afterEach(async () => { await closeDb(); vi.unstubAllGlobals(); enqueueMock.mock
 
 const snapshot: SessionSnapshot = {
   routineId: "r1", routineDayId: "d1", name: "Push", nameEs: null, weekday: 1, label: "Push",
-  exercises: [{ order: 0, name: "Squat", nameEs: null, targetSets: 1, targetReps: "10", restSeconds: 0, targetWeightKg: null, timerType: "none", workSeconds: null, rounds: null }],
+  exercises: [{ order: 0, name: "Squat", nameEs: null, targetSets: 1, targetReps: "10", restSeconds: 0, targetWeightKg: null, setTargets: null, timerType: "none", workSeconds: null, rounds: null }],
 }
 
 describe("useSessionSync", () => {

@@ -7,9 +7,14 @@ import { useEffect, useRef, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { SessionSetType } from "@/features/workouts/hooks/use-active-session"
-import { displayWeight, parseWeightToKg } from "@/features/workouts/lib/units"
+import {
+  WeightField,
+  type UnitSystem,
+} from "@/features/workouts/components/weight-field"
 import type { SessionSetPatch } from "@/features/workouts/stores/session-store"
 import { cn } from "@/lib/utils"
+
+export type { UnitSystem }
 
 export type SetRowSet = {
   setNumber: number
@@ -21,8 +26,6 @@ export type SetRowSet = {
   restSecondsLogged: number | null
   completedAt: string | null
 }
-
-export type UnitSystem = "metric" | "imperial"
 
 type SetRowProps = {
   set: SetRowSet
@@ -37,11 +40,6 @@ function toNumberOrNull(value: string): number | null {
   if (value.trim() === "") return null
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : null
-}
-
-/** Display string for the canonical kg value, or `""` when unset. */
-function weightToDraft(weightKg: number | null, unitSystem: UnitSystem): string {
-  return weightKg == null ? "" : String(displayWeight(weightKg, unitSystem))
 }
 
 /** Display string for a reps value, or `""` when unset. */
@@ -67,23 +65,9 @@ export function SetRow({
   const repsValue = set.reps ?? prefill?.reps ?? null
   const weightValue = set.weightKg ?? prefill?.weightKg ?? null
 
-  // The weight field keeps its own string draft while the user types so the
-  // unit conversion (display <-> kg) never rewrites the focused input. Without
-  // this, imperial entry is unusable: `100` would round-trip through kg on every
-  // keystroke and redisplay as `100.1`, making `100` unreachable.
-  const [weightDraft, setWeightDraft] = useState(() =>
-    weightToDraft(weightValue, unitSystem),
-  )
-  const weightFocused = useRef(false)
-
-  useEffect(() => {
-    if (weightFocused.current) return
-    setWeightDraft(weightToDraft(weightValue, unitSystem))
-  }, [weightValue, unitSystem])
-
-  // Reps get the same local-draft treatment: once the user has touched the
-  // field, the `lastPerformance` prefill is never re-applied over their input,
-  // so clearing a prefilled field actually sticks.
+  // Reps get a local-draft treatment: once the user has touched the field, the
+  // `lastPerformance` prefill is never re-applied over their input, so clearing
+  // a prefilled field actually sticks.
   const [repsDraft, setRepsDraft] = useState(() => repsToDraft(repsValue))
   const repsTouched = useRef(false)
 
@@ -157,27 +141,12 @@ export function SetRow({
           <Label htmlFor={weightId} className="text-muted-foreground text-xs">
             {t("sets.weight")}
           </Label>
-          <Input
+          <WeightField
             id={weightId}
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="0.5"
-            value={weightDraft}
-            onFocus={() => {
-              weightFocused.current = true
-            }}
-            onBlur={() => {
-              weightFocused.current = false
-            }}
-            onChange={(event) => {
-              const raw = event.target.value
-              setWeightDraft(raw)
-              const value = toNumberOrNull(raw)
-              onChange({
-                weightKg: value == null ? null : parseWeightToKg(value, unitSystem),
-              })
-            }}
+            ariaLabel={t("sets.weight")}
+            unitSystem={unitSystem}
+            weightKg={weightValue}
+            onCommit={(weightKg) => onChange({ weightKg })}
             className={cn("h-11 text-center", completed && "text-muted-foreground")}
           />
         </div>

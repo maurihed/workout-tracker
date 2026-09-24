@@ -218,8 +218,10 @@ No existing key is renamed or removed.
 
 ## 12. Risks / open questions
 
-- Prisma `Json` null semantics: writes must use `Prisma.JsonNull` (not bare `null`) to clear
-  the column; reads return `JsonValue` and must pass through `parseSetTargets`.
+- Prisma `Json` null semantics: writing a routine with no per-set targets must clear the
+  column to SQL `NULL` via `Prisma.DbNull` (not bare `null`, and not `Prisma.JsonNull`,
+  which stores a JSON `null` value); reads return `JsonValue` and must pass through
+  `parseSetTargets`.
 - Weight unit conversion must not drift on repeated unit toggles (store kg; convert for display only).
 - The target chip wording when per-set targets exist is a minor UX choice; default to a
   `"{count} sets"` count and revisit if needed.

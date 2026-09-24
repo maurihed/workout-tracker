@@ -1,6 +1,11 @@
 import "server-only"
 import { prisma } from "@/lib/prisma"
-import type { Goal, Prisma, TimerType } from "@/generated/prisma/client"
+import { Prisma, type Goal, type TimerType } from "@/generated/prisma/client"
+import type { RoutineSetTarget } from "@/features/routines/schemas/routine"
+import {
+  normalizeRoutineSetTargets,
+  parseSetTargets,
+} from "@/features/routines/lib/set-targets"
 
 export const routineSelect = {
   id: true,
@@ -29,6 +34,7 @@ export const routineSelect = {
           targetReps: true,
           restSeconds: true,
           targetWeightKg: true,
+          setTargets: true,
           timerType: true,
           workSeconds: true,
           rounds: true,
@@ -40,8 +46,32 @@ export const routineSelect = {
   },
 } satisfies Prisma.RoutineSelect
 
-export function findActiveByUser(userId: string) {
-  return prisma.routine.findFirst({ where: { userId, isActive: true }, select: routineSelect })
+type NormalizedExercise<E> = {
+  [K in keyof E]: K extends "setTargets" ? RoutineSetTarget[] | null : E[K]
+}
+
+type NormalizedDay<D> = {
+  [K in keyof D]: K extends "exercises"
+    ? D[K] extends (infer E)[] ? NormalizedExercise<E>[] : never
+    : D[K]
+}
+
+type NormalizedRoutine<T extends { days: { exercises: { setTargets: unknown }[] }[] }> = {
+  [K in keyof T]: K extends "days" ? NormalizedDay<T[K][number]>[] : T[K]
+}
+
+function normalizeRoutine<T extends { days: { exercises: { setTargets: unknown }[] }[] }>(
+  routine: T,
+): NormalizedRoutine<T> {
+  return normalizeRoutineSetTargets(routine) as NormalizedRoutine<T>
+}
+
+export async function findActiveByUser(userId: string) {
+  const routine = await prisma.routine.findFirst({
+    where: { userId, isActive: true },
+    select: routineSelect,
+  })
+  return routine ? normalizeRoutine(routine) : null
 }
 
 /**
@@ -63,11 +93,12 @@ export function deactivateActive(tx: Prisma.TransactionClient, userId: string) {
 }
 
 /** Creates the routine (with nested days/exercises) and returns the DTO. */
-export function createWithDays(
+export async function createWithDays(
   tx: Prisma.TransactionClient,
   data: Prisma.RoutineUncheckedCreateInput,
 ) {
-  return tx.routine.create({ data, select: routineSelect })
+  const routine = await tx.routine.create({ data, select: routineSelect })
+  return normalizeRoutine(routine)
 }
 
 /**
@@ -132,8 +163,12 @@ export async function listByUser(userId: string): Promise<RoutineSummary[]> {
 }
 
 /** Ownership-scoped lookup for a single routine DTO. */
-export function findByIdForUser(userId: string, id: string) {
-  return prisma.routine.findFirst({ where: { id, userId }, select: routineSelect })
+export async function findByIdForUser(userId: string, id: string) {
+  const routine = await prisma.routine.findFirst({
+    where: { id, userId },
+    select: routineSelect,
+  })
+  return routine ? normalizeRoutine(routine) : null
 }
 
 export type RoutineHeaderInput = {
@@ -153,6 +188,7 @@ export type RoutineDayWriteInput = {
     targetReps: string
     restSeconds: number
     targetWeightKg: number | null
+    setTargets: RoutineSetTarget[] | null
     timerType: TimerType
     workSeconds: number | null
     rounds: number | null
@@ -160,9 +196,17 @@ export type RoutineDayWriteInput = {
   }[]
 }
 
+export type RoutineDuplicateSource = {
+  id: string
+  name: string
+  description: string | null
+  goal: Goal | null
+  days: RoutineDayWriteInput[]
+}
+
 /** Creates an empty, inactive manual routine. */
-export function createBlank(userId: string, data: RoutineHeaderInput) {
-  return prisma.routine.create({
+export async function createBlank(userId: string, data: RoutineHeaderInput) {
+  const routine = await prisma.routine.create({
     data: {
       userId,
       name: data.name,
@@ -173,6 +217,7 @@ export function createBlank(userId: string, data: RoutineHeaderInput) {
     },
     select: routineSelect,
   })
+  return normalizeRoutine(routine)
 }
 
 /**
@@ -188,7 +233,7 @@ export async function replaceDays(
   header: RoutineHeaderInput,
 ) {
   await tx.routineDay.deleteMany({ where: { routineId } })
-  return tx.routine.update({
+  const routine = await tx.routine.update({
     where: { id: routineId },
     data: {
       name: header.name,
@@ -212,6 +257,7 @@ export async function replaceDays(
               targetReps: e.targetReps,
               restSeconds: e.restSeconds,
               targetWeightKg: e.targetWeightKg,
+              setTargets: e.setTargets ?? Prisma.DbNull,
               timerType: e.timerType,
               workSeconds: e.workSeconds,
               rounds: e.rounds,
@@ -223,6 +269,7 @@ export async function replaceDays(
     },
     select: routineSelect,
   })
+  return normalizeRoutine(routine)
 }
 
 /** Deletes a routine owned by `userId`; returns the affected row count. */
@@ -238,16 +285,20 @@ export async function setActive(
   id: string,
 ) {
   await deactivateActive(tx, userId)
-  return tx.routine.update({
+  const routine = await tx.routine.update({
     where: { id },
     data: { isActive: true },
     select: routineSelect,
   })
+  return normalizeRoutine(routine)
 }
 
 /** Reads the full source routine graph used to deep-copy a duplicate. */
-export function duplicateSource(userId: string, id: string) {
-  return prisma.routine.findFirst({
+export async function duplicateSource(
+  userId: string,
+  id: string,
+): Promise<RoutineDuplicateSource | null> {
+  const source = await prisma.routine.findFirst({
     where: { id, userId },
     select: {
       id: true,
@@ -269,6 +320,7 @@ export function duplicateSource(userId: string, id: string) {
               targetReps: true,
               restSeconds: true,
               targetWeightKg: true,
+              setTargets: true,
               timerType: true,
               workSeconds: true,
               rounds: true,
@@ -279,4 +331,12 @@ export function duplicateSource(userId: string, id: string) {
       },
     },
   })
+  if (!source) return null
+  for (const day of source.days) {
+    for (const exercise of day.exercises) {
+      ;(exercise as { setTargets: RoutineSetTarget[] | null }).setTargets =
+        parseSetTargets(exercise.setTargets)
+    }
+  }
+  return source as unknown as RoutineDuplicateSource
 }

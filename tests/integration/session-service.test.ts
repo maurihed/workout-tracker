@@ -27,7 +27,7 @@ async function makeUserWithRoutine() {
       exercises: day.exercises.map((re) => ({
         id: re.id, order: re.order, exerciseId: re.exerciseId, customName: re.customName,
         targetSets: re.targetSets, targetReps: re.targetReps, restSeconds: re.restSeconds,
-        targetWeightKg: re.targetWeightKg, timerType: re.timerType, workSeconds: re.workSeconds,
+        targetWeightKg: re.targetWeightKg, setTargets: null, timerType: re.timerType, workSeconds: re.workSeconds,
         rounds: re.rounds, notes: re.notes,
         exercise: re.exercise ? { id: re.exercise.id, name: re.exercise.name, nameEs: re.exercise.nameEs, images: re.exercise.images } : null,
       })),

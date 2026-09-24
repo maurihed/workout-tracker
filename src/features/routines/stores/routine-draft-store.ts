@@ -1,8 +1,12 @@
 import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
 
+import { legacyTargetsToSetTargets } from "@/features/routines/lib/set-targets"
 import { moveItem } from "@/features/routines/lib/reorder"
-import type { RoutineInput } from "@/features/routines/schemas/routine"
+import type {
+  RoutineInput,
+  RoutineSetTarget,
+} from "@/features/routines/schemas/routine"
 
 export type TimerType = "none" | "interval" | "emom" | "amrap"
 export type Goal =
@@ -20,6 +24,7 @@ export type DraftExercise = {
   targetReps: string
   restSeconds: number
   targetWeightKg: number | null
+  setTargets: RoutineSetTarget[]
   timerType: TimerType
   workSeconds: number | null
   rounds: number | null
@@ -50,6 +55,7 @@ export type RoutineDraftSource = {
       targetReps: string
       restSeconds: number
       targetWeightKg: number | null
+      setTargets?: RoutineSetTarget[] | null
       timerType: TimerType
       workSeconds: number | null
       rounds: number | null
@@ -121,6 +127,33 @@ const emptyDraft = {
   isDirty: false,
 }
 
+export type PersistedDraft = Pick<
+  DraftState,
+  "routineId" | "name" | "description" | "goal" | "days" | "isDirty"
+>
+
+export function migrateDraftState(
+  persisted: unknown,
+  version: number,
+): PersistedDraft {
+  const state = (persisted ?? {}) as Partial<PersistedDraft>
+  if (version >= 1) return state as PersistedDraft
+  const days = (state.days ?? []).map((day) => ({
+    ...day,
+    exercises: (day.exercises ?? []).map((exercise) => ({
+      ...exercise,
+      setTargets:
+        exercise.setTargets ??
+        legacyTargetsToSetTargets(
+          exercise.targetSets,
+          exercise.targetReps,
+          exercise.targetWeightKg,
+        ),
+    })),
+  }))
+  return { ...state, days } as PersistedDraft
+}
+
 function createId(): string {
   return crypto.randomUUID()
 }
@@ -138,6 +171,13 @@ function toDraftDay(day: RoutineDraftSource["days"][number]): DraftDay {
       targetReps: exercise.targetReps,
       restSeconds: exercise.restSeconds,
       targetWeightKg: exercise.targetWeightKg,
+      setTargets:
+        exercise.setTargets ??
+        legacyTargetsToSetTargets(
+          exercise.targetSets,
+          exercise.targetReps,
+          exercise.targetWeightKg,
+        ),
       timerType: exercise.timerType,
       workSeconds: exercise.workSeconds,
       rounds: exercise.rounds,
@@ -208,6 +248,7 @@ export const useRoutineDraftStore = create<DraftState>()(
                       targetReps: "10",
                       restSeconds: 60,
                       targetWeightKg: null,
+                      setTargets: legacyTargetsToSetTargets(3, "10", null),
                       timerType: "none" as const,
                       workSeconds: null,
                       rounds: null,
@@ -302,6 +343,7 @@ export const useRoutineDraftStore = create<DraftState>()(
               targetReps: exercise.targetReps,
               restSeconds: exercise.restSeconds,
               targetWeightKg: exercise.targetWeightKg,
+              setTargets: exercise.setTargets,
               timerType: exercise.timerType,
               workSeconds: exercise.workSeconds,
               rounds: exercise.rounds,
@@ -317,6 +359,8 @@ export const useRoutineDraftStore = create<DraftState>()(
       name: "gym-routine-draft",
       storage: createJSONStorage(() => sessionStorage),
       skipHydration: true,
+      version: 1,
+      migrate: migrateDraftState,
       partialize: (state) => ({
         routineId: state.routineId,
         name: state.name,

@@ -1,5 +1,7 @@
 import { z } from "zod"
 
+import { routineSetTargetSchema } from "@/features/routines/schemas/routine"
+
 export const setTypeSchema = z.enum(["warmup", "working", "drop", "failure"])
 export const timerTypeSchema = z.enum(["none", "interval", "emom", "amrap"])
 
@@ -40,6 +42,7 @@ const snapshotExerciseSchema = z.object({
   targetReps: z.string().trim().max(50).nullable().default(null),
   restSeconds: z.number().int().min(0).max(3600).nullable().default(null),
   targetWeightKg: z.number().min(0).max(1000).nullable().default(null),
+  setTargets: z.array(routineSetTargetSchema).max(20).nullable().default(null),
   timerType: timerTypeSchema.nullable().default(null),
   workSeconds: z.number().int().min(0).max(86_400).nullable().default(null),
   rounds: z.number().int().min(0).max(1000).nullable().default(null),

@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query"
 import { api, type ApiEnvelope } from "@/lib/axios"
+import type { RoutineSetTarget } from "@/features/routines/schemas/routine"
 import { routineKeys } from "./query-keys"
 
 export type RoutineDTO = {
@@ -27,6 +28,7 @@ export type RoutineDTO = {
       targetReps: string
       restSeconds: number
       targetWeightKg: number | null
+      setTargets: RoutineSetTarget[] | null
       timerType: "none" | "interval" | "emom" | "amrap"
       workSeconds: number | null
       rounds: number | null
