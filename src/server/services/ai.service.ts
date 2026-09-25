@@ -1,17 +1,17 @@
 import "server-only"
-import { z } from "zod"
 import { NotFoundError, RateLimitError, ValidationError } from "@/lib/api-error"
 import { logger } from "@/lib/logger"
 import { consumeRateLimit } from "@/lib/rate-limit"
 import {
-  GOALS,
-  TIMER_TYPES,
   aiJobInputSchema,
+  aiJobResultSchema,
   contractJsonSchema,
   formatValidationError,
   generatedRoutineSchema,
   normalizeGeneratedRoutine,
   type AiJobInput,
+  type AiJobResult,
+  type AiRoutineDay,
   type GeneratedRoutine,
 } from "@/features/ai/lib/contract"
 import { PROMPT_VERSION, buildPrompt, type PromptCatalogEntry } from "@/features/ai/lib/prompt"
@@ -22,7 +22,7 @@ import {
   type ResolvedDay,
 } from "@/features/ai/lib/resolve-exercises"
 import { buildFallbackRoutine } from "@/features/ai/lib/template-fallback"
-import { Prisma, type Goal } from "@/generated/prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 import * as repo from "@/server/repositories/ai.repository"
 import { enqueueAiJob } from "@/server/ai/queue"
 
@@ -32,63 +32,12 @@ export const AI_JOB_RATE_LIMIT = 5
 const DAY_MS = 24 * 60 * 60 * 1000
 const MAX_GENERATION_ATTEMPTS = 4
 
-type GeneratedDay = GeneratedRoutine["days"][number]
-type GeneratedExercise = GeneratedDay["exercises"][number]
-
-export type AiRoutineExercise = GeneratedExercise & {
-  exerciseId: string | null
-  customName: string | null
-}
-
-export type AiRoutineDay = {
-  weekday: number
-  label: string | null
-  exercises: AiRoutineExercise[]
-}
-
-export type AiRoutine = {
-  name: string
-  goal: Goal | null
-  days: AiRoutineDay[]
-}
-
-export type AiJobResult = {
-  source: "ai" | "template"
-  customNames: string[]
-  routine: AiRoutine
-}
-
-const storedExerciseSchema = z.object({
-  sourceId: z.string().nullable().optional(),
-  name: z.string().nullable().optional(),
-  sets: z.number().int(),
-  reps: z.string(),
-  restSeconds: z.number().int(),
-  targetWeightKg: z.number().nullable().optional(),
-  timerType: z.enum(TIMER_TYPES),
-  workSeconds: z.number().int().nullable().optional(),
-  rounds: z.number().int().nullable().optional(),
-  exerciseId: z.string().nullable(),
-  customName: z.string().nullable(),
-})
-
-const storedDaySchema = z.object({
-  weekday: z.number().int().min(0).max(6),
-  label: z.string().nullable(),
-  exercises: z.array(storedExerciseSchema),
-})
-
-const storedRoutineSchema = z.object({
-  name: z.string(),
-  goal: z.enum(GOALS).nullable(),
-  days: z.array(storedDaySchema).min(1),
-})
-
-export const aiJobResultSchema = z.object({
-  source: z.enum(["ai", "template"]),
-  customNames: z.array(z.string()),
-  routine: storedRoutineSchema,
-})
+export type {
+  AiJobResult,
+  AiRoutine,
+  AiRoutineDay,
+  AiRoutineExercise,
+} from "@/features/ai/lib/contract"
 
 function toPromptCatalog(
   entries: readonly { sourceId: string; name: string }[],

@@ -1,10 +1,11 @@
 import { z } from "zod"
 import type { AiJob } from "@/generated/prisma/client"
-import { aiJobInputSchema, type AiJobInput } from "@/features/ai/lib/contract"
 import {
+  aiJobInputSchema,
   aiJobResultSchema,
+  type AiJobInput,
   type AiJobResult,
-} from "@/server/services/ai.service"
+} from "@/features/ai/lib/contract"
 
 export const AI_JOB_STATUSES = [
   "queued",

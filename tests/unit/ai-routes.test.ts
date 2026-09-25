@@ -1,18 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }))
-vi.mock("@/server/services/ai.service", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("@/server/services/ai.service")>()
-  return {
-    ...actual,
-    createJob: vi.fn(),
-    getJob: vi.fn(),
-    listJobs: vi.fn(),
-    cancelJob: vi.fn(),
-    acceptJob: vi.fn(),
-  }
-})
+vi.mock("@/server/services/ai.service", () => ({
+  createJob: vi.fn(),
+  getJob: vi.fn(),
+  listJobs: vi.fn(),
+  cancelJob: vi.fn(),
+  acceptJob: vi.fn(),
+}))
 
 import { auth } from "@/lib/auth"
 import { NotFoundError, RateLimitError, ValidationError } from "@/lib/api-error"

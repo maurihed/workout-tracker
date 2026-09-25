@@ -104,6 +104,61 @@ export function normalizeGeneratedRoutine(value: GeneratedRoutine): GeneratedRou
   return { ...value, name: value.name.trim(), days }
 }
 
+export type AiRoutineExercise = GeneratedExercise & {
+  exerciseId: string | null
+  customName: string | null
+}
+
+export type AiRoutineDay = {
+  weekday: number
+  label: string | null
+  exercises: AiRoutineExercise[]
+}
+
+export type AiRoutine = {
+  name: string
+  goal: (typeof GOALS)[number] | null
+  days: AiRoutineDay[]
+}
+
+export type AiJobResult = {
+  source: "ai" | "template"
+  customNames: string[]
+  routine: AiRoutine
+}
+
+export const storedExerciseSchema = z.object({
+  sourceId: z.string().nullable().optional(),
+  name: z.string().nullable().optional(),
+  sets: z.number().int(),
+  reps: z.string(),
+  restSeconds: z.number().int(),
+  targetWeightKg: z.number().nullable().optional(),
+  timerType: z.enum(TIMER_TYPES),
+  workSeconds: z.number().int().nullable().optional(),
+  rounds: z.number().int().nullable().optional(),
+  exerciseId: z.string().nullable(),
+  customName: z.string().nullable(),
+})
+
+export const storedDaySchema = z.object({
+  weekday: z.number().int().min(0).max(6),
+  label: z.string().nullable(),
+  exercises: z.array(storedExerciseSchema),
+})
+
+export const storedRoutineSchema = z.object({
+  name: z.string(),
+  goal: z.enum(GOALS).nullable(),
+  days: z.array(storedDaySchema).min(1),
+})
+
+export const aiJobResultSchema = z.object({
+  source: z.enum(["ai", "template"]),
+  customNames: z.array(z.string()),
+  routine: storedRoutineSchema,
+})
+
 export const contractJsonSchema = {
   type: "object",
   additionalProperties: false,
