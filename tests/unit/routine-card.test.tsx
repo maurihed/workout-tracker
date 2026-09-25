@@ -52,6 +52,28 @@ describe("RoutineCard", () => {
     expect(screen.getByRole("button", { name: /activate/i })).toBeDisabled()
   })
 
+  it("marks ai-generated routines", () => {
+    const { rerender } = render(
+      <RoutineCard
+        routine={{ ...routine, source: "ai" }}
+        onActivate={vi.fn()}
+        onDuplicate={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    )
+    expect(screen.getByText("fromAi")).toBeInTheDocument()
+
+    rerender(
+      <RoutineCard
+        routine={{ ...routine, source: "manual" }}
+        onActivate={vi.fn()}
+        onDuplicate={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    )
+    expect(screen.queryByText("fromAi")).not.toBeInTheDocument()
+  })
+
   it("fires duplicate", async () => {
     const onDuplicate = vi.fn()
     render(

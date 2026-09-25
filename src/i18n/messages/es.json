@@ -138,6 +138,7 @@
     "deleteConfirm": "Esto elimina permanentemente la rutina y todos sus días y ejercicios.",
     "deleteConfirmTitle": "¿Eliminar rutina?",
     "active": "Activa",
+    "fromAi": "Generada por IA",
     "dayCount": "días",
     "exerciseCount": "ejercicios",
     "copySuffix": "copia",

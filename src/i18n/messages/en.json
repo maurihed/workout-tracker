@@ -138,6 +138,7 @@
     "deleteConfirm": "This permanently deletes the routine and all of its days and exercises.",
     "deleteConfirmTitle": "Delete routine?",
     "active": "Active",
+    "fromAi": "AI generated",
     "dayCount": "days",
     "exerciseCount": "exercises",
     "copySuffix": "copy",

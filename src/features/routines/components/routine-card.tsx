@@ -56,9 +56,12 @@ export function RoutineCard({
         className="focus-visible:ring-ring/60 flex flex-col gap-(--card-spacing) rounded-t-3xl focus-visible:ring-3 focus-visible:outline-none"
       >
         <CardHeader>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <CardTitle className="truncate text-lg">{routine.name}</CardTitle>
             {routine.isActive ? <Badge>{t("active")}</Badge> : null}
+            {routine.source === "ai" ? (
+              <Badge variant="secondary">{t("fromAi")}</Badge>
+            ) : null}
           </div>
           {routine.description ? (
             <p className="text-muted-foreground line-clamp-2 text-sm">
