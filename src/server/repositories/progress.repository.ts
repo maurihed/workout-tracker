@@ -27,6 +27,31 @@ export function listCompletedSessionsWithMuscles(userId: string, from: Date, to:
   })
 }
 
+function exerciseProgressSelect(exerciseId: string) {
+  return {
+    id: true,
+    completedAt: true,
+    exercises: {
+      where: { exerciseId },
+      select: {
+        nameSnapshot: true,
+        sets: {
+          select: { reps: true, weightKg: true, type: true, completedAt: true },
+          orderBy: { setNumber: "asc" },
+        },
+      },
+    },
+  } satisfies Prisma.WorkoutSessionSelect
+}
+
+export function listCompletedSessionsForExercise(userId: string, exerciseId: string) {
+  return prisma.workoutSession.findMany({
+    where: { userId, status: "completed", exercises: { some: { exerciseId } } },
+    orderBy: { completedAt: "asc" },
+    select: exerciseProgressSelect(exerciseId),
+  })
+}
+
 export const exerciseNameSelect = {
   id: true,
   name: true,

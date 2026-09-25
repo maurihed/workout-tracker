@@ -140,28 +140,22 @@ export async function getOverview(userId: string, weeks: number): Promise<Overvi
 export async function getExerciseProgress(userId: string, exerciseId: string): Promise<ExerciseProgressDTO> {
   const profile = await profileRepository.findByUserId(userId)
   const timeZone = profile?.timezone ?? "UTC"
-  const sessions = await progressRepository.listCompletedSessionsWithMuscles(
-    userId,
-    new Date(0),
-    new Date(Date.now() + 2 * DAY_MS),
-  )
+  const sessions = await progressRepository.listCompletedSessionsForExercise(userId, exerciseId)
   const completed = sessions.filter(
-    (session): session is SessionRecord & { completedAt: Date } => session.completedAt !== null,
+    (session): session is (typeof sessions)[number] & { completedAt: Date } => session.completedAt !== null,
   )
   const seriesSessions = completed.map((session) => ({
     id: session.id,
     date: localDate(session.completedAt, timeZone),
     exercises: session.exercises.map((exercise) => ({
-      exerciseId: exercise.exerciseId,
-      sets: exercise.sets.map((set) => ({ reps: set.reps, weightKg: set.weightKg, type: set.type })),
+      exerciseId,
+      sets: exercise.sets,
     })),
   }))
   const points = seriesForExercise(seriesSessions, exerciseId)
   if (points.length === 0) throw new NotFoundError("Exercise not found")
 
-  const match = completed
-    .flatMap((session) => session.exercises)
-    .find((exercise) => exercise.exerciseId === exerciseId)
+  const match = completed.find((session) => session.exercises.length > 0)?.exercises[0]
   const catalog = await progressRepository.findExercise(exerciseId)
   return {
     exerciseId,

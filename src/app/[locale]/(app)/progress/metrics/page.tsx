@@ -86,7 +86,7 @@ export default function MetricsPage() {
             unitSystem={unitSystem}
             isPending={upsert.isPending}
             onSubmit={(draft) => {
-              void upsert.mutateAsync(draft)
+              upsert.mutate(draft)
             }}
           />
           <WeightTrendChart entries={entries} unitSystem={unitSystem} />

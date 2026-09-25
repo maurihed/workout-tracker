@@ -56,7 +56,35 @@ export function ExerciseProgressChart({
                   width={44}
                   domain={["auto", "auto"]}
                 />
-                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartTooltip
+                  content={
+                    <ChartTooltipContent
+                      formatter={(value, _name, item) => {
+                        const point = item.payload as SeriesPoint
+                        return (
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="text-muted-foreground">
+                                {t("e1rm")}
+                              </span>
+                              <span className="font-mono font-medium text-foreground tabular-nums">
+                                {formatWeight(Number(value), unitSystem)}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="text-muted-foreground">
+                                {t("topSet")}
+                              </span>
+                              <span className="font-mono font-medium text-foreground tabular-nums">
+                                {`${point.reps} × ${formatWeight(point.topWeightKg, unitSystem)}`}
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      }}
+                    />
+                  }
+                />
                 <Line
                   dataKey="e1rm"
                   type="monotone"

@@ -22,13 +22,22 @@ function addDays(date: string, days: number): string {
   return d.toISOString().slice(0, 10)
 }
 
-function makeUser() {
+function makeUser(timezone = "UTC") {
   return prisma.user.create({
     data: {
       email: `pa_${Date.now()}${Math.random()}${DOMAIN}`,
-      profile: { create: { timezone: "UTC", weekStartsOn: 1 } },
+      profile: { create: { timezone, weekStartsOn: 1 } },
     },
   })
+}
+
+function localDate(date: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date)
 }
 
 function makeExercise(suffix: string, primaryMuscles: string[], secondaryMuscles: string[]) {
@@ -48,6 +57,7 @@ function makeExercise(suffix: string, primaryMuscles: string[], secondaryMuscles
 type SeedSession = {
   userId: string
   date: string
+  at?: string
   exercises: {
     exerciseId: string | null
     nameSnapshot: string
@@ -56,12 +66,13 @@ type SeedSession = {
 }
 
 function seedSession(input: SeedSession) {
+  const completedAt = new Date(input.at ?? `${input.date}T12:00:00Z`)
   return prisma.workoutSession.create({
     data: {
       userId: input.userId,
       name: "Test session",
       status: "completed",
-      completedAt: new Date(`${input.date}T12:00:00Z`),
+      completedAt,
       snapshot: {},
       exercises: {
         create: input.exercises.map((exercise, index) => ({
@@ -77,9 +88,7 @@ function seedSession(input: SeedSession) {
               weightKg: set.weightKg,
               isPr: set.isPr ?? false,
               completedAt:
-                set.completedAt === undefined
-                  ? new Date(`${input.date}T12:00:00Z`)
-                  : set.completedAt,
+                set.completedAt === undefined ? completedAt : set.completedAt,
             })),
           },
         })),
@@ -161,6 +170,33 @@ describe("progress analytics service", () => {
     expect(overview.volumeByWeek).toEqual([
       { weekStart: lastWeek, volumeKg: 550, sessions: 1 },
       { weekStart: thisWeek, volumeKg: 2000, sessions: 2 },
+    ])
+  })
+
+  it("buckets weeks by the profile timezone rather than UTC", async () => {
+    const timeZone = "America/Los_Angeles"
+    const user = await makeUser(timeZone)
+    const ex = await makeExercise("TZ", ["chest"], [])
+    const today = localDate(new Date(), timeZone)
+    const thisWeek = weekStart(today, 1)
+    const previousWeek = addDays(thisWeek, -7)
+
+    await seedSession({
+      userId: user.id,
+      date: thisWeek,
+      at: `${thisWeek}T02:00:00Z`,
+      exercises: [
+        {
+          exerciseId: ex.id,
+          nameSnapshot: "Progress TZ",
+          sets: [{ reps: 5, weightKg: 20 }],
+        },
+      ],
+    })
+
+    const overview = await getOverview(user.id, 4)
+    expect(overview.volumeByWeek).toEqual([
+      { weekStart: previousWeek, volumeKg: 100, sessions: 1 },
     ])
   })
 
