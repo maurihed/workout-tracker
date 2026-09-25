@@ -41,14 +41,60 @@ describe("listRecentExerciseHistory", () => {
   it("returns only completed working sets within the window", async () => {
     const user = await makeUser()
     const exercise = await prisma.exercise.findFirstOrThrow({ where: { sourceId: "Barbell_Full_Squat" } })
-    await seedSession(user.id, exercise.id, new Date("2026-09-20T10:00:00Z"), 100, 5)
-    await seedSession(user.id, exercise.id, new Date("2020-01-01T10:00:00Z"), 500, 1)
+    const inWindow = new Date(Date.now() - 10 * 86_400_000)
+    const outOfWindow = new Date(Date.now() - 200 * 86_400_000)
+
+    await seedSession(user.id, exercise.id, outOfWindow, 500, 1)
+
+    await prisma.workoutSession.create({
+      data: {
+        userId: user.id,
+        name: "s",
+        status: "completed",
+        completedAt: inWindow,
+        snapshot: {},
+        exercises: {
+          create: [
+            {
+              exerciseId: exercise.id,
+              order: 0,
+              nameSnapshot: "Barbell Full Squat",
+              completed: true,
+              sets: {
+                create: [
+                  { setNumber: 1, type: "working", weightKg: 100, reps: 5, completedAt: inWindow },
+                  { setNumber: 2, type: "warmup", weightKg: 200, reps: 3, completedAt: inWindow },
+                  { setNumber: 3, type: "working", weightKg: 150, reps: 8, completedAt: null },
+                ],
+              },
+            },
+            {
+              exerciseId: exercise.id,
+              order: 1,
+              nameSnapshot: "Barbell Full Squat",
+              completed: false,
+              skipped: true,
+              sets: {
+                create: {
+                  setNumber: 1,
+                  type: "working",
+                  weightKg: 300,
+                  reps: 2,
+                  completedAt: inWindow,
+                },
+              },
+            },
+          ],
+        },
+      },
+    })
 
     const rows = await listRecentExerciseHistory(user.id, {
       since: new Date(Date.now() - 84 * 86_400_000),
       maxSessions: 60,
     })
     expect(rows).toHaveLength(1)
+    expect(rows[0]?.exercises).toHaveLength(1)
     expect(rows[0]?.exercises[0]?.sets).toEqual([{ weightKg: 100, reps: 5 }])
   })
 })
