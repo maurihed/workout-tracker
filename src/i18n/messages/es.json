@@ -187,6 +187,39 @@
     "orphanExercise": "Uno o más ejercicios no tienen referencia de catálogo. Quítalos y vuelve a añadirlos.",
     "emptyDays": "Aún no hay días. Añade uno para empezar a crear tu rutina."
   },
+  "ai": {
+    "title": "Genera una rutina con IA",
+    "form": {
+      "goal": "Objetivo",
+      "experience": "Experiencia",
+      "equipment": "Equipo",
+      "daysPerWeek": "Días por semana",
+      "focus": "Enfoque (opcional)",
+      "submit": "Generar rutina"
+    },
+    "status": {
+      "queued": "En cola",
+      "running": "Generando…",
+      "succeeded": "Lista para revisar",
+      "failed": "La generación falló",
+      "cancelled": "Cancelada"
+    },
+    "preview": {
+      "accept": "Aceptar y guardar",
+      "regenerate": "Volver a generar",
+      "discard": "Descartar",
+      "customNote": "Este ejercicio aún no está en nuestro catálogo y se añadirá como ejercicio personalizado.",
+      "provenance": "Generada por IA ({model})",
+      "template": "Creada a partir de una plantilla porque la generación con IA no estaba disponible."
+    },
+    "disclaimer": "Estas rutinas son solo sugerencias y no constituyen consejo médico. Consulta a un profesional cualificado antes de empezar o cambiar un programa de entrenamiento, y detente de inmediato si sientes dolor o te lesionas.",
+    "errors": {
+      "generic": "Algo salió mal al generar tu rutina. Inténtalo de nuevo.",
+      "rateLimited": "Has alcanzado el límite de generaciones. Inténtalo de nuevo en breve.",
+      "notFound": "No se encontró esa solicitud de generación.",
+      "unavailable": "La generación con IA no está disponible ahora mismo. Usaremos una plantilla en su lugar."
+    }
+  },
   "picker": {
     "title": "Añadir ejercicios",
     "back": "Atrás",
