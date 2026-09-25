@@ -26,6 +26,7 @@ function RoutinesSkeleton({ label }: { label: string }) {
 
 export default function RoutinesPage() {
   const t = useTranslations("routines")
+  const tAi = useTranslations("ai")
   const tNav = useTranslations("nav")
   const tCommon = useTranslations("common")
   const locale = useLocale()
@@ -36,13 +37,20 @@ export default function RoutinesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-heading text-3xl font-bold tracking-tight">
           {tNav("routines")}
         </h1>
-        <Button asChild className="h-12">
-          <Link href={`/${locale}/routines/new`}>{t("new")}</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" className="h-12">
+            <Link href={`/${locale}/routines/generate`}>
+              {tAi("form.submit")}
+            </Link>
+          </Button>
+          <Button asChild className="h-12">
+            <Link href={`/${locale}/routines/new`}>{t("new")}</Link>
+          </Button>
+        </div>
       </div>
 
       {isLoading ? <RoutinesSkeleton label={tCommon("loading")} /> : null}
