@@ -69,7 +69,11 @@ describe("createOpenAiProvider", () => {
     expect(captured?.body.messages).toEqual([{ role: "user", content: "build me a routine" }])
     expect(captured?.body.response_format).toEqual({
       type: "json_schema",
-      json_schema: contractJsonSchema,
+      json_schema: {
+        name: "generated_routine",
+        schema: contractJsonSchema,
+        strict: false,
+      },
     })
     expect(result).toEqual({ name: "Full Body", days: [] })
   })

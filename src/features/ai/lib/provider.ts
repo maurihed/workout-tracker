@@ -118,7 +118,14 @@ export function createOpenAiProvider(config: ProviderConfig): AiProvider {
           model: config.model,
           messages: [{ role: "user", content: prompt }],
           temperature: 0,
-          response_format: { type: "json_schema", json_schema: schema },
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "generated_routine",
+              schema,
+              strict: false,
+            },
+          },
         },
         buildHeaders(config.apiKey),
         timeoutMs,

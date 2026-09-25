@@ -49,6 +49,12 @@ export const generatedRoutineSchema = z
 
 export type GeneratedRoutine = z.infer<typeof generatedRoutineSchema>
 
+export function formatValidationError(error: z.ZodError): string {
+  return error.issues
+    .map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`)
+    .join("; ")
+}
+
 export const aiJobInputSchema = z.object({
   goal: z.enum(GOALS),
   experience: z.enum(EXPERIENCES),

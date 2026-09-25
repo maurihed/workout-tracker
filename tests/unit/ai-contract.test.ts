@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   aiJobInputSchema,
   contractJsonSchema,
+  formatValidationError,
   generatedRoutineSchema,
   normalizeGeneratedRoutine,
 } from "@/features/ai/lib/contract"
@@ -138,6 +139,27 @@ describe("aiJobInputSchema", () => {
 describe("contractJsonSchema", () => {
   it("is a plain serializable object", () => {
     expect(JSON.parse(JSON.stringify(contractJsonSchema))).toEqual(contractJsonSchema)
+  })
+})
+
+describe("formatValidationError", () => {
+  it("summarizes each issue with its path", () => {
+    const result = generatedRoutineSchema.safeParse({ name: "x" })
+    expect(result.success).toBe(false)
+    if (result.success) return
+    const message = formatValidationError(result.error)
+    expect(message).toContain("days")
+    expect(message.length).toBeGreaterThan(0)
+  })
+
+  it("labels nested array paths with indices", () => {
+    const result = generatedRoutineSchema.safeParse({
+      name: "x",
+      days: [{ weekday: 0, exercises: [{ sets: 0, reps: "5", restSeconds: 60, timerType: "none" }] }],
+    })
+    expect(result.success).toBe(false)
+    if (result.success) return
+    expect(formatValidationError(result.error)).toContain("days.0.exercises.0.sets")
   })
 })
 
