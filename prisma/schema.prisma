@@ -25,6 +25,7 @@ model User {
   xpEvents        XpEvent[]
   achievements    UserAchievement[]
   bodyMetrics     BodyMetric[]
+  aiJobs          AiJob[]
 }
 
 model Account {
@@ -175,6 +176,7 @@ model Routine {
   descriptionEs String?
   goal          Goal?
   source        RoutineSource @default(manual)
+  aiJobId       String?
   isActive      Boolean       @default(false)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -219,6 +221,34 @@ model RoutineExercise {
 
   @@index([routineDayId])
   @@index([exerciseId])
+}
+
+enum AiJobStatus {
+  queued
+  running
+  succeeded
+  failed
+  cancelled
+}
+
+model AiJob {
+  id            String      @id @default(cuid())
+  userId        String
+  status        AiJobStatus @default(queued)
+  input         Json
+  result        Json?
+  model         String?
+  promptVersion String?
+  error         String?
+  attempts      Int         @default(0)
+  createdAt     DateTime    @default(now())
+  startedAt     DateTime?
+  finishedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([status])
 }
 
 enum SessionStatus {
