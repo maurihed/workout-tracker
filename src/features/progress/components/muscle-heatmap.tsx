@@ -77,6 +77,7 @@ export function MuscleHeatmap({
         <BodyMap
           levels={levels}
           labelFor={labelFor}
+          sideLabelFor={(side) => t(`side.${side}`)}
           volumeFor={volumeFor}
           ariaLabel={t("title")}
           selected={selected}

@@ -44,13 +44,13 @@ describe("MuscleHeatmap", () => {
 
   it("labels each region with its name and volume and keeps it focusable", () => {
     renderHeatmap([{ muscle: "chest", volumeKg: 100 }])
-    const chest = screen.getByRole("button", { name: "Chest, 100 kg" })
+    const chest = screen.getByRole("button", { name: "Chest, Front, 100 kg" })
     expect(chest).toHaveAttribute("tabindex", "0")
   })
 
   it("reveals the selected region name and volume when tapped", () => {
     renderHeatmap([{ muscle: "chest", volumeKg: 100 }])
-    fireEvent.click(screen.getByRole("button", { name: "Chest, 100 kg" }))
+    fireEvent.click(screen.getByRole("button", { name: "Chest, Front, 100 kg" }))
     const detail = screen.getByRole("status")
     expect(detail).toHaveTextContent("Chest")
     expect(detail).toHaveTextContent("100 kg")

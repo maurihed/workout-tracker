@@ -1,7 +1,7 @@
 "use client"
 
 import { ChartLine } from "@phosphor-icons/react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
 
 import { EmptyState } from "@/components/shared/empty-state"
@@ -32,6 +32,7 @@ export function VolumeChart({
   unitSystem = "metric",
 }: VolumeChartProps) {
   const t = useTranslations("analytics")
+  const locale = useLocale()
 
   const config = {
     volumeKg: { label: t("volume"), color: "var(--color-chart-1)" },
@@ -56,8 +57,25 @@ export function VolumeChart({
                   axisLine={false}
                   tickMargin={8}
                 />
-                <YAxis tickLine={false} axisLine={false} width={40} />
-                <ChartTooltip content={<ChartTooltipContent />} />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  width={44}
+                  tickFormatter={(value) =>
+                    new Intl.NumberFormat(locale, {
+                      notation: "compact",
+                    }).format(Number(value))
+                  }
+                />
+                <ChartTooltip
+                  content={
+                    <ChartTooltipContent
+                      formatter={(value) =>
+                        formatWeight(Number(value), unitSystem)
+                      }
+                    />
+                  }
+                />
                 <Area
                   dataKey="volumeKg"
                   type="monotone"

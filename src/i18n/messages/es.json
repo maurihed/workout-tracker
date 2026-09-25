@@ -287,6 +287,7 @@
     "sessions": "Sesiones",
     "consistency": "Constancia",
     "weeks": "Semanas",
+    "lastWeeks": "Últimas {count} semanas",
     "empty": "Aún no hay datos. Completa un entrenamiento para ver tu progreso.",
     "weekOf": "Semana del {date}"
   },
@@ -296,6 +297,10 @@
     "legendHigh": "Más",
     "custom": "Incluye ejercicios personalizados",
     "empty": "Aún no hay datos musculares.",
+    "side": {
+      "front": "Frontal",
+      "back": "Posterior"
+    },
     "regions": {
       "chest": "Pecho",
       "back": "Espalda",

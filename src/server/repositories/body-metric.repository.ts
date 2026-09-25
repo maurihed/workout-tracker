@@ -11,16 +11,18 @@ export const bodyMetricSelect = {
 
 export type BodyMetricRecord = Prisma.BodyMetricGetPayload<{ select: typeof bodyMetricSelect }>
 
-export function listByUser(userId: string, range: { from?: Date; to?: Date }) {
+export async function listByUser(userId: string, range: { from?: Date; to?: Date }) {
   const recordedOn = {
     ...(range.from ? { gte: range.from } : {}),
     ...(range.to ? { lte: range.to } : {}),
   }
-  return prisma.bodyMetric.findMany({
+  const rows = await prisma.bodyMetric.findMany({
     where: { userId, ...(range.from || range.to ? { recordedOn } : {}) },
-    orderBy: { recordedOn: "asc" },
+    orderBy: { recordedOn: "desc" },
+    take: 730,
     select: bodyMetricSelect,
   })
+  return rows.reverse()
 }
 
 export function upsertForUser(

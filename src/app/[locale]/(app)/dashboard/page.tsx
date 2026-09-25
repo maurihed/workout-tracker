@@ -112,7 +112,10 @@ export default function DashboardPage() {
             onWeeksChange={setWeeks}
             unitSystem={unitSystem}
           />
-          <ConsistencyChart volumeByWeek={analytics.data.volumeByWeek} />
+          <ConsistencyChart
+            volumeByWeek={analytics.data.volumeByWeek}
+            weeks={weeks}
+          />
           <MuscleHeatmap
             muscleVolume={analytics.data.muscleVolume}
             unitSystem={unitSystem}

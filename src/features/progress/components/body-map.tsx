@@ -108,6 +108,7 @@ export function heatOpacity(level: number): number {
 type BodyMapProps = {
   levels: Partial<Record<RegionId, number>>
   labelFor: (region: RegionId) => string
+  sideLabelFor: (side: "front" | "back") => string
   volumeFor: (region: RegionId) => string
   ariaLabel: string
   selected: RegionId | null
@@ -117,6 +118,7 @@ type BodyMapProps = {
 export function BodyMap({
   levels,
   labelFor,
+  sideLabelFor,
   volumeFor,
   ariaLabel,
   selected,
@@ -148,7 +150,7 @@ export function BodyMap({
             d={shape.d}
             role="button"
             tabIndex={0}
-            aria-label={`${labelFor(shape.region)}, ${volumeFor(shape.region)}`}
+            aria-label={`${labelFor(shape.region)}, ${sideLabelFor(shape.side)}, ${volumeFor(shape.region)}`}
             aria-pressed={isSelected}
             className={cn(
               "fill-primary focus-visible:stroke-primary cursor-pointer outline-none transition-[fill-opacity] focus-visible:stroke-2",

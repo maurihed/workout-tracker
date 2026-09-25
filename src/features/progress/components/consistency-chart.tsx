@@ -16,9 +16,10 @@ import type { WeekBucket } from "@/features/progress/lib/volume"
 
 export type ConsistencyChartProps = {
   volumeByWeek: WeekBucket[]
+  weeks?: number
 }
 
-export function ConsistencyChart({ volumeByWeek }: ConsistencyChartProps) {
+export function ConsistencyChart({ volumeByWeek, weeks }: ConsistencyChartProps) {
   const t = useTranslations("analytics")
 
   const config = {
@@ -29,6 +30,11 @@ export function ConsistencyChart({ volumeByWeek }: ConsistencyChartProps) {
     <Card>
       <CardHeader>
         <CardTitle>{t("consistency")}</CardTitle>
+        {weeks ? (
+          <p className="text-muted-foreground text-xs">
+            {t("lastWeeks", { count: weeks })}
+          </p>
+        ) : null}
       </CardHeader>
       <CardContent>
         {volumeByWeek.length === 0 ? (
