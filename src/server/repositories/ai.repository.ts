@@ -1,6 +1,7 @@
 import "server-only"
 import { prisma } from "@/lib/prisma"
 import type { Prisma } from "@/generated/prisma/client"
+import type { HistorySession } from "@/features/ai/lib/history"
 import { createWithDays, withTransaction } from "@/server/repositories/routine.repository"
 
 export function createJob(userId: string, input: Prisma.InputJsonValue) {
@@ -93,6 +94,56 @@ export function listCatalogEntries() {
     select: { id: true, sourceId: true, name: true, primaryMuscles: true },
     orderBy: { sourceId: "asc" },
   })
+}
+
+export async function listRecentExerciseHistory(
+  userId: string,
+  options: { since: Date; maxSessions: number },
+): Promise<HistorySession[]> {
+  const sessions = await prisma.workoutSession.findMany({
+    where: { userId, status: "completed", completedAt: { gte: options.since } },
+    orderBy: { completedAt: "desc" },
+    take: options.maxSessions,
+    select: {
+      completedAt: true,
+      exercises: {
+        where: { completed: true, skipped: false },
+        select: {
+          exerciseId: true,
+          nameSnapshot: true,
+          sets: {
+            where: {
+              type: "working",
+              completedAt: { not: null },
+              weightKg: { not: null },
+              reps: { not: null },
+            },
+            select: { weightKg: true, reps: true },
+          },
+        },
+      },
+    },
+  })
+
+  return sessions.flatMap((session) =>
+    session.completedAt
+      ? [
+          {
+            completedAt: session.completedAt.toISOString(),
+            exercises: session.exercises
+              .filter((exercise) => exercise.sets.length > 0)
+              .map((exercise) => ({
+                exerciseId: exercise.exerciseId,
+                nameSnapshot: exercise.nameSnapshot,
+                sets: exercise.sets.map((set) => ({
+                  weightKg: set.weightKg ?? 0,
+                  reps: set.reps ?? 0,
+                })),
+              })),
+          },
+        ]
+      : [],
+  )
 }
 
 export function findRoutineByJobId(userId: string, aiJobId: string) {
