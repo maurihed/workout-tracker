@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { bucketByWeek, windowStart } from "@/features/progress/lib/volume"
+import { bucketByWeek, fillWeekGaps, windowStart } from "@/features/progress/lib/volume"
 
 describe("progress volume", () => {
   it("computes a window start N weeks back", () => {
@@ -18,5 +18,11 @@ describe("progress volume", () => {
       { weekStart: "2026-01-05", volumeKg: 150, sessions: 2 },
       { weekStart: "2026-01-12", volumeKg: 200, sessions: 1 },
     ])
+  })
+  it("fills zero-volume week gaps across the window", () => {
+    const out = fillWeekGaps(bucketByWeek([{ completedDate: "2026-01-12", volumeKg: 200 }], 1), "2025-12-29", "2026-01-19", 1)
+    expect(out.map((b) => b.weekStart)).toEqual(["2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19"])
+    expect(out[0]).toEqual({ weekStart: "2025-12-29", volumeKg: 0, sessions: 0 })
+    expect(out[2]?.volumeKg).toBe(200)
   })
 })

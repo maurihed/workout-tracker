@@ -1,7 +1,6 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import * as React from "react"
 import type { ComponentType } from "react"
 
 import { Skeleton } from "@/components/ui/skeleton"
@@ -29,28 +28,4 @@ export function chartBoundary<P extends object>(
     ssr: false,
     loading: () => <ChartSkeleton className={skeletonClassName} />,
   })
-}
-
-function subscribe() {
-  return () => {}
-}
-
-export function ChartShell({
-  children,
-  className,
-}: {
-  children: React.ReactNode
-  className?: string | undefined
-}) {
-  const mounted = React.useSyncExternalStore(
-    subscribe,
-    () => true,
-    () => false
-  )
-
-  if (!mounted) {
-    return <ChartSkeleton className={className} />
-  }
-
-  return <div className={className}>{children}</div>
 }

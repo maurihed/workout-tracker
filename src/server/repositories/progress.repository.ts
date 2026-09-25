@@ -63,3 +63,7 @@ export type ExerciseNameRecord = Prisma.ExerciseGetPayload<{ select: typeof exer
 export function findExercise(exerciseId: string) {
   return prisma.exercise.findUnique({ where: { id: exerciseId }, select: exerciseNameSelect })
 }
+
+export function findExercises(ids: string[]) {
+  return prisma.exercise.findMany({ where: { id: { in: ids } }, select: exerciseNameSelect })
+}

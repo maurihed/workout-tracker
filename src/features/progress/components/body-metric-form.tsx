@@ -78,12 +78,16 @@ export function BodyMetricForm({
     event.preventDefault()
     const weightValue = weight.trim() === "" ? null : Number(weight)
     const bodyFatValue = bodyFat.trim() === "" ? null : Number(bodyFat)
-    const hasWeight =
-      weightValue != null && Number.isFinite(weightValue) && weightValue >= 0
-    const hasBodyFat =
-      bodyFatValue != null && Number.isFinite(bodyFatValue) && bodyFatValue >= 0
+    const weightValid =
+      weightValue == null ||
+      (Number.isFinite(weightValue) && weightValue >= 0)
+    const bodyFatValid =
+      bodyFatValue == null ||
+      (Number.isFinite(bodyFatValue) && bodyFatValue >= 0)
+    const hasWeight = weightValue != null && weightValid
+    const hasBodyFat = bodyFatValue != null && bodyFatValid
 
-    if (!hasWeight && !hasBodyFat) {
+    if (!weightValid || !bodyFatValid || (!hasWeight && !hasBodyFat)) {
       setError(true)
       return
     }

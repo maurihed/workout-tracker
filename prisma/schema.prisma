@@ -312,7 +312,6 @@ model BodyMetric {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, recordedOn])
-  @@index([userId, recordedOn])
 }
 
 model UserStats {

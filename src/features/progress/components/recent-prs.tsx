@@ -28,7 +28,7 @@ export function RecentPrs({ items, unitSystem = "metric" }: RecentPrsProps) {
           <EmptyState icon={Trophy} title={t("empty")} />
         ) : (
           <ul className="flex flex-col gap-2">
-            {items.map((item, index) => {
+            {items.map((item) => {
               const name =
                 locale === "es" ? (item.nameEs ?? item.name) : item.name
               const date = new Intl.DateTimeFormat(locale, {
@@ -37,7 +37,7 @@ export function RecentPrs({ items, unitSystem = "metric" }: RecentPrsProps) {
               }).format(new Date(`${item.date}T00:00:00Z`))
 
               return (
-                <li key={`${item.sessionId}-${item.exerciseId}-${index}`}>
+                <li key={`${item.sessionId}-${item.exerciseId}`}>
                   <Link
                     href={`/${locale}/progress/exercise/${item.exerciseId}`}
                     className="bg-muted/40 border-border hover:bg-muted flex min-h-11 items-center justify-between gap-3 rounded-2xl border px-3.5 py-2 transition-colors"

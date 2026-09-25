@@ -167,7 +167,8 @@ describe("progress analytics service", () => {
   it("aggregates weekly volume excluding warm-ups and out-of-window sessions", async () => {
     const { user, thisWeek, lastWeek } = await seedAnalyticsData()
     const overview = await getOverview(user.id, 4)
-    expect(overview.volumeByWeek).toEqual([
+    expect(overview.volumeByWeek).toHaveLength(4)
+    expect(overview.volumeByWeek.filter((bucket) => bucket.sessions > 0)).toEqual([
       { weekStart: lastWeek, volumeKg: 550, sessions: 1 },
       { weekStart: thisWeek, volumeKg: 2000, sessions: 2 },
     ])
@@ -195,7 +196,7 @@ describe("progress analytics service", () => {
     })
 
     const overview = await getOverview(user.id, 4)
-    expect(overview.volumeByWeek).toEqual([
+    expect(overview.volumeByWeek.filter((bucket) => bucket.sessions > 0)).toEqual([
       { weekStart: previousWeek, volumeKg: 100, sessions: 1 },
     ])
   })
@@ -239,7 +240,13 @@ describe("progress analytics service", () => {
   it("scopes the overview to the owner", async () => {
     await seedAnalyticsData()
     const other = await makeUser()
-    expect(await getOverview(other.id, 4)).toEqual({ volumeByWeek: [], muscleVolume: [], recentPrs: [] })
+    const overview = await getOverview(other.id, 4)
+    expect(overview.volumeByWeek).toHaveLength(4)
+    expect(
+      overview.volumeByWeek.every((bucket) => bucket.volumeKg === 0 && bucket.sessions === 0),
+    ).toBe(true)
+    expect(overview.muscleVolume).toEqual([])
+    expect(overview.recentPrs).toEqual([])
   })
 
   it("builds a per-exercise e1rm series sorted by date", async () => {

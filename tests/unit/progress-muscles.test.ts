@@ -17,6 +17,12 @@ describe("muscle mapping", () => {
     expect(heatLevel(0, 100)).toBe(0)
     expect(heatLevel(50, 100)).toBeCloseTo(0.5)
     expect(heatLevel(100, 0)).toBe(0)
+    expect(heatLevel(200, 100)).toBe(1)
+    expect(heatLevel(-5, 100)).toBe(0)
+  })
+  it("orders regions as declared", () => {
+    expect(MUSCLE_REGIONS[0]?.id).toBe("chest")
+    expect(MUSCLE_REGIONS[MUSCLE_REGIONS.length - 1]?.id).toBe("custom")
   })
   it("has unique ordered regions", () => {
     expect(new Set(MUSCLE_REGIONS.map((r) => r.id)).size).toBe(MUSCLE_REGIONS.length)

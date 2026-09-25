@@ -1,6 +1,6 @@
 import "server-only"
 import { NotFoundError } from "@/lib/api-error"
-import { bucketByWeek, windowStart } from "@/features/progress/lib/volume"
+import { bucketByWeek, fillWeekGaps, windowStart } from "@/features/progress/lib/volume"
 import { creditMuscles, MUSCLE_REGIONS, type RegionId } from "@/features/progress/lib/muscles"
 import { seriesForExercise } from "@/features/progress/lib/one-rm"
 import { recentPrs } from "@/features/progress/lib/pr"
@@ -60,13 +60,9 @@ function sessionVolume(session: SessionRecord): number {
 
 async function loadExerciseNames(ids: string[]) {
   const unique = [...new Set(ids)]
-  const rows = await Promise.all(unique.map((id) => progressRepository.findExercise(id)))
-  const names = new Map<string, progressRepository.ExerciseNameRecord>()
-  unique.forEach((id, index) => {
-    const row = rows[index]
-    if (row) names.set(id, row)
-  })
-  return names
+  if (unique.length === 0) return new Map<string, progressRepository.ExerciseNameRecord>()
+  const rows = await progressRepository.findExercises(unique)
+  return new Map(rows.map((row) => [row.id, row]))
 }
 
 export async function getOverview(userId: string, weeks: number): Promise<OverviewDTO> {
@@ -86,8 +82,13 @@ export async function getOverview(userId: string, weeks: number): Promise<Overvi
     return date >= start && date <= today
   })
 
-  const volumeByWeek = bucketByWeek(
-    windowed.map((session) => ({ completedDate: localDate(session.completedAt, timeZone), volumeKg: sessionVolume(session) })),
+  const volumeByWeek = fillWeekGaps(
+    bucketByWeek(
+      windowed.map((session) => ({ completedDate: localDate(session.completedAt, timeZone), volumeKg: sessionVolume(session) })),
+      weekStartsOn,
+    ),
+    start,
+    today,
     weekStartsOn,
   )
 
@@ -129,10 +130,14 @@ export async function getOverview(userId: string, weeks: number): Promise<Overvi
   }))
   const prItems = recentPrs(prSessions, RECENT_PR_LIMIT)
   const names = await loadExerciseNames(prItems.map((item) => item.exerciseId))
-  const recentPrItems: PrItemDTO[] = prItems.map((item) => ({
-    ...item,
-    nameEs: names.get(item.exerciseId)?.nameEs ?? null,
-  }))
+  const recentPrItems: PrItemDTO[] = prItems.map((item) => {
+    const catalog = names.get(item.exerciseId)
+    return {
+      ...item,
+      name: catalog?.name ?? item.name,
+      nameEs: catalog?.nameEs ?? null,
+    }
+  })
 
   return { volumeByWeek, muscleVolume, recentPrs: recentPrItems }
 }
