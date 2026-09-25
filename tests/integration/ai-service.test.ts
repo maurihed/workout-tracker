@@ -18,6 +18,8 @@ vi.mock("@/server/ai/queue", () => ({
 
 import {
   AI_JOB_DAILY_LIMIT,
+  AI_JOB_MAX_ATTEMPTS,
+  AI_JOB_STALE_MS,
   acceptJob,
   cancelJob,
   createJob,
@@ -200,6 +202,116 @@ describe("ai service", () => {
     expect((stored.result as unknown as AiJobResult).source).toBe("template")
   })
 
+  it("falls back to a non-empty template when the model returns a zero-exercise day", async () => {
+    const user = await makeUser()
+    const job = await createJob(user.id, INPUT)
+    const provider = providerReturning({
+      name: "Empty",
+      goal: "build_muscle",
+      days: [{ weekday: 0, exercises: [] }],
+    })
+
+    await runJob(job.id, provider)
+
+    expect(provider.generateJson.mock.calls.length).toBeGreaterThan(1)
+    const stored = await prisma.aiJob.findUniqueOrThrow({
+      where: { id: job.id },
+    })
+    expect(stored.status).toBe("succeeded")
+    const result = stored.result as unknown as AiJobResult
+    expect(result.source).toBe("template")
+    expect(result.routine.days.length).toBeGreaterThan(0)
+    expect(result.routine.days[0]!.exercises.length).toBeGreaterThan(0)
+  })
+
+  it("saves a template fallback as a template-sourced routine", async () => {
+    const user = await makeUser()
+    const job = await createJob(user.id, INPUT)
+    const provider: AiProvider = {
+      generateJson: vi.fn(async () => {
+        throw new AiUnavailableError()
+      }),
+    }
+
+    await runJob(job.id, provider)
+    const { routineId } = await acceptJob(user.id, job.id)
+
+    const routine = await prisma.routine.findUniqueOrThrow({ where: { id: routineId } })
+    expect(routine.source).toBe("template")
+    expect(routine.aiJobId).toBe(job.id)
+  })
+
+  it("reclaims a stale running job", async () => {
+    const user = await makeUser()
+    const job = await createJob(user.id, INPUT)
+    await prisma.aiJob.update({
+      where: { id: job.id },
+      data: {
+        status: "running",
+        startedAt: new Date(Date.now() - AI_JOB_STALE_MS - 60_000),
+      },
+    })
+
+    const provider = providerReturning(buildGeneratedRoutine())
+    await runJob(job.id, provider)
+
+    const stored = await prisma.aiJob.findUniqueOrThrow({ where: { id: job.id } })
+    expect(stored.status).toBe("succeeded")
+    expect(stored.attempts).toBeGreaterThanOrEqual(1)
+    expect(provider.generateJson).toHaveBeenCalled()
+  })
+
+  it("abandons a stale running job after the maximum attempts", async () => {
+    const user = await makeUser()
+    const job = await createJob(user.id, INPUT)
+    await prisma.aiJob.update({
+      where: { id: job.id },
+      data: {
+        status: "running",
+        attempts: AI_JOB_MAX_ATTEMPTS,
+        startedAt: new Date(Date.now() - AI_JOB_STALE_MS - 60_000),
+      },
+    })
+
+    const provider = providerReturning(buildGeneratedRoutine())
+    await runJob(job.id, provider)
+
+    expect(provider.generateJson).not.toHaveBeenCalled()
+    const stored = await prisma.aiJob.findUniqueOrThrow({ where: { id: job.id } })
+    expect(stored.status).toBe("failed")
+  })
+
+  it("leaves a fresh running job untouched", async () => {
+    const user = await makeUser()
+    const job = await createJob(user.id, INPUT)
+    await prisma.aiJob.update({
+      where: { id: job.id },
+      data: { status: "running", startedAt: new Date() },
+    })
+
+    const provider = providerReturning(buildGeneratedRoutine())
+    await runJob(job.id, provider)
+
+    expect(provider.generateJson).not.toHaveBeenCalled()
+    const stored = await prisma.aiJob.findUniqueOrThrow({ where: { id: job.id } })
+    expect(stored.status).toBe("running")
+  })
+
+  it("rejects accepting a stored result with duplicate weekdays", async () => {
+    const user = await makeUser()
+    const job = await createJob(user.id, INPUT)
+    await runJob(job.id, providerReturning(buildGeneratedRoutine()))
+
+    const stored = await prisma.aiJob.findUniqueOrThrow({ where: { id: job.id } })
+    const result = stored.result as unknown as AiJobResult
+    result.routine.days.push({ ...result.routine.days[0]!, label: "Duplicate" })
+    await prisma.aiJob.update({ where: { id: job.id }, data: { result: result as never } })
+
+    await expect(acceptJob(user.id, job.id)).rejects.toMatchObject({ code: "P2002" })
+    const count = await prisma.routine.count({ where: { userId: user.id, aiJobId: job.id } })
+    expect(count).toBe(0)
+  })
+
   it("cancels a queued job and never runs it", async () => {
     const user = await makeUser()
     const job = await createJob(user.id, INPUT)
@@ -325,5 +437,19 @@ describe("ai service", () => {
 
     await expect(createJob(user.id, INPUT)).rejects.toBeInstanceOf(RateLimitError)
     expect(queueMock.enqueueAiJob).not.toHaveBeenCalled()
+  })
+
+  it("ignores failed and cancelled jobs toward the daily quota", async () => {
+    const user = await makeUser()
+    await prisma.aiJob.createMany({
+      data: Array.from({ length: AI_JOB_DAILY_LIMIT }, () => ({
+        userId: user.id,
+        status: "failed" as const,
+        input: INPUT,
+      })),
+    })
+
+    const job = await createJob(user.id, INPUT)
+    expect(job.status).toBe("queued")
   })
 })

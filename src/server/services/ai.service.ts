@@ -28,6 +28,8 @@ import { enqueueAiJob } from "@/server/ai/queue"
 
 export const AI_JOB_DAILY_LIMIT = 20
 export const AI_JOB_RATE_LIMIT = 5
+export const AI_JOB_STALE_MS = 10 * 60 * 1000
+export const AI_JOB_MAX_ATTEMPTS = 5
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const MAX_GENERATION_ATTEMPTS = 4
@@ -40,12 +42,12 @@ export type {
 } from "@/features/ai/lib/contract"
 
 function toPromptCatalog(
-  entries: readonly { sourceId: string; name: string }[],
+  entries: readonly { sourceId: string; name: string; primaryMuscles: string[] }[],
 ): PromptCatalogEntry[] {
   return entries.map((entry) => ({
     sourceId: entry.sourceId,
     name: entry.name,
-    primaryMuscles: [],
+    primaryMuscles: entry.primaryMuscles,
   }))
 }
 
@@ -103,7 +105,15 @@ async function generateRoutine(
     }
 
     const parsed = generatedRoutineSchema.safeParse(raw)
-    if (parsed.success) return normalizeGeneratedRoutine(parsed.data)
+    if (parsed.success) {
+      const normalized = normalizeGeneratedRoutine(parsed.data)
+      if (normalized.days.length === 0) {
+        lastError = "routine must include at least one day with at least one exercise"
+        prompt = `${prompt}\n\nYour previous response contained no usable exercises. ${lastError}`
+        continue
+      }
+      return normalized
+    }
 
     lastError = formatValidationError(parsed.error)
     prompt = `${prompt}\n\nYour previous response did not match the schema. Fix these problems and return a corrected JSON object only:\n${lastError}`
@@ -173,10 +183,30 @@ export async function cancelJob(userId: string, id: string) {
 
 export async function runJob(jobId: string, provider?: AiProvider): Promise<void> {
   const job = await repo.findJobById(jobId)
-  if (!job || job.status !== "queued") return
+  if (!job) return
 
-  const claimed = await repo.markRunning(jobId)
-  if (claimed.count === 0) return
+  if (job.status === "queued") {
+    const claimed = await repo.markRunning(jobId)
+    if (claimed.count === 0) return
+  } else if (job.status === "running") {
+    const startedAt = job.startedAt?.getTime() ?? 0
+    if (Date.now() - startedAt <= AI_JOB_STALE_MS) return
+    if (job.attempts >= AI_JOB_MAX_ATTEMPTS) {
+      await repo.markFailed(jobId, "AI job exceeded the maximum number of attempts")
+      logger.info(
+        { event: "ai.job.abandoned", jobId, attempts: job.attempts },
+        "AI job abandoned after too many stale attempts",
+      )
+      return
+    }
+    const reclaimed = await repo.reclaimStaleRunning(
+      jobId,
+      new Date(Date.now() - AI_JOB_STALE_MS),
+    )
+    if (reclaimed.count === 0) return
+  } else {
+    return
+  }
 
   try {
     const input = aiJobInputSchema.parse(job.input)
@@ -193,7 +223,15 @@ export async function runJob(jobId: string, provider?: AiProvider): Promise<void
       const generated = await generateRoutine(activeProvider, input, promptCatalog)
       const resolved = resolveExercises(generated, catalog)
       result = buildJobResult("ai", generated, resolved)
-    } catch {
+    } catch (error) {
+      logger.warn(
+        {
+          event: "ai.generation_fallback",
+          jobId,
+          error: error instanceof Error ? error.message : "unknown error",
+        },
+        "AI generation failed; using the template fallback",
+      )
       const fallback = buildFallbackRoutine(input, catalog)
       const resolved = resolveExercises(fallback, catalog)
       result = buildJobResult("template", fallback, resolved)
@@ -221,6 +259,25 @@ export async function runJob(jobId: string, provider?: AiProvider): Promise<void
     await repo.markFailed(jobId, message)
     logger.info({ event: "ai.job.failed", jobId, error: message }, "AI job failed")
   }
+}
+
+function isAiJobUniqueTarget(target: unknown): boolean {
+  if (typeof target === "string") return target.includes("aiJobId")
+  if (Array.isArray(target)) {
+    return target.some((item) => typeof item === "string" && item.includes("aiJobId"))
+  }
+  return false
+}
+
+function isAiJobConflict(meta: unknown): boolean {
+  if (meta == null || typeof meta !== "object") return false
+  const record = meta as {
+    target?: unknown
+    driverAdapterError?: { cause?: { constraint?: { index?: unknown } } }
+  }
+  if (isAiJobUniqueTarget(record.target)) return true
+  const index = record.driverAdapterError?.cause?.constraint?.index
+  return typeof index === "string" && index.includes("aiJobId")
 }
 
 export async function acceptJob(userId: string, jobId: string): Promise<{ routineId: string }> {
@@ -269,11 +326,16 @@ export async function acceptJob(userId: string, jobId: string): Promise<{ routin
       aiJobId: jobId,
       name: parsed.data.routine.name,
       goal: parsed.data.routine.goal,
+      source: parsed.data.source === "template" ? "template" : "ai",
       days,
     })
     routineId = routine.id
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002" &&
+      isAiJobConflict(error.meta)
+    ) {
       const concurrent = await repo.findRoutineByJobId(userId, jobId)
       if (concurrent) return { routineId: concurrent.id }
     }

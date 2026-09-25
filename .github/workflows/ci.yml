@@ -45,4 +45,6 @@ jobs:
       - run: pnpm test:integration
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm e2e
+        env:
+          AI_E2E: "1"
       - run: pnpm build

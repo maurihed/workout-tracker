@@ -67,16 +67,30 @@ export function markCancelled(id: string) {
   })
 }
 
+export function reclaimStaleRunning(id: string, staleBefore: Date) {
+  return prisma.aiJob.updateMany({
+    where: { id, status: "running", startedAt: { lt: staleBefore } },
+    data: {
+      startedAt: new Date(),
+      attempts: { increment: 1 },
+    },
+  })
+}
+
 export function countRecentJobs(userId: string, since: Date) {
   return prisma.aiJob.count({
-    where: { userId, createdAt: { gte: since } },
+    where: {
+      userId,
+      createdAt: { gte: since },
+      status: { in: ["queued", "running", "succeeded"] },
+    },
   })
 }
 
 export function listCatalogEntries() {
   return prisma.exercise.findMany({
     where: { isCustom: false },
-    select: { id: true, sourceId: true, name: true },
+    select: { id: true, sourceId: true, name: true, primaryMuscles: true },
     orderBy: { sourceId: "asc" },
   })
 }
@@ -92,6 +106,7 @@ export type AiRoutineWriteInput = {
   aiJobId: string
   name: string
   goal: Exclude<Prisma.RoutineUncheckedCreateInput["goal"], undefined>
+  source: "ai" | "template"
   days: Prisma.RoutineDayUncheckedCreateWithoutRoutineInput[]
 }
 
@@ -102,7 +117,7 @@ export function createRoutineFromJob(userId: string, data: AiRoutineWriteInput) 
       name: data.name,
       description: null,
       goal: data.goal,
-      source: "ai",
+      source: data.source,
       aiJobId: data.aiJobId,
       isActive: false,
       days: { create: data.days },

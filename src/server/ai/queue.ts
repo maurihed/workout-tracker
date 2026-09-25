@@ -46,7 +46,10 @@ async function ensureQueue(boss: PgBoss): Promise<void> {
 export async function enqueueAiJob(jobId: string): Promise<void> {
   const boss = await getBoss()
   await ensureQueue(boss)
-  await boss.send(AI_QUEUE, { jobId })
+  const sent = await boss.send(AI_QUEUE, { jobId })
+  if (!sent) {
+    throw new Error("Failed to enqueue AI job")
+  }
 }
 
 export async function startAiWorker(handler: AiJobHandler): Promise<void> {

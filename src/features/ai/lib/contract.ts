@@ -35,7 +35,7 @@ export const generatedDaySchema = z
   .object({
     weekday: z.number().int().min(0).max(6),
     label: z.string().nullable().optional(),
-    exercises: z.array(generatedExerciseSchema),
+    exercises: z.array(generatedExerciseSchema).min(1),
   })
   .strict()
 
@@ -46,6 +46,10 @@ export const generatedRoutineSchema = z
     days: z.array(generatedDaySchema).min(1),
   })
   .strict()
+  .refine((value) => new Set(value.days.map((day) => day.weekday)).size === value.days.length, {
+    message: "Each weekday may appear only once",
+    path: ["days"],
+  })
 
 export type GeneratedRoutine = z.infer<typeof generatedRoutineSchema>
 
@@ -180,6 +184,7 @@ export const contractJsonSchema = {
           label: { anyOf: [{ type: "string" }, { type: "null" }] },
           exercises: {
             type: "array",
+            minItems: 1,
             items: {
               type: "object",
               additionalProperties: false,

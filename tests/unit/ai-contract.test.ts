@@ -35,13 +35,21 @@ describe("generatedRoutineSchema", () => {
     expect(result.success).toBe(true)
   })
 
-  it("accepts a nullable goal and empty exercises within a day", () => {
+  it("rejects a zero-exercise day", () => {
     const result = generatedRoutineSchema.safeParse({
       name: "Minimal",
       goal: null,
       days: [{ weekday: 1, exercises: [] }],
     })
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(false)
+  })
+
+  it("rejects duplicate weekdays", () => {
+    const result = generatedRoutineSchema.safeParse({
+      ...validRoutine,
+      days: [validDay, { ...validDay, label: "Push again" }],
+    })
+    expect(result.success).toBe(false)
   })
 
   it("accepts a timed exercise that has workSeconds", () => {
@@ -164,7 +172,7 @@ describe("formatValidationError", () => {
 })
 
 describe("normalizeGeneratedRoutine", () => {
-  it("trims strings and drops empty days", () => {
+  it("trims strings and keeps schema-valid days", () => {
     const parsed = generatedRoutineSchema.parse({
       name: "  Full Body  ",
       days: [
@@ -175,14 +183,26 @@ describe("normalizeGeneratedRoutine", () => {
             { name: "  Squat  ", sets: 3, reps: "5", restSeconds: 60, timerType: "none" },
           ],
         },
-        { weekday: 1, exercises: [] },
+        {
+          weekday: 1,
+          label: "  Day B  ",
+          exercises: [
+            { name: "  Bench  ", sets: 3, reps: "5", restSeconds: 60, timerType: "none" },
+          ],
+        },
       ],
     })
     const normalized = normalizeGeneratedRoutine(parsed)
     expect(normalized.name).toBe("Full Body")
-    expect(normalized.days).toHaveLength(1)
+    expect(normalized.days).toHaveLength(2)
     expect(normalized.days[0]?.label).toBe("Day A")
     expect(normalized.days[0]?.exercises[0]?.name).toBe("Squat")
+  })
+
+  it("never returns zero days for schema-valid input", () => {
+    const parsed = generatedRoutineSchema.parse(validRoutine)
+    const normalized = normalizeGeneratedRoutine(parsed)
+    expect(normalized.days.length).toBeGreaterThan(0)
   })
 
   it("de-dupes exercises by trimmed lowercased sourceId or name", () => {
