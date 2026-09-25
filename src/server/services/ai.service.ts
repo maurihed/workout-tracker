@@ -186,7 +186,20 @@ export async function createJob(userId: string, input: unknown) {
   }
 
   const job = await repo.createJob(userId, parsed.data as unknown as Prisma.InputJsonValue)
-  await enqueueAiJob(job.id)
+  try {
+    await enqueueAiJob(job.id)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to enqueue AI job"
+    try {
+      await repo.markFailed(job.id, message)
+    } catch {
+      logger.info(
+        { event: "ai.job.enqueue_compensation_failed", jobId: job.id },
+        "Failed to compensate for a failed AI job enqueue",
+      )
+    }
+    throw error
+  }
   logger.info({ event: "ai.job.created", userId, jobId: job.id }, "AI job created")
   return job
 }
@@ -301,13 +314,23 @@ export async function acceptJob(userId: string, jobId: string): Promise<{ routin
     }),
   )
 
-  const routine = await repo.createRoutineFromJob(userId, {
-    aiJobId: jobId,
-    name: parsed.data.routine.name,
-    goal: parsed.data.routine.goal,
-    days,
-  })
+  let routineId: string
+  try {
+    const routine = await repo.createRoutineFromJob(userId, {
+      aiJobId: jobId,
+      name: parsed.data.routine.name,
+      goal: parsed.data.routine.goal,
+      days,
+    })
+    routineId = routine.id
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      const concurrent = await repo.findRoutineByJobId(userId, jobId)
+      if (concurrent) return { routineId: concurrent.id }
+    }
+    throw error
+  }
 
-  logger.info({ event: "ai.job.accepted", userId, jobId, routineId: routine.id }, "AI job accepted")
-  return { routineId: routine.id }
+  logger.info({ event: "ai.job.accepted", userId, jobId, routineId }, "AI job accepted")
+  return { routineId }
 }

@@ -251,6 +251,50 @@ describe("ai service", () => {
     })
   })
 
+  it("enforces a unique routine link per (userId, aiJobId)", async () => {
+    const user = await makeUser()
+    await prisma.routine.create({
+      data: { userId: user.id, name: "First", aiJobId: "job-shared" },
+    })
+
+    await expect(
+      prisma.routine.create({
+        data: { userId: user.id, name: "Second", aiJobId: "job-shared" },
+      }),
+    ).rejects.toMatchObject({ code: "P2002" })
+  })
+
+  it("survives concurrent accepts with exactly one routine", async () => {
+    const user = await makeUser()
+    const job = await createJob(user.id, INPUT)
+    await runJob(job.id, providerReturning(buildGeneratedRoutine()))
+
+    const [first, second] = await Promise.all([
+      acceptJob(user.id, job.id),
+      acceptJob(user.id, job.id),
+    ])
+    expect(second.routineId).toBe(first.routineId)
+
+    const count = await prisma.routine.count({
+      where: { userId: user.id, aiJobId: job.id },
+    })
+    expect(count).toBe(1)
+  })
+
+  it("marks the job failed when enqueueing fails", async () => {
+    const user = await makeUser()
+    queueMock.enqueueAiJob.mockRejectedValueOnce(new Error("enqueue boom"))
+
+    await expect(createJob(user.id, INPUT)).rejects.toThrow("enqueue boom")
+
+    const job = await prisma.aiJob.findFirstOrThrow({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+    })
+    expect(job.status).toBe("failed")
+    expect(job.error).toContain("enqueue boom")
+  })
+
   it("scopes job reads and accepts to the owner", async () => {
     const owner = await makeUser()
     const stranger = await makeUser()

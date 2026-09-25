@@ -184,6 +184,7 @@ model Routine {
   user User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   days RoutineDay[]
 
+  @@unique([userId, aiJobId])
   @@index([userId, isActive])
 }
 
