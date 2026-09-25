@@ -1,7 +1,7 @@
 import { contractJsonSchema } from "@/features/ai/lib/contract"
 import type { AiJobInput } from "@/features/ai/lib/contract"
 
-export const PROMPT_VERSION = "1"
+export const PROMPT_VERSION = "2"
 
 export type PromptCatalogEntry = {
   sourceId: string
@@ -9,7 +9,11 @@ export type PromptCatalogEntry = {
   primaryMuscles: string[]
 }
 
-export function buildPrompt(input: AiJobInput, catalog: PromptCatalogEntry[]): string {
+export function buildPrompt(
+  input: AiJobInput,
+  catalog: PromptCatalogEntry[],
+  historySummary?: string,
+): string {
   const catalogLines =
     catalog.length > 0
       ? catalog
@@ -20,7 +24,7 @@ export function buildPrompt(input: AiJobInput, catalog: PromptCatalogEntry[]): s
           .join("\n")
       : "- (no catalog entries available; set sourceId to null and provide a name)"
 
-  return [
+  const lines = [
     "You are an expert strength and conditioning coach. Generate a weekly workout routine.",
     "",
     "Requested routine:",
@@ -48,5 +52,16 @@ export function buildPrompt(input: AiJobInput, catalog: PromptCatalogEntry[]): s
     catalogLines,
     "",
     `Use temperature 0 and make the output deterministic: the same input must always produce the same routine with no random variation. promptVersion=${PROMPT_VERSION}.`,
-  ].join("\n")
+  ]
+
+  if (historySummary && historySummary.trim().length > 0) {
+    lines.push(
+      "",
+      "Recent training (last 3 sessions, 12 weeks):",
+      historySummary.trim(),
+      "Choose loads close to the athlete's recent performance and keep them conservative.",
+    )
+  }
+
+  return lines.join("\n")
 }

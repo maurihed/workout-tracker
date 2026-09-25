@@ -18,7 +18,7 @@ const input: AiJobInput = {
 describe("buildPrompt", () => {
   it("pins the JSON contract, forbids prose, and lists catalog ids", () => {
     const prompt = buildPrompt(input, catalog)
-    expect(PROMPT_VERSION).toBe("1")
+    expect(PROMPT_VERSION).toBe("2")
     expect(prompt).toMatch(/JSON only/i)
     expect(prompt).toContain("Barbell_Squat")
     expect(prompt).toMatch(/build_muscle/)
@@ -41,5 +41,41 @@ describe("buildPrompt", () => {
   it("requests one active day per requested weekly frequency", () => {
     const prompt = buildPrompt({ ...input, daysPerWeek: 5 }, catalog)
     expect(prompt).toMatch(/5/)
+  })
+
+  it("bumps the prompt version", () => {
+    expect(PROMPT_VERSION).toBe("2")
+  })
+
+  it("includes the history summary when provided", () => {
+    const prompt = buildPrompt(
+      {
+        goal: "build_muscle",
+        experience: "beginner",
+        equipment: ["barbell"],
+        daysPerWeek: 3,
+        focus: null,
+        personalize: true,
+      },
+      [{ sourceId: "Barbell_Squat", name: "Barbell Squat", primaryMuscles: ["quadriceps"] }],
+      "- Barbell Squat: 100 kg × 5 (2026-09-20)",
+    )
+    expect(prompt).toContain("Recent training")
+    expect(prompt).toContain("100 kg")
+  })
+
+  it("omits the history block when no summary is provided", () => {
+    const prompt = buildPrompt(
+      {
+        goal: "build_muscle",
+        experience: "beginner",
+        equipment: ["barbell"],
+        daysPerWeek: 3,
+        focus: null,
+        personalize: true,
+      },
+      [{ sourceId: "Barbell_Squat", name: "Barbell Squat", primaryMuscles: ["quadriceps"] }],
+    )
+    expect(prompt).not.toContain("Recent training")
   })
 })
