@@ -6,12 +6,23 @@ import { defineConfig, devices } from "@playwright/test"
 // DATABASE_URL/AUTH_SECRET, but dotenv's default banner would dirty test output.
 dotenv.config({ quiet: true })
 
+// The AI generation E2E needs a mock OpenAI-compatible provider plus the
+// pg-boss worker running as separate processes; that setup is gated behind
+// `AI_E2E=1` so the default `pnpm e2e` run stays unaffected.
+const aiE2e = process.env.AI_E2E === "1"
+
 // E2E specs live only in `tests/e2e`; without this scoping Playwright defaults
 // `testDir` to the repo root and tries to load the Vitest unit/integration
 // suites. `webServer` boots the production build against the Docker Postgres.
 export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 60_000,
+  ...(aiE2e
+    ? {
+        globalSetup: "./tests/e2e/helpers/ai-global-setup.ts",
+        globalTeardown: "./tests/e2e/helpers/ai-global-teardown.ts",
+      }
+    : {}),
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: "list",
