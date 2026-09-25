@@ -3,7 +3,7 @@
 Single entry point for picking up work in a fresh session.
 
 - **Product spec (binding authority):** `docs/superpowers/specs/2026-09-22-gym-tracker-design.md`
-- **Current branch:** `phase4a-ai-routine-generation` — Phase 4A complete (pending merge).
+- **Current branch:** `main` — Phase 4A merged; next work starts from 4B.
 - **Delivery process:** per-phase → brainstorm → spec (`docs/superpowers/specs/`) → plan (`docs/superpowers/plans/`) → subagent-driven TDD execution, with an audit trail in `.superpowers/sdd/<plan-slug>/`.
 
 ## Phase status
@@ -17,7 +17,7 @@ Single entry point for picking up work in a fresh session.
 | 2C | PWA / Offline | Done (merged) | `.../specs/2026-09-22-gym-tracker-phase2c-pwa-offline-design.md` | `.../plans/2026-09-22-gym-tracker-phase2c-pwa-offline.md` | `.superpowers/sdd/2026-09-22-gym-tracker-phase2c-pwa-offline/` |
 | 3A | Tracking + Gamification (streaks, XP, badges, history) | Done | `.../specs/2026-09-22-gym-tracker-phase3a-tracking-stats-design.md` | `.../plans/2026-09-22-gym-tracker-phase3a-tracking-stats.md` | `.superpowers/sdd/2026-09-22-gym-tracker-phase3a-tracking-stats/` |
 | 3B | Progress Dashboard (charts, heatmap, PR views, body-metric log) | Done | `.../specs/2026-09-22-gym-tracker-phase3b-progress-dashboard-design.md` | `.../plans/2026-09-22-gym-tracker-phase3b-progress-dashboard.md` | `.superpowers/sdd/2026-09-22-gym-tracker-phase3b-progress-dashboard/` |
-| 4A | AI Routine Generation | Done (pending merge) | `.../specs/2026-09-22-gym-tracker-phase4a-ai-routine-generation-design.md` | `.../plans/2026-09-22-gym-tracker-phase4a-ai-routine-generation.md` | `.superpowers/sdd/2026-09-22-gym-tracker-phase4a-ai-routine-generation/` |
+| 4A | AI Routine Generation | Done (merged) | `.../specs/2026-09-22-gym-tracker-phase4a-ai-routine-generation-design.md` | `.../plans/2026-09-22-gym-tracker-phase4a-ai-routine-generation.md` | `.superpowers/sdd/2026-09-22-gym-tracker-phase4a-ai-routine-generation/` |
 | 4B | AI Personalization | Next | — | — | — |
 
 Paths above are relative to repo root; `.../` = `docs/superpowers`.
@@ -28,7 +28,7 @@ Paths above are relative to repo root; `.../` = `docs/superpowers`.
 
 > **Deploy note (3A):** existing users have no `UserStats` row until they complete a session or the nightly job runs. Run `pnpm job:repair-stats` (or schedule `POST /api/jobs/repair-stats` with `x-job-secret`) once after deploying to backfill.
 - **3B — Progress Dashboard** (Done; depends on 3A). Dashboard charts, muscle heatmap, PR views, and a body-metric log.
-- **4A — AI Routine Generation** (Done, pending merge; depends on 2, 3A, 3B). Provider-agnostic OpenAI-compatible generation via a pg-boss job queue, strict structured-output validation with bounded repair retries, catalog resolution with a custom-exercise fallback, a deterministic template fallback, provenance, and a safety disclaimer.
+- **4A — AI Routine Generation** (Done, merged; depends on 2, 3A, 3B). Provider-agnostic OpenAI-compatible generation via a pg-boss job queue, strict structured-output validation with bounded repair retries, catalog resolution with a custom-exercise fallback, a deterministic template fallback, provenance, and a safety disclaimer.
 
 > **Deploy note (4A):** run the worker as a separate process (`pnpm worker:ai`, e.g. a dedicated Coolify process). pg-boss creates a `pgboss` schema on boot. With `AI_*` unset, generation uses the deterministic template fallback, so the feature still works without a provider.
 - **4B — AI Personalization** (next; depends on 4A). Personalize generated routines from workout history and stats (PR/volume-aware prescriptions).
