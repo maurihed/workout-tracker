@@ -12,6 +12,7 @@ const input: AiJobInput = {
   equipment: ["barbell"],
   daysPerWeek: 3,
   focus: null,
+  personalize: true,
 }
 
 describe("buildPrompt", () => {

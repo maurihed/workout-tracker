@@ -40,6 +40,7 @@ const INPUT = {
   equipment: [],
   daysPerWeek: 3,
   focus: null,
+  personalize: true,
 }
 
 const QUEUED_JOB = {

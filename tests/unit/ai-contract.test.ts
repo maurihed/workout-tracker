@@ -144,6 +144,22 @@ describe("aiJobInputSchema", () => {
   })
 })
 
+describe("aiJobInputSchema.personalize", () => {
+  const base = { goal: "build_muscle", experience: "beginner", equipment: [], daysPerWeek: 3 }
+
+  it("defaults personalize to true", () => {
+    expect(aiJobInputSchema.parse(base).personalize).toBe(true)
+  })
+
+  it("accepts an explicit false", () => {
+    expect(aiJobInputSchema.parse({ ...base, personalize: false }).personalize).toBe(false)
+  })
+
+  it("rejects a non-boolean", () => {
+    expect(aiJobInputSchema.safeParse({ ...base, personalize: "yes" }).success).toBe(false)
+  })
+})
+
 describe("contractJsonSchema", () => {
   it("is a plain serializable object", () => {
     expect(JSON.parse(JSON.stringify(contractJsonSchema))).toEqual(contractJsonSchema)

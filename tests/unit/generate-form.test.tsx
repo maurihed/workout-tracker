@@ -56,6 +56,7 @@ describe("GenerateForm", () => {
       equipment: ["dumbbell"],
       daysPerWeek: 4,
       focus: "upper body",
+      personalize: true,
     })
   })
 

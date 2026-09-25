@@ -23,6 +23,7 @@ function input(overrides: Partial<AiJobInput> = {}): AiJobInput {
     experience: "beginner",
     equipment: ["body only"],
     daysPerWeek: 3,
+    personalize: true,
     ...overrides,
   }
 }

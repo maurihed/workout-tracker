@@ -65,6 +65,7 @@ export const aiJobInputSchema = z.object({
   equipment: z.array(z.enum(EQUIPMENT)).default([]),
   daysPerWeek: z.number().int().min(1).max(7),
   focus: z.string().trim().max(100).nullable().optional(),
+  personalize: z.boolean().default(true),
 })
 
 export type AiJobInput = z.infer<typeof aiJobInputSchema>
