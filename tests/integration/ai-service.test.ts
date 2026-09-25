@@ -70,7 +70,7 @@ function buildGeneratedRoutine() {
             sourceId: catalogEntry.sourceId,
             name: catalogEntry.name,
             sets: 4,
-            reps: "8-10",
+            reps: "8-12",
             restSeconds: 90,
             targetWeightKg: null,
             timerType: "none",
@@ -98,7 +98,7 @@ describe("ai service", () => {
   beforeAll(async () => {
     await assertCatalogSeeded()
     const entry = await prisma.exercise.findFirstOrThrow({
-      where: { isCustom: false },
+      where: { sourceId: "Barbell_Full_Squat" },
       select: { id: true, sourceId: true, name: true },
     })
     catalogEntry = entry
@@ -451,5 +451,110 @@ describe("ai service", () => {
 
     const job = await createJob(user.id, INPUT)
     expect(job.status).toBe("queued")
+  })
+
+  it("personalizes a succeeded result from recent history", async () => {
+    const user = await makeUser()
+    const exercise = await prisma.exercise.findFirstOrThrow({
+      where: { sourceId: "Barbell_Full_Squat" },
+    })
+    await prisma.workoutSession.create({
+      data: {
+        userId: user.id,
+        name: "hist",
+        status: "completed",
+        completedAt: new Date(),
+        snapshot: {},
+        exercises: {
+          create: {
+            exerciseId: exercise.id,
+            order: 0,
+            nameSnapshot: "Barbell Full Squat",
+            completed: true,
+            sets: {
+              create: {
+                setNumber: 1,
+                type: "working",
+                weightKg: 100,
+                reps: 12,
+                completedAt: new Date(),
+              },
+            },
+          },
+        },
+      },
+    })
+    const job = await createJob(user.id, {
+      goal: "build_muscle",
+      experience: "beginner",
+      equipment: ["barbell"],
+      daysPerWeek: 3,
+    })
+    await runJob(job.id, providerReturning(buildGeneratedRoutine()))
+    const stored = await prisma.aiJob.findUniqueOrThrow({ where: { id: job.id } })
+    const result = stored.result as {
+      personalized: boolean
+      personalizedCount: number
+      routine: { days: { exercises: { targetWeightKg?: number | null }[] }[] }
+    }
+    expect(result.personalized).toBe(true)
+    expect(result.personalizedCount).toBeGreaterThan(0)
+    expect(result.routine.days[0]?.exercises[0]?.targetWeightKg).toBe(105)
+  })
+
+  it("leaves the load unchanged when personalize is false", async () => {
+    const user = await makeUser()
+    const exercise = await prisma.exercise.findFirstOrThrow({
+      where: { sourceId: "Barbell_Full_Squat" },
+    })
+    await prisma.workoutSession.create({
+      data: {
+        userId: user.id,
+        name: "hist",
+        status: "completed",
+        completedAt: new Date(),
+        snapshot: {},
+        exercises: {
+          create: {
+            exerciseId: exercise.id,
+            order: 0,
+            nameSnapshot: "Barbell Full Squat",
+            completed: true,
+            sets: {
+              create: {
+                setNumber: 1,
+                type: "working",
+                weightKg: 100,
+                reps: 12,
+                completedAt: new Date(),
+              },
+            },
+          },
+        },
+      },
+    })
+    const job = await createJob(user.id, {
+      goal: "build_muscle",
+      experience: "beginner",
+      equipment: ["barbell"],
+      daysPerWeek: 3,
+      personalize: false,
+    })
+    await runJob(job.id, providerReturning(buildGeneratedRoutine()))
+    const stored = await prisma.aiJob.findUniqueOrThrow({ where: { id: job.id } })
+    expect((stored.result as { personalized: boolean }).personalized).toBe(false)
+  })
+
+  it("marks personalized false when the user has no history", async () => {
+    const user = await makeUser()
+    const job = await createJob(user.id, {
+      goal: "build_muscle",
+      experience: "beginner",
+      equipment: ["barbell"],
+      daysPerWeek: 3,
+    })
+    await runJob(job.id, providerReturning(buildGeneratedRoutine()))
+    const stored = await prisma.aiJob.findUniqueOrThrow({ where: { id: job.id } })
+    expect((stored.result as { personalized: boolean }).personalized).toBe(false)
   })
 })

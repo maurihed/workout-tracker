@@ -11,9 +11,18 @@ import {
   normalizeGeneratedRoutine,
   type AiJobInput,
   type AiJobResult,
+  type AiRoutine,
   type AiRoutineDay,
   type GeneratedRoutine,
 } from "@/features/ai/lib/contract"
+import {
+  HISTORY_MAX_SESSIONS,
+  HISTORY_WINDOW_DAYS,
+  buildHistoryIndex,
+  buildHistorySummary,
+  type HistoryIndex,
+} from "@/features/ai/lib/history"
+import { PERSONALIZATION_VERSION, personalizeRoutine } from "@/features/ai/lib/personalize"
 import { PROMPT_VERSION, buildPrompt, type PromptCatalogEntry } from "@/features/ai/lib/prompt"
 import { AiUnavailableError, getProvider, type AiProvider } from "@/features/ai/lib/provider"
 import {
@@ -73,15 +82,38 @@ function buildJobResult(
   source: AiJobResult["source"],
   generated: GeneratedRoutine,
   resolved: { days: ResolvedDay[]; customNames: string[] },
+  historyIndex: HistoryIndex | null,
 ): AiJobResult {
+  const routine: AiRoutine = {
+    name: generated.name,
+    goal: generated.goal ?? null,
+    days: mergeResolved(generated, resolved.days),
+  }
+  let personalized = false
+  let personalizedCount = 0
+  if (historyIndex) {
+    try {
+      const applied = personalizeRoutine(routine, historyIndex)
+      routine.days = applied.routine.days
+      personalizedCount = applied.applied
+      personalized = applied.applied > 0
+    } catch (error) {
+      logger.warn(
+        {
+          event: "ai.personalization_failed",
+          error: error instanceof Error ? error.message : "unknown error",
+        },
+        "personalization failed; storing the un-personalized result",
+      )
+    }
+  }
   return {
     source,
     customNames: resolved.customNames,
-    routine: {
-      name: generated.name,
-      goal: generated.goal ?? null,
-      days: mergeResolved(generated, resolved.days),
-    },
+    routine,
+    personalized,
+    personalizedCount,
+    personalizationVersion: PERSONALIZATION_VERSION,
   }
 }
 
@@ -89,8 +121,9 @@ async function generateRoutine(
   provider: AiProvider,
   input: AiJobInput,
   catalog: PromptCatalogEntry[],
+  historySummary?: string,
 ): Promise<GeneratedRoutine> {
-  let prompt = buildPrompt(input, catalog)
+  let prompt = buildPrompt(input, catalog, historySummary)
   let lastError = ""
 
   for (let attempt = 0; attempt < MAX_GENERATION_ATTEMPTS; attempt += 1) {
@@ -214,15 +247,42 @@ export async function runJob(jobId: string, provider?: AiProvider): Promise<void
     const catalog = buildCatalogIndex(catalogEntries)
     const promptCatalog = toPromptCatalog(catalogEntries)
 
+    let historyIndex: HistoryIndex | null = null
+    let historySummary: string | undefined
+    if (input.personalize) {
+      try {
+        const sessions = await repo.listRecentExerciseHistory(job.userId, {
+          since: new Date(Date.now() - HISTORY_WINDOW_DAYS * DAY_MS),
+          maxSessions: HISTORY_MAX_SESSIONS,
+        })
+        const index = buildHistoryIndex(sessions)
+        if (index.hasData) {
+          historyIndex = index
+          historySummary = buildHistorySummary(index)
+        }
+      } catch (error) {
+        logger.warn(
+          {
+            event: "ai.history_failed",
+            jobId,
+            error: error instanceof Error ? error.message : "unknown error",
+          },
+          "history load failed; generating without personalization",
+        )
+        historyIndex = null
+        historySummary = undefined
+      }
+    }
+
     let result: AiJobResult
     let model: string | null = null
 
     try {
       const activeProvider = provider ?? getProvider()
       model = process.env.AI_MODEL?.trim() || null
-      const generated = await generateRoutine(activeProvider, input, promptCatalog)
+      const generated = await generateRoutine(activeProvider, input, promptCatalog, historySummary)
       const resolved = resolveExercises(generated, catalog)
-      result = buildJobResult("ai", generated, resolved)
+      result = buildJobResult("ai", generated, resolved, historyIndex)
     } catch (error) {
       logger.warn(
         {
@@ -234,7 +294,7 @@ export async function runJob(jobId: string, provider?: AiProvider): Promise<void
       )
       const fallback = buildFallbackRoutine(input, catalog)
       const resolved = resolveExercises(fallback, catalog)
-      result = buildJobResult("template", fallback, resolved)
+      result = buildJobResult("template", fallback, resolved, historyIndex)
       model = null
     }
 

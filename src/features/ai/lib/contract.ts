@@ -130,6 +130,9 @@ export type AiJobResult = {
   source: "ai" | "template"
   customNames: string[]
   routine: AiRoutine
+  personalized: boolean
+  personalizedCount: number
+  personalizationVersion: string
 }
 
 export const storedExerciseSchema = z.object({
@@ -162,6 +165,9 @@ export const aiJobResultSchema = z.object({
   source: z.enum(["ai", "template"]),
   customNames: z.array(z.string()),
   routine: storedRoutineSchema,
+  personalized: z.boolean(),
+  personalizedCount: z.number().int().min(0),
+  personalizationVersion: z.string(),
 })
 
 export const contractJsonSchema = {

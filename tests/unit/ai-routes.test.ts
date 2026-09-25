@@ -86,6 +86,9 @@ const CANCELLED_DTO = {
 const RESULT = {
   source: "ai",
   customNames: ["Landmine Press"],
+  personalized: false,
+  personalizedCount: 0,
+  personalizationVersion: "1",
   routine: {
     name: "Upper Strength",
     goal: "build_muscle",

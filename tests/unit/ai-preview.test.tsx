@@ -22,6 +22,9 @@ function withProvider(node: ReactNode) {
 const result: AiJobResult = {
   source: "ai",
   customNames: ["Handstand Push-up"],
+  personalized: false,
+  personalizedCount: 0,
+  personalizationVersion: "1",
   routine: {
     name: "Upper Strength",
     goal: "get_stronger",
