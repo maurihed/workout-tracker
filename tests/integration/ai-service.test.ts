@@ -57,6 +57,14 @@ function providerReturning(value: unknown): AiProvider & {
   }
 }
 
+function unavailableProvider(): AiProvider {
+  return {
+    generateJson: vi.fn(async () => {
+      throw new AiUnavailableError()
+    }),
+  }
+}
+
 function buildGeneratedRoutine() {
   return {
     name: "AI Push Pull",
@@ -556,5 +564,55 @@ describe("ai service", () => {
     await runJob(job.id, providerReturning(buildGeneratedRoutine()))
     const stored = await prisma.aiJob.findUniqueOrThrow({ where: { id: job.id } })
     expect((stored.result as { personalized: boolean }).personalized).toBe(false)
+  })
+
+  it("personalizes the template fallback from recent history", async () => {
+    const user = await makeUser()
+    const exercise = await prisma.exercise.findFirstOrThrow({
+      where: { sourceId: "Barbell_Full_Squat" },
+    })
+    await prisma.workoutSession.create({
+      data: {
+        userId: user.id,
+        name: "hist",
+        status: "completed",
+        completedAt: new Date(),
+        snapshot: {},
+        exercises: {
+          create: {
+            exerciseId: exercise.id,
+            order: 0,
+            nameSnapshot: "Barbell Full Squat",
+            completed: true,
+            sets: {
+              create: {
+                setNumber: 1,
+                type: "working",
+                weightKg: 100,
+                reps: 12,
+                completedAt: new Date(),
+              },
+            },
+          },
+        },
+      },
+    })
+    const job = await createJob(user.id, {
+      goal: "general_fitness",
+      experience: "beginner",
+      equipment: ["body only", "dumbbell", "barbell", "machine"],
+      daysPerWeek: 3,
+    })
+    await runJob(job.id, unavailableProvider())
+
+    const stored = await prisma.aiJob.findUniqueOrThrow({ where: { id: job.id } })
+    const result = stored.result as unknown as AiJobResult
+    expect(result.source).toBe("template")
+    expect(result.personalized).toBe(true)
+    expect(result.personalizedCount).toBeGreaterThan(0)
+    const squat = result.routine.days
+      .flatMap((day) => day.exercises)
+      .find((item) => item.sourceId === "Barbell_Full_Squat")
+    expect(squat?.targetWeightKg).toBe(105)
   })
 })
