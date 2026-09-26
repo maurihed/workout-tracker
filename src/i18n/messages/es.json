@@ -196,7 +196,9 @@
       "equipment": "Equipo",
       "daysPerWeek": "Días por semana",
       "focus": "Enfoque (opcional)",
-      "submit": "Generar rutina"
+      "submit": "Generar rutina",
+      "personalize": "Usar mi historial de entrenamiento",
+      "personalizeHint": "Ajusta los pesos recomendados a tus entrenamientos recientes."
     },
     "status": {
       "queued": "En cola",
@@ -211,9 +213,11 @@
       "discard": "Descartar",
       "customNote": "Este ejercicio aún no está en nuestro catálogo y se añadirá como ejercicio personalizado.",
       "provenance": "Generada por IA ({model})",
-      "template": "Creada a partir de una plantilla porque la generación con IA no estaba disponible."
+      "template": "Creada a partir de una plantilla porque la generación con IA no estaba disponible.",
+      "personalized": "Ajustada a tus últimas 3 sesiones"
     },
     "disclaimer": "Estas rutinas son solo sugerencias y no constituyen consejo médico. Consulta a un profesional cualificado antes de empezar o cambiar un programa de entrenamiento, y detente de inmediato si sientes dolor o te lesionas.",
+    "disclaimerData": "Cuando está activado, tu entrenamiento reciente (nombres de ejercicios y pesos) puede compartirse con el proveedor de IA para ajustar las cargas.",
     "errors": {
       "generic": "Algo salió mal al generar tu rutina. Inténtalo de nuevo.",
       "rateLimited": "Has alcanzado el límite de generaciones. Inténtalo de nuevo en breve.",
