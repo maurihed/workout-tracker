@@ -60,6 +60,11 @@ export function RoutinePreviewCard({
               </span>
             ) : null}
           </div>
+          {result.personalized ? (
+            <p className="text-primary text-sm font-medium">
+              {t("preview.personalized")}
+            </p>
+          ) : null}
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <ul className="flex flex-col gap-3">

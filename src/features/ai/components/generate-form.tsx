@@ -40,7 +40,12 @@ export function GenerateForm({
 
   const form = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(aiJobInputSchema),
-    defaultValues: { equipment: [], daysPerWeek: 3, focus: null },
+    defaultValues: {
+      equipment: [],
+      daysPerWeek: 3,
+      focus: null,
+      personalize: true,
+    },
   })
 
   const equipment =
@@ -167,6 +172,22 @@ export function GenerateForm({
             },
           })}
         />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label
+          htmlFor="ai-personalize"
+          className="flex min-h-11 cursor-pointer items-center gap-3"
+        >
+          <input
+            id="ai-personalize"
+            type="checkbox"
+            className="size-5"
+            {...form.register("personalize")}
+          />
+          <span className="font-medium">{t("personalize")}</span>
+        </label>
+        <p className="text-muted-foreground text-sm">{t("personalizeHint")}</p>
       </div>
 
       <Button type="submit" className="h-13" disabled={isPending}>

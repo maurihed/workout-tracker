@@ -193,6 +193,33 @@ describe("RoutinePreviewCard", () => {
     expect(screen.getByText("v3")).toBeInTheDocument()
   })
 
+  it("shows the personalized note only when personalized", () => {
+    const { rerender } = withProvider(
+      <RoutinePreviewCard
+        result={{ ...result, personalized: true }}
+        onAccept={noop}
+        onRegenerate={noop}
+        onDiscard={noop}
+        isAccepting={false}
+      />,
+    )
+    expect(screen.getByText(en.ai.preview.personalized)).toBeInTheDocument()
+    rerender(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <RoutinePreviewCard
+          result={{ ...result, personalized: false }}
+          onAccept={noop}
+          onRegenerate={noop}
+          onDiscard={noop}
+          isAccepting={false}
+        />
+      </NextIntlClientProvider>,
+    )
+    expect(
+      screen.queryByText(en.ai.preview.personalized),
+    ).not.toBeInTheDocument()
+  })
+
   it("fires accept, regenerate and discard", async () => {
     const user = userEvent.setup()
     const onAccept = vi.fn()
@@ -228,5 +255,10 @@ describe("Disclaimer", () => {
   it("always renders the disclaimer copy", () => {
     withProvider(<Disclaimer />)
     expect(screen.getByText(en.ai.disclaimer)).toBeInTheDocument()
+  })
+
+  it("renders the data-sharing disclosure", () => {
+    withProvider(<Disclaimer />)
+    expect(screen.getByText(en.ai.disclaimerData)).toBeInTheDocument()
   })
 })

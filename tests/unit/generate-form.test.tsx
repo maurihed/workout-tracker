@@ -75,4 +75,54 @@ describe("GenerateForm", () => {
     await user.click(dumbbell)
     expect(dumbbell).toHaveAttribute("aria-pressed", "false")
   })
+
+  it("defaults personalization on and submits it", async () => {
+    const user = userEvent.setup()
+    const { onSubmit } = renderForm()
+
+    const toggle = screen.getByLabelText(en.ai.form.personalize)
+    expect(toggle).toBeChecked()
+
+    await user.selectOptions(
+      screen.getByLabelText(en.ai.form.goal),
+      "build_muscle",
+    )
+    await user.selectOptions(
+      screen.getByLabelText(en.ai.form.experience),
+      "beginner",
+    )
+    await user.selectOptions(
+      screen.getByLabelText(en.ai.form.daysPerWeek),
+      "3",
+    )
+    await user.click(screen.getByRole("button", { name: en.ai.form.submit }))
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ personalize: true }),
+    )
+  })
+
+  it("submits personalize false when toggled off", async () => {
+    const user = userEvent.setup()
+    const { onSubmit } = renderForm()
+
+    await user.click(screen.getByLabelText(en.ai.form.personalize))
+    await user.selectOptions(
+      screen.getByLabelText(en.ai.form.goal),
+      "build_muscle",
+    )
+    await user.selectOptions(
+      screen.getByLabelText(en.ai.form.experience),
+      "beginner",
+    )
+    await user.selectOptions(
+      screen.getByLabelText(en.ai.form.daysPerWeek),
+      "3",
+    )
+    await user.click(screen.getByRole("button", { name: en.ai.form.submit }))
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ personalize: false }),
+    )
+  })
 })
