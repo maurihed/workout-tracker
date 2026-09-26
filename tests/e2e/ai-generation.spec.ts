@@ -15,6 +15,49 @@ const prisma = new PrismaClient({
 
 const email = `e2e_ai_${Date.now()}@e2e-test.local`
 
+const SQUAT_SOURCE_ID = "Barbell_Full_Squat"
+
+/**
+ * Seeds one completed session for `userId` with a working set that matches the
+ * mock routine's squat entry (`reps: "8-12"`), so personalization raises the
+ * starting load deterministically: 100 kg × 1.05 → 105 kg. Returns the catalog
+ * exercise id so the spec can assert the accepted routine's target weight.
+ */
+async function seedSquatHistory(userId: string) {
+  const exercise = await prisma.exercise.findFirstOrThrow({
+    where: { sourceId: SQUAT_SOURCE_ID },
+    select: { id: true },
+  })
+  const completedAt = new Date(Date.now() - 24 * 60 * 60 * 1000)
+  await prisma.workoutSession.create({
+    data: {
+      userId,
+      name: "Seeded squat session",
+      status: "completed",
+      completedAt,
+      snapshot: {},
+      exercises: {
+        create: {
+          exerciseId: exercise.id,
+          order: 0,
+          nameSnapshot: "Barbell Full Squat",
+          completed: true,
+          sets: {
+            create: {
+              setNumber: 1,
+              type: "working",
+              weightKg: 100,
+              reps: 12,
+              completedAt,
+            },
+          },
+        },
+      },
+    },
+  })
+  return exercise.id
+}
+
 test.afterAll(async () => {
   await cleanupTestUser(email)
   await disconnectTestDb()
@@ -46,6 +89,8 @@ test("generates a routine with the mocked provider, previews and accepts it", as
   const { cookie, userId } = await createTestSession(email, { onboarded: true })
   await context.addCookies([{ ...cookie, domain: "127.0.0.1", path: "/" }])
 
+  const squatExerciseId = await seedSquatHistory(userId)
+
   await page.goto("/en/routines/generate")
   await expect(
     page.getByRole("heading", { name: "Generate a routine with AI" }),
@@ -67,6 +112,32 @@ test("generates a routine with the mocked provider, previews and accepts it", as
   await expect(
     page.getByText(AI_MOCK_ROUTINE.days[0].exercises[0].name),
   ).toBeVisible()
+  await expect(page.getByText("Tuned to your last 3 sessions")).toBeVisible()
+
+  await expect
+    .poll(
+      async () => {
+        const job = await prisma.aiJob.findFirst({
+          where: { userId, status: "succeeded" },
+          orderBy: { createdAt: "desc" },
+          select: { result: true },
+        })
+        const result = job?.result as {
+          personalized?: boolean
+          routine?: {
+            days?: {
+              exercises?: { exerciseId?: string | null; targetWeightKg?: number | null }[]
+            }[]
+          }
+        } | null
+        const squat = result?.routine?.days?.[0]?.exercises?.find(
+          (exercise) => exercise.exerciseId === squatExerciseId,
+        )
+        return { personalized: result?.personalized, weight: squat?.targetWeightKg }
+      },
+      { timeout: 15_000 },
+    )
+    .toEqual({ personalized: true, weight: 105 })
 
   await accept.click()
 
@@ -84,6 +155,22 @@ test("generates a routine with the mocked provider, previews and accepts it", as
       { timeout: 15_000 },
     )
     .not.toBeNull()
+
+  await expect
+    .poll(
+      async () => {
+        const exercise = await prisma.routineExercise.findFirst({
+          where: {
+            exerciseId: squatExerciseId,
+            routineDay: { routine: { userId, source: "ai" } },
+          },
+          select: { targetWeightKg: true },
+        })
+        return exercise?.targetWeightKg ?? null
+      },
+      { timeout: 15_000 },
+    )
+    .toBe(105)
 
   await page.goto("/en/routines")
   await expect(page.getByText(AI_MOCK_ROUTINE.name)).toBeVisible()
