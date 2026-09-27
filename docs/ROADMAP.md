@@ -3,7 +3,7 @@
 Single entry point for picking up work in a fresh session.
 
 - **Product spec (binding authority):** `docs/superpowers/specs/2026-09-22-gym-tracker-design.md`
-- **Current branch:** `phase4b-ai-personalization` — Phase 4B implementation complete, pending merge.
+- **Current branch:** `main` — Phase 4B merged; next is release hardening.
 - **Delivery process:** per-phase → brainstorm → spec (`docs/superpowers/specs/`) → plan (`docs/superpowers/plans/`) → subagent-driven TDD execution, with an audit trail in `.superpowers/sdd/<plan-slug>/`.
 
 ## Phase status
@@ -18,7 +18,7 @@ Single entry point for picking up work in a fresh session.
 | 3A | Tracking + Gamification (streaks, XP, badges, history) | Done | `.../specs/2026-09-22-gym-tracker-phase3a-tracking-stats-design.md` | `.../plans/2026-09-22-gym-tracker-phase3a-tracking-stats.md` | `.superpowers/sdd/2026-09-22-gym-tracker-phase3a-tracking-stats/` |
 | 3B | Progress Dashboard (charts, heatmap, PR views, body-metric log) | Done | `.../specs/2026-09-22-gym-tracker-phase3b-progress-dashboard-design.md` | `.../plans/2026-09-22-gym-tracker-phase3b-progress-dashboard.md` | `.superpowers/sdd/2026-09-22-gym-tracker-phase3b-progress-dashboard/` |
 | 4A | AI Routine Generation | Done (merged) | `.../specs/2026-09-22-gym-tracker-phase4a-ai-routine-generation-design.md` | `.../plans/2026-09-22-gym-tracker-phase4a-ai-routine-generation.md` | `.superpowers/sdd/2026-09-22-gym-tracker-phase4a-ai-routine-generation/` |
-| 4B | AI Personalization | Done (pending merge) | `.../specs/2026-09-25-gym-tracker-phase4b-ai-personalization-design.md` | `.../plans/2026-09-25-gym-tracker-phase4b-ai-personalization.md` | `.superpowers/sdd/2026-09-25-gym-tracker-phase4b-ai-personalization/` |
+| 4B | AI Personalization | Done (merged) | `.../specs/2026-09-25-gym-tracker-phase4b-ai-personalization-design.md` | `.../plans/2026-09-25-gym-tracker-phase4b-ai-personalization.md` | `.superpowers/sdd/2026-09-25-gym-tracker-phase4b-ai-personalization/` |
 
 Paths above are relative to repo root; `.../` = `docs/superpowers`.
 
@@ -31,14 +31,14 @@ Paths above are relative to repo root; `.../` = `docs/superpowers`.
 - **4A — AI Routine Generation** (Done, merged; depends on 2, 3A, 3B). Provider-agnostic OpenAI-compatible generation via a pg-boss job queue, strict structured-output validation with bounded repair retries, catalog resolution with a custom-exercise fallback, a deterministic template fallback, provenance, and a safety disclaimer.
 
 > **Deploy note (4A):** run the worker as a separate process (`pnpm worker:ai`, e.g. a dedicated Coolify process). pg-boss creates a `pgboss` schema on boot. With `AI_*` unset, generation uses the deterministic template fallback, so the feature still works without a provider.
-- **4B — AI Personalization** (Done, pending merge; depends on 4A). History-driven load tuning from recent completed working sets, an opt-out `personalize` toggle (default on), and provenance on the result. No operational/deploy change (no worker or env changes).
+- **4B — AI Personalization** (Done, merged; depends on 4A). History-driven load tuning from recent completed working sets, an opt-out `personalize` toggle (default on), and provenance on the result. No operational/deploy change (no worker or env changes).
 
 ## How to continue (next phase)
 
 No further phases planned; next is release hardening.
 
 1. Start a fresh session and point it at this file.
-2. Merge `phase4b-ai-personalization`, then harden for release (observability, rate limits, backups, provider config, smoke tests). Use the `brainstorming` skill to explore intent, then write a spec under `docs/superpowers/specs/`.
+2. Harden for release (observability, rate limits, backups, provider config, smoke tests). Use the `brainstorming` skill to explore intent, then write a spec under `docs/superpowers/specs/`.
 3. Derive an implementation plan under `docs/superpowers/plans/` (use `writing-plans`).
 4. Execute with `subagent-driven-development`: fresh implementer subagent per task, independent reviewer per task, fix rounds (≤5), one final whole-branch review, then `finishing-a-development-branch`. Keep the audit trail in `.superpowers/sdd/<plan-slug>/`.
 
