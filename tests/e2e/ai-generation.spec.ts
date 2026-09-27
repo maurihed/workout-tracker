@@ -15,7 +15,7 @@ const prisma = new PrismaClient({
 
 const email = `e2e_ai_${Date.now()}@e2e-test.local`
 
-const SQUAT_SOURCE_ID = "Barbell_Full_Squat"
+const SQUAT_SOURCE_ID = AI_MOCK_ROUTINE.days[0].exercises[0].sourceId
 
 /**
  * Seeds one completed session for `userId` with a working set that matches the
@@ -29,11 +29,13 @@ async function seedSquatHistory(userId: string) {
     select: { id: true },
   })
   const completedAt = new Date(Date.now() - 24 * 60 * 60 * 1000)
+  const startedAt = new Date(completedAt.getTime() - 60 * 60 * 1000)
   await prisma.workoutSession.create({
     data: {
       userId,
       name: "Seeded squat session",
       status: "completed",
+      startedAt,
       completedAt,
       snapshot: {},
       exercises: {

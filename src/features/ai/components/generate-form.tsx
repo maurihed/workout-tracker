@@ -183,11 +183,14 @@ export function GenerateForm({
             id="ai-personalize"
             type="checkbox"
             className="size-5"
+            aria-describedby="ai-personalize-hint"
             {...form.register("personalize")}
           />
           <span className="font-medium">{t("personalize")}</span>
         </label>
-        <p className="text-muted-foreground text-sm">{t("personalizeHint")}</p>
+        <p id="ai-personalize-hint" className="text-muted-foreground text-sm">
+          {t("personalizeHint")}
+        </p>
       </div>
 
       <Button type="submit" className="h-13" disabled={isPending}>

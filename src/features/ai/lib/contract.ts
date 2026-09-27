@@ -165,9 +165,9 @@ export const aiJobResultSchema = z.object({
   source: z.enum(["ai", "template"]),
   customNames: z.array(z.string()),
   routine: storedRoutineSchema,
-  personalized: z.boolean(),
-  personalizedCount: z.number().int().min(0),
-  personalizationVersion: z.string(),
+  personalized: z.boolean().default(false),
+  personalizedCount: z.number().int().min(0).default(0),
+  personalizationVersion: z.string().default("0"),
 })
 
 export const contractJsonSchema = {

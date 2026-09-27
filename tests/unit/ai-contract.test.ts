@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   aiJobInputSchema,
+  aiJobResultSchema,
   contractJsonSchema,
   formatValidationError,
   generatedRoutineSchema,
@@ -157,6 +158,42 @@ describe("aiJobInputSchema.personalize", () => {
 
   it("rejects a non-boolean", () => {
     expect(aiJobInputSchema.safeParse({ ...base, personalize: "yes" }).success).toBe(false)
+  })
+})
+
+describe("aiJobResultSchema", () => {
+  it("defaults legacy provenance fields when they are absent", () => {
+    const result = aiJobResultSchema.parse({
+      source: "ai",
+      customNames: [],
+      routine: {
+        name: "Legacy Plan",
+        goal: "build_muscle",
+        days: [
+          {
+            weekday: 0,
+            label: null,
+            exercises: [
+              {
+                sourceId: "Barbell_Full_Squat",
+                name: "Barbell Full Squat",
+                sets: 3,
+                reps: "8-12",
+                restSeconds: 90,
+                targetWeightKg: 60,
+                timerType: "none",
+                exerciseId: null,
+                customName: null,
+              },
+            ],
+          },
+        ],
+      },
+    })
+
+    expect(result.personalized).toBe(false)
+    expect(result.personalizedCount).toBe(0)
+    expect(result.personalizationVersion).toBe("0")
   })
 })
 
