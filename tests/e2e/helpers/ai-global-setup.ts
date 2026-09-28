@@ -7,7 +7,7 @@ import { AI_MOCK_MODEL, AI_MOCK_PORT, startAiMockServer } from "./ai-mock-server
 
 export const AI_E2E_STATE_PATH = path.join(tmpdir(), "gym-ai-e2e-state.json")
 
-const WORKER_READY = "worker:ai started"
+const WORKER_READY = "ai worker started"
 const WORKER_TIMEOUT_MS = 30_000
 
 function killProcessTree(pid: number | undefined) {

@@ -13,7 +13,7 @@ export default defineConfig({
     tsconfigPaths: true,
     alias: {
       "server-only": fileURLToPath(
-        new URL("./tests/stubs/server-only.ts", import.meta.url),
+        new URL("./scripts/stubs/server-only.ts", import.meta.url),
       ),
     },
   },
