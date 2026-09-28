@@ -22,6 +22,20 @@ RUN pnpm exec prisma generate && pnpm build
 FROM build AS migrate
 CMD ["pnpm", "exec", "prisma", "migrate", "deploy"]
 
+# One-off seed image: populates the exercise catalog + achievements, then exits.
+# Derived from `build` so the Prisma CLI, tsx, prisma/seed, and src/ are present.
+FROM build AS seed
+ENV NODE_ENV=production
+CMD ["pnpm", "db:seed"]
+
+# Long-running pg-boss AI worker. Derived from `build` (which has tsx, scripts/,
+# src/, and the generated Prisma client); it does not serve HTTP.
+FROM build AS worker
+ENV NODE_ENV=production
+RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
+USER nextjs
+CMD ["pnpm", "worker:ai"]
+
 FROM base AS runner
 ENV NODE_ENV=production
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
