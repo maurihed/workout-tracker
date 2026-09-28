@@ -13,8 +13,12 @@ function report(error: unknown) {
   if (dsn) Sentry.captureException(error)
 }
 
-process.on("uncaughtException", (error) => {
-  report(error)
+process.on("uncaughtException", async (error) => {
+  console.error(error)
+  if (dsn) {
+    Sentry.captureException(error)
+    await Sentry.flush(2000).catch(() => undefined)
+  }
   process.exit(1)
 })
 process.on("unhandledRejection", (reason) => {
