@@ -1,11 +1,13 @@
 # Deploying Gym Tracker (Coolify)
 
-The app ships as a multi-stage `Dockerfile` with three relevant targets:
+The app ships as a multi-stage `Dockerfile` with five relevant targets:
 
 | Target   | Purpose                                                        |
 | -------- | -------------------------------------------------------------- |
 | `runner` | The Next.js standalone server. This is the deployed app image. |
 | `migrate`| One-shot `prisma migrate deploy` image used as the pre-deploy / release step. |
+| `worker` | Long-running pg-boss AI worker (`pnpm worker:ai`). Deployed as a second application; serves no HTTP. |
+| `seed`   | One-shot exercise/achievement seeder (`pnpm db:seed`). Run as a one-off task. |
 | `build`  | Intermediate build stage (not deployed directly).              |
 
 ## Coolify setup
@@ -37,6 +39,41 @@ The app ships as a multi-stage `Dockerfile` with three relevant targets:
    - Push to `main` → Coolify builds `runner` → runs the `migrate` release
      command → starts the `runner` container.
 
+5. **Worker (second application)**
+   - Create a second Coolify application pointing at the same repository with
+     build target `worker` and no exposed port or healthcheck (it does not
+     serve HTTP).
+   - Set the restart policy to restart-on-failure (`unless-stopped` /
+     `restart: on-failure`) so the long-running pg-boss process is revived if it
+     crashes.
+   - Give it the same environment as the app (`DATABASE_URL`, `AI_*`, and
+     `SENTRY_DSN`), since it connects to the same database and queue.
+   - The worker reports errors to Sentry via `@sentry/node`. Reporting is inert
+     unless `SENTRY_DSN` is set; `uncaughtException` is flushed to Sentry before
+     the process exits.
+
+## Go-live runbook
+
+Run these steps in order on first deploy (and after schema/seeding changes):
+
+1. **Migrate.** The `migrate` release step runs automatically before each
+   `runner` deploy (see Coolify setup). To apply migrations manually, build the
+   `migrate` image and run it against the production `DATABASE_URL` (below).
+   Migrations are additive and safe to re-run.
+
+2. **Seed once.** Run the `seed` target as a one-off Coolify task with the
+   production `DATABASE_URL` and `FREE_EXERCISE_DB_URL` pinned to a
+   `free-exercise-db` commit:
+   `https://raw.githubusercontent.com/yuhonas/free-exercise-db/f00c92c7dcf1216a928a52c3706c7ce8e2f71ed5/dist/exercises.json`
+   The seed is idempotent: exercises and achievements are upserted, so it can
+   be re-run at any time to refresh the catalog from a new pinned commit. The
+   `seed` image excludes dev-only dependency verification
+   (`PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false`) and does not need a shadow DB.
+
+3. **Deploy the app and worker.** Deploy `runner` (with the `migrate` release
+   step) and then the `worker` application (see Coolify setup). `@sentry/node`
+   in the worker is inert until `SENTRY_DSN` is configured.
+
 ## Building locally
 
 ```sh
@@ -46,7 +83,21 @@ docker build --target runner -t gym-tracker .
 # Migration image (used by the release step)
 docker build --target migrate -t gym-tracker-migrate .
 docker run --rm -e DATABASE_URL="postgresql://..." gym-tracker-migrate
+
+# Worker image (long-running, no port)
+docker build --target worker -t gym-worker .
+
+# Seed image (one-off). On macOS the host DB is reached via
+# host.docker.internal, which requires --add-host host.docker.internal:host-gateway.
+docker build --target seed -t gym-seed .
+docker run --rm \
+  -e DATABASE_URL="postgresql://gym:gym@host.docker.internal:5432/gym_seedcheck?schema=public" \
+  -e FREE_EXERCISE_DB_URL="https://raw.githubusercontent.com/yuhonas/free-exercise-db/f00c92c7dcf1216a928a52c3706c7ce8e2f71ed5/dist/exercises.json" \
+  --add-host host.docker.internal:host-gateway \
+  gym-seed
 ```
+
+The `worker` image is verified the same way (`docker run --rm -e DATABASE_URL=... --add-host host.docker.internal:host-gateway gym-worker`) once a database is reachable; it blocks on the pg-boss queue rather than exiting.
 
 ## CI drift check
 
