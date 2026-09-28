@@ -9,7 +9,7 @@ import { importExercises, type RawExercise } from "./exercises"
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
 const prisma = new PrismaClient({ adapter })
 const DATASET_URL =
-  process.env.FREE_EXERCISE_DB_URL ??
+  process.env.FREE_EXERCISE_DB_URL?.trim() ||
   "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises.json"
 
 async function main() {

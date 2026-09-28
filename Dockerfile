@@ -26,17 +26,17 @@ CMD ["pnpm", "exec", "prisma", "migrate", "deploy"]
 # Derived from `build` so the Prisma CLI, tsx, prisma/seed, and src/ are present.
 FROM build AS seed
 ENV NODE_ENV=production
-ENV PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false
-CMD ["pnpm", "db:seed"]
+RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
+USER nextjs
+CMD ["./node_modules/.bin/tsx", "prisma/seed/index.ts"]
 
 # Long-running pg-boss AI worker. Derived from `build` (which has tsx, scripts/,
 # src/, and the generated Prisma client); it does not serve HTTP.
 FROM build AS worker
 ENV NODE_ENV=production
-ENV PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 USER nextjs
-CMD ["pnpm", "worker:ai"]
+CMD ["./node_modules/.bin/tsx", "--tsconfig", "scripts/tsconfig.json", "scripts/worker-ai.ts"]
 
 FROM base AS runner
 ENV NODE_ENV=production

@@ -21,8 +21,9 @@ process.on("uncaughtException", async (error) => {
   }
   process.exit(1)
 })
-process.on("unhandledRejection", (reason) => {
+process.on("unhandledRejection", async (reason) => {
   report(reason)
+  if (dsn) await Sentry.flush(2000).catch(() => undefined)
 })
 
 await startAiWorker((jobId) => runJob(jobId))

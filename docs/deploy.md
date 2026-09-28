@@ -6,9 +6,16 @@ The app ships as a multi-stage `Dockerfile` with five relevant targets:
 | -------- | -------------------------------------------------------------- |
 | `runner` | The Next.js standalone server. This is the deployed app image. |
 | `migrate`| One-shot `prisma migrate deploy` image used as the pre-deploy / release step. |
-| `worker` | Long-running pg-boss AI worker (`pnpm worker:ai`). Deployed as a second application; serves no HTTP. |
-| `seed`   | One-shot exercise/achievement seeder (`pnpm db:seed`). Run as a one-off task. |
+| `worker` | Long-running pg-boss AI worker. Deployed as a second application; serves no HTTP. |
+| `seed`   | One-shot exercise/achievement seeder. Run as a one-off task.   |
 | `build`  | Intermediate build stage (not deployed directly).              |
+
+The `worker` image's `CMD` invokes tsx directly —
+`./node_modules/.bin/tsx --tsconfig scripts/tsconfig.json scripts/worker-ai.ts`
+— and the `seed` image's `CMD` invokes
+`./node_modules/.bin/tsx prisma/seed/index.ts`, so neither downloads pnpm
+(or anything else) at container start. `pnpm worker:ai` and `pnpm db:seed` are
+the equivalent source-level scripts for local development.
 
 ## Coolify setup
 
@@ -68,9 +75,9 @@ Run these steps in order on first deploy (and after schema/seeding changes):
    The seed is idempotent: exercises and achievements are upserted, so it can
    be re-run at any time to refresh the catalog from a new pinned commit. The
    seed fetches the dataset over the network at run time, so this task must run
-   on a network with outbound egress. The `seed` image excludes dev-only
-   dependency verification (`PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false`) and does
-   not need a shadow DB.
+   on a network with outbound egress. The `seed` image runs as the non-root
+   `nextjs` user and does not need a shadow DB. Leaving `FREE_EXERCISE_DB_URL`
+   empty falls back to the upstream `main` dataset URL.
 
 3. **Deploy the app and worker.** Deploy `runner` (with the `migrate` release
    step) and then the `worker` application (see Coolify setup). `@sentry/node`
