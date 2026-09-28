@@ -24,7 +24,7 @@ jobs:
       AUTH_URL: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with: { version: 12.5.1 }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
