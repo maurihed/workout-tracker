@@ -67,8 +67,10 @@ Run these steps in order on first deploy (and after schema/seeding changes):
    `https://raw.githubusercontent.com/yuhonas/free-exercise-db/f00c92c7dcf1216a928a52c3706c7ce8e2f71ed5/dist/exercises.json`
    The seed is idempotent: exercises and achievements are upserted, so it can
    be re-run at any time to refresh the catalog from a new pinned commit. The
-   `seed` image excludes dev-only dependency verification
-   (`PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false`) and does not need a shadow DB.
+   seed fetches the dataset over the network at run time, so this task must run
+   on a network with outbound egress. The `seed` image excludes dev-only
+   dependency verification (`PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false`) and does
+   not need a shadow DB.
 
 3. **Deploy the app and worker.** Deploy `runner` (with the `migrate` release
    step) and then the `worker` application (see Coolify setup). `@sentry/node`
