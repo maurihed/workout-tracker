@@ -1,14 +1,34 @@
 import "dotenv/config"
+import * as Sentry from "@sentry/node"
 import { getBoss, startAiWorker } from "../src/server/ai/queue"
 import { runJob } from "../src/server/services/ai.service"
 
+const dsn = process.env.SENTRY_DSN?.trim()
+if (dsn) {
+  Sentry.init({ dsn, environment: process.env.NODE_ENV })
+}
+
+function report(error: unknown) {
+  console.error(error)
+  if (dsn) Sentry.captureException(error)
+}
+
+process.on("uncaughtException", (error) => {
+  report(error)
+  process.exit(1)
+})
+process.on("unhandledRejection", (reason) => {
+  report(reason)
+})
+
 await startAiWorker((jobId) => runJob(jobId))
-console.log("worker:ai started")
+console.log("ai worker started")
 
 async function shutdown() {
-  await (await getBoss()).stop()
+  const boss = await getBoss()
+  await boss.stop()
   process.exit(0)
 }
 
-process.on("SIGINT", shutdown)
-process.on("SIGTERM", shutdown)
+process.on("SIGINT", () => void shutdown())
+process.on("SIGTERM", () => void shutdown())
