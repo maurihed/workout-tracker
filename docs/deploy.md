@@ -4,13 +4,16 @@ The app ships as a multi-stage `Dockerfile` with five relevant targets:
 
 | Target   | Purpose                                                        |
 | -------- | -------------------------------------------------------------- |
-| `runner` | The Next.js standalone server. This is the deployed app image. |
-| `migrate`| One-shot `prisma migrate deploy` image used as the pre-deploy / release step. |
+| `runner` | The Next.js standalone server. Applies pending migrations at start-up, then serves HTTP. |
+| `migrate`| One-shot `prisma migrate deploy` image, kept for manual/CI use. |
 | `worker` | Long-running pg-boss AI worker. Deployed as a second application; serves no HTTP. |
 | `seed`   | One-shot exercise/achievement seeder. Run as a one-off task.   |
 | `build`  | Intermediate build stage (not deployed directly).              |
 
-The `worker` image's `CMD` invokes tsx directly —
+The `runner` image starts through `docker/entrypoint.sh`, which runs
+`prisma migrate deploy` against `DATABASE_URL` and then `exec`s the server, so
+pending migrations are applied on every container start. The `worker` image's
+`CMD` invokes tsx directly —
 `./node_modules/.bin/tsx --tsconfig scripts/tsconfig.json scripts/worker-ai.ts`
 — and the `seed` image's `CMD` invokes
 `./node_modules/.bin/tsx prisma/seed/index.ts`, so neither downloads pnpm
@@ -24,15 +27,21 @@ the equivalent source-level scripts for local development.
    - Expose port `3000`. The image runs as the non-root `nextjs` user and
      ships a `HEALTHCHECK` against `/api/health`.
 
-2. **Pre-deploy / release command**
-   - Build target: `migrate`.
-   - Command: the image's default `CMD` (`pnpm exec prisma migrate deploy`).
-   - This stage is built `FROM build`, so it contains the Prisma CLI
-     (a devDependency), `prisma7.config.ts`, and `prisma/schema.prisma` +
-     `prisma/migrations/`. The `runner` image intentionally does **not** ship
-     the Prisma CLI or the config, so migrations must not be invoked there.
-   - Coolify injects the same environment (notably `DATABASE_URL`) into the
-     release step as into the app.
+2. **Migrations**
+   - Applied automatically: the `runner` image runs `prisma migrate deploy` at
+     start-up (`docker/entrypoint.sh`) before serving, so a normal deploy
+     migrates the database with no extra step. Migrations are additive and safe
+     to re-run; Prisma records them in `_prisma_migrations`.
+   - Coolify's *Pre-deployment command* is still not used for this: it runs
+     inside the current application container and is skipped on the first
+     deployment.
+   - The `migrate` target remains for manual use and CI. It is built `FROM build`
+     and contains the Prisma CLI (a devDependency), `prisma7.config.ts`, and
+     `prisma/schema.prisma` + `prisma/migrations/`; run it as a one-off against
+     a `DATABASE_URL` (see "Building locally").
+   - The `migrator` stage installs an isolated Prisma CLI into `/migrate` for the
+     runner. It does not copy pnpm's full `node_modules` (which is ~1.2 GB);
+     the isolated install is ~55 MB.
 
 3. **Environment**
    - Copy every variable from `.env.example` into Coolify's environment. In
@@ -43,8 +52,8 @@ the equivalent source-level scripts for local development.
      no-op (see `instrumentation-client.ts`).
 
 4. **Deploy flow**
-   - Push to `main` → Coolify builds `runner` → runs the `migrate` release
-     command → starts the `runner` container.
+   - Push to `main` → Coolify builds `runner` → starts the `runner` container,
+     which applies pending migrations before serving.
 
 5. **Worker (second application)**
    - Create a second Coolify application pointing at the same repository with
@@ -63,10 +72,10 @@ the equivalent source-level scripts for local development.
 
 Run these steps in order on first deploy (and after schema/seeding changes):
 
-1. **Migrate.** The `migrate` release step runs automatically before each
-   `runner` deploy (see Coolify setup). To apply migrations manually, build the
-   `migrate` image and run it against the production `DATABASE_URL` (below).
-   Migrations are additive and safe to re-run.
+1. **Migrate.** Automatic — the `runner` container applies pending migrations
+   on start. To apply them without deploying the app, build the `migrate` image
+   and run it against the production `DATABASE_URL` (below). Migrations are
+   additive and safe to re-run.
 
 2. **Seed once.** Run the `seed` target as a one-off Coolify task with the
    production `DATABASE_URL` and `FREE_EXERCISE_DB_URL` pinned to a
@@ -89,7 +98,7 @@ Run these steps in order on first deploy (and after schema/seeding changes):
 # App image
 docker build --target runner -t gym-tracker .
 
-# Migration image (used by the release step)
+# Migration image (run as a one-off application to apply migrations)
 docker build --target migrate -t gym-tracker-migrate .
 docker run --rm -e DATABASE_URL="postgresql://..." gym-tracker-migrate
 
@@ -127,9 +136,9 @@ differences are found and `0` when migrations and schema agree.
 
 ## Release notes
 
-The `migrate` release step applies any pending migration in `prisma/migrations/`
-before the new `runner` container starts. Migrations are additive and safe to
-re-run (Prisma records applied migrations in `_prisma_migrations`).
+The `runner` container applies any pending migration in `prisma/migrations/` at
+start-up, before serving traffic. Migrations are additive and safe to re-run
+(Prisma records applied migrations in `_prisma_migrations`).
 
 - **Phase 1.5 — `20260922210226_add_routine`:** adds the routine models
   (`Routine`, `RoutineDay`, `RoutineExercise`) with their indexes and cascading

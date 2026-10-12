@@ -38,17 +38,25 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 USER nextjs
 CMD ["./node_modules/.bin/tsx", "--tsconfig", "scripts/tsconfig.json", "scripts/worker-ai.ts"]
 
+FROM base AS migrator
+WORKDIR /migrate
+COPY prisma7.config.ts ./
+COPY prisma ./prisma
+RUN npm install --no-package-lock --no-audit --no-fund prisma@7.10.0 dotenv@18.0.1
+
 FROM base AS runner
 ENV NODE_ENV=production
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 COPY --from=build /app/public ./public
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
-COPY --from=build /app/prisma ./prisma
+COPY --from=migrator /migrate ./migrate
+COPY --chmod=0755 docker/entrypoint.sh ./docker-entrypoint.sh
 RUN mkdir -p .next/cache && chown -R nextjs:nodejs .next
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000 HOSTNAME=0.0.0.0
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["node", "server.js"]
