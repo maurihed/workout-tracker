@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "Gym Tracker",
-    "tagline": "Follow your routine. See your progress."
+    "tagline": "Follow your routine. See your progress.",
+    "continue": "Continue"
   },
   "nav": {
     "label": "Main navigation",

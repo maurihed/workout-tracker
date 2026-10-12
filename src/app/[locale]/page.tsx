@@ -1,5 +1,8 @@
-import { Lightning } from "@phosphor-icons/react/dist/ssr"
+import { ArrowRight, Lightning } from "@phosphor-icons/react/dist/ssr"
 import { getTranslations, setRequestLocale } from "next-intl/server"
+import Link from "next/link"
+
+import { Button } from "@/components/ui/button"
 
 export default async function HomePage({ params }: PageProps<"/[locale]">) {
   const { locale } = await params
@@ -20,6 +23,12 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
         <p className="text-muted-foreground max-w-xs text-lg text-balance">
           {t("tagline")}
         </p>
+        <Button asChild size="lg">
+          <Link href={`/${locale}/dashboard`}>
+            {t("continue")}
+            <ArrowRight weight="bold" aria-hidden="true" />
+          </Link>
+        </Button>
       </div>
     </main>
   )
