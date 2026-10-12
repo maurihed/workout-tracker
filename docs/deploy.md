@@ -56,9 +56,18 @@ the equivalent source-level scripts for local development.
      which applies pending migrations before serving.
 
 5. **Worker (second application)**
-   - Create a second Coolify application pointing at the same repository with
-     build target `worker` and no exposed port or healthcheck (it does not
-     serve HTTP).
+   - Create a second Coolify application pointing at the same repository.
+     Set **Dockerfile Location** to `/Dockerfile.worker` and **Docker Build
+     Stage Target** to `worker`. Do not add a domain and disable the
+     healthcheck (the worker does not serve HTTP).
+   - Use `Dockerfile.worker` (not `Dockerfile`) on purpose: Coolify's
+     HEALTHCHECK detection parses the whole Dockerfile text and ignores
+     `dockerfile_target_build` (coollabsio/coolify#9475), so the `runner`
+     stage's HEALTHCHECK leaks into the worker application and cannot be
+     disabled from the UI. `Dockerfile.worker` contains no HEALTHCHECK, so the
+     bug cannot trigger.
+   - Coolify still requires a value in **Ports Exposes**; `3000` is a harmless
+     placeholder since no domain is attached. Remove any port mapping.
    - Set the restart policy to restart-on-failure (`unless-stopped` /
      `restart: on-failure`) so the long-running pg-boss process is revived if it
      crashes.
@@ -103,7 +112,7 @@ docker build --target migrate -t gym-tracker-migrate .
 docker run --rm -e DATABASE_URL="postgresql://..." gym-tracker-migrate
 
 # Worker image (long-running, no port)
-docker build --target worker -t gym-worker .
+docker build -f Dockerfile.worker --target worker -t gym-worker .
 
 # Seed image (one-off). On macOS the host DB is reached via
 # host.docker.internal, which requires --add-host host.docker.internal:host-gateway.

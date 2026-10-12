@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1
+# Standalone worker image target.
+#
+# Kept as a separate Dockerfile from `Dockerfile` on purpose: Coolify's
+# health-check detection parses the whole Dockerfile text and ignores
+# `dockerfile_target_build` (coollabsio/coolify#9475), so the `runner` stage's
+# health check leaks into the worker app and cannot be disabled from the UI.
+# This file defines no health check, so the bug cannot trigger. Keep the literal
+# token out of this file entirely (comments included), because Coolify matches
+# on the raw text.
+FROM node:22-alpine AS base
+RUN corepack enable
+WORKDIR /app
+
+FROM base AS deps
+COPY package.json pnpm-lock.yaml ./
+# `postinstall` runs `prisma generate`, but the Prisma schema is not copied into
+# this stage, so scripts must be skipped here. The build stage generates the
+# client explicitly once the source and schema are present.
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --ignore-scripts
+
+FROM base AS build
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN pnpm exec prisma generate && pnpm build
+
+# Long-running pg-boss AI worker. Derived from `build` (which has tsx, scripts/,
+# src/, and the generated Prisma client); it does not serve HTTP.
+FROM build AS worker
+ENV NODE_ENV=production
+RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
+USER nextjs
+CMD ["./node_modules/.bin/tsx", "--tsconfig", "scripts/tsconfig.json", "scripts/worker-ai.ts"]
