@@ -11,6 +11,10 @@ export const GOALS = [
 
 export const EXPERIENCES = ["beginner", "intermediate", "advanced"] as const
 
+export const TRAINING_LOCATIONS = ["home", "gym"] as const
+
+export const GYM_PROFILES = ["basic", "intermediate", "fully_equipped"] as const
+
 export const TIMER_TYPES = ["none", "interval", "emom", "amrap"] as const
 
 export const generatedExerciseSchema = z
@@ -24,6 +28,11 @@ export const generatedExerciseSchema = z
     timerType: z.enum(TIMER_TYPES),
     workSeconds: z.number().int().min(1).max(3600).nullable().optional(),
     rounds: z.number().int().min(1).max(50).nullable().optional(),
+    instructions: z
+      .array(z.string().trim().min(1).max(300))
+      .max(6)
+      .nullable()
+      .optional(),
   })
   .strict()
   .refine((value) => value.timerType === "none" || value.workSeconds != null, {
@@ -46,10 +55,14 @@ export const generatedRoutineSchema = z
     days: z.array(generatedDaySchema).min(1),
   })
   .strict()
-  .refine((value) => new Set(value.days.map((day) => day.weekday)).size === value.days.length, {
-    message: "Each weekday may appear only once",
-    path: ["days"],
-  })
+  .refine(
+    (value) =>
+      new Set(value.days.map((day) => day.weekday)).size === value.days.length,
+    {
+      message: "Each weekday may appear only once",
+      path: ["days"],
+    },
+  )
 
 export type GeneratedRoutine = z.infer<typeof generatedRoutineSchema>
 
@@ -62,13 +75,17 @@ export function formatValidationError(error: z.ZodError): string {
 export const aiJobInputSchema = z.object({
   goal: z.enum(GOALS),
   experience: z.enum(EXPERIENCES),
+  location: z.enum(TRAINING_LOCATIONS).default("home"),
   equipment: z.array(z.enum(EQUIPMENT)).default([]),
+  gymProfile: z.enum(GYM_PROFILES).default("intermediate"),
   daysPerWeek: z.number().int().min(1).max(7),
   focus: z.string().trim().max(100).nullable().optional(),
   personalize: z.boolean().default(true),
 })
 
 export type AiJobInput = z.infer<typeof aiJobInputSchema>
+export type TrainingLocation = AiJobInput["location"]
+export type GymProfile = AiJobInput["gymProfile"]
 
 type GeneratedDay = GeneratedRoutine["days"][number]
 type GeneratedExercise = GeneratedDay["exercises"][number]
@@ -92,7 +109,9 @@ function dedupeExercises(exercises: GeneratedExercise[]): GeneratedExercise[] {
   })
 }
 
-export function normalizeGeneratedRoutine(value: GeneratedRoutine): GeneratedRoutine {
+export function normalizeGeneratedRoutine(
+  value: GeneratedRoutine,
+): GeneratedRoutine {
   const days = value.days
     .map((day) => ({
       ...day,
@@ -101,6 +120,13 @@ export function normalizeGeneratedRoutine(value: GeneratedRoutine): GeneratedRou
         day.exercises.map((exercise) => ({
           ...exercise,
           name: exercise.name?.trim() ?? exercise.name,
+          ...(exercise.instructions
+            ? {
+                instructions: exercise.instructions
+                  .map((step) => step.trim())
+                  .filter((step) => step.length > 0),
+              }
+            : {}),
         })),
       ),
     }))
@@ -145,6 +171,7 @@ export const storedExerciseSchema = z.object({
   timerType: z.enum(TIMER_TYPES),
   workSeconds: z.number().int().nullable().optional(),
   rounds: z.number().int().nullable().optional(),
+  instructions: z.array(z.string()).nullable().optional(),
   exerciseId: z.string().nullable(),
   customName: z.string().nullable(),
 })
@@ -202,7 +229,9 @@ export const contractJsonSchema = {
                 sets: { type: "integer", minimum: 1, maximum: 10 },
                 reps: { type: "string" },
                 restSeconds: { type: "integer", minimum: 0, maximum: 3600 },
-                targetWeightKg: { anyOf: [{ type: "number" }, { type: "null" }] },
+                targetWeightKg: {
+                  anyOf: [{ type: "number" }, { type: "null" }],
+                },
                 timerType: { type: "string", enum: [...TIMER_TYPES] },
                 workSeconds: {
                   anyOf: [
@@ -213,6 +242,16 @@ export const contractJsonSchema = {
                 rounds: {
                   anyOf: [
                     { type: "integer", minimum: 1, maximum: 50 },
+                    { type: "null" },
+                  ],
+                },
+                instructions: {
+                  anyOf: [
+                    {
+                      type: "array",
+                      maxItems: 6,
+                      items: { type: "string", minLength: 1, maxLength: 300 },
+                    },
                     { type: "null" },
                   ],
                 },

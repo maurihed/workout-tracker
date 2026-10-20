@@ -3,13 +3,19 @@ import type { AiJobInput } from "@/features/ai/lib/contract"
 import { PROMPT_VERSION, buildPrompt } from "@/features/ai/lib/prompt"
 
 const catalog = [
-  { sourceId: "Barbell_Squat", name: "Barbell Squat", primaryMuscles: ["quadriceps"] },
+  {
+    sourceId: "Barbell_Squat",
+    name: "Barbell Squat",
+    primaryMuscles: ["quadriceps"],
+  },
 ]
 
 const input: AiJobInput = {
   goal: "build_muscle",
   experience: "beginner",
+  location: "gym",
   equipment: ["barbell"],
+  gymProfile: "intermediate",
   daysPerWeek: 3,
   focus: null,
   personalize: true,
@@ -18,7 +24,7 @@ const input: AiJobInput = {
 describe("buildPrompt", () => {
   it("pins the JSON contract, forbids prose, and lists catalog ids", () => {
     const prompt = buildPrompt(input, catalog)
-    expect(PROMPT_VERSION).toBe("2")
+    expect(PROMPT_VERSION).toBe("3")
     expect(prompt).toMatch(/JSON only/i)
     expect(prompt).toContain("Barbell_Squat")
     expect(prompt).toMatch(/build_muscle/)
@@ -44,7 +50,29 @@ describe("buildPrompt", () => {
   })
 
   it("bumps the prompt version", () => {
-    expect(PROMPT_VERSION).toBe("2")
+    expect(PROMPT_VERSION).toBe("3")
+  })
+
+  it("describes a home training place and its selected equipment", () => {
+    const prompt = buildPrompt(
+      { ...input, location: "home", equipment: ["dumbbell", "bands"] },
+      catalog,
+    )
+    expect(prompt).toMatch(/home or park/i)
+    expect(prompt).toContain("dumbbell")
+    expect(prompt).toContain("bands")
+  })
+
+  it("describes the selected gym equipment level", () => {
+    const prompt = buildPrompt({ ...input, gymProfile: "basic" }, catalog)
+    expect(prompt).toMatch(/Basic gym/i)
+    expect(prompt).toMatch(/cable stations/i)
+  })
+
+  it("asks for how-to steps only on custom exercises", () => {
+    const prompt = buildPrompt(input, catalog)
+    expect(prompt).toMatch(/instructions/i)
+    expect(prompt).toMatch(/sourceId null/i)
   })
 
   it("includes the history summary when provided", () => {
@@ -52,12 +80,20 @@ describe("buildPrompt", () => {
       {
         goal: "build_muscle",
         experience: "beginner",
+        location: "gym",
         equipment: ["barbell"],
+        gymProfile: "intermediate",
         daysPerWeek: 3,
         focus: null,
         personalize: true,
       },
-      [{ sourceId: "Barbell_Squat", name: "Barbell Squat", primaryMuscles: ["quadriceps"] }],
+      [
+        {
+          sourceId: "Barbell_Squat",
+          name: "Barbell Squat",
+          primaryMuscles: ["quadriceps"],
+        },
+      ],
       "- Barbell Squat: 100 kg × 5 (2026-09-20)",
     )
     expect(prompt).toContain("Recent training")
@@ -69,12 +105,20 @@ describe("buildPrompt", () => {
       {
         goal: "build_muscle",
         experience: "beginner",
+        location: "gym",
         equipment: ["barbell"],
+        gymProfile: "intermediate",
         daysPerWeek: 3,
         focus: null,
         personalize: true,
       },
-      [{ sourceId: "Barbell_Squat", name: "Barbell Squat", primaryMuscles: ["quadriceps"] }],
+      [
+        {
+          sourceId: "Barbell_Squat",
+          name: "Barbell Squat",
+          primaryMuscles: ["quadriceps"],
+        },
+      ],
     )
     expect(prompt).not.toContain("Recent training")
   })

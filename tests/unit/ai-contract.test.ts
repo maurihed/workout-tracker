@@ -59,7 +59,14 @@ describe("generatedRoutineSchema", () => {
       days: [
         {
           ...validDay,
-          exercises: [{ ...validExercise, timerType: "interval", workSeconds: 40, rounds: 5 }],
+          exercises: [
+            {
+              ...validExercise,
+              timerType: "interval",
+              workSeconds: 40,
+              rounds: 5,
+            },
+          ],
         },
       ],
     })
@@ -67,12 +74,17 @@ describe("generatedRoutineSchema", () => {
   })
 
   it("rejects when days is missing", () => {
-    const result = generatedRoutineSchema.safeParse({ name: validRoutine.name, goal: validRoutine.goal })
+    const result = generatedRoutineSchema.safeParse({
+      name: validRoutine.name,
+      goal: validRoutine.goal,
+    })
     expect(result.success).toBe(false)
   })
 
   it("rejects empty days", () => {
-    expect(generatedRoutineSchema.safeParse({ ...validRoutine, days: [] }).success).toBe(false)
+    expect(
+      generatedRoutineSchema.safeParse({ ...validRoutine, days: [] }).success,
+    ).toBe(false)
   })
 
   it("rejects sets: 0", () => {
@@ -94,19 +106,64 @@ describe("generatedRoutineSchema", () => {
   it("rejects a timed exercise without workSeconds", () => {
     const result = generatedRoutineSchema.safeParse({
       ...validRoutine,
-      days: [{ ...validDay, exercises: [{ ...validExercise, timerType: "emom" }] }],
+      days: [
+        { ...validDay, exercises: [{ ...validExercise, timerType: "emom" }] },
+      ],
     })
     expect(result.success).toBe(false)
   })
 
   it("rejects unknown top-level keys", () => {
-    expect(generatedRoutineSchema.safeParse({ ...validRoutine, extra: true }).success).toBe(false)
+    expect(
+      generatedRoutineSchema.safeParse({ ...validRoutine, extra: true })
+        .success,
+    ).toBe(false)
   })
 
   it("rejects unknown nested keys", () => {
     const result = generatedRoutineSchema.safeParse({
       ...validRoutine,
       days: [{ ...validDay, exercises: [{ ...validExercise, extra: true }] }],
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it("accepts how-to instructions on a custom exercise", () => {
+    const result = generatedRoutineSchema.safeParse({
+      ...validRoutine,
+      days: [
+        {
+          ...validDay,
+          exercises: [
+            {
+              ...validExercise,
+              sourceId: null,
+              instructions: [
+                "Set up under the bar.",
+                "Drive through the heels.",
+              ],
+            },
+          ],
+        },
+      ],
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it("rejects more than six instruction steps", () => {
+    const result = generatedRoutineSchema.safeParse({
+      ...validRoutine,
+      days: [
+        {
+          ...validDay,
+          exercises: [
+            {
+              ...validExercise,
+              instructions: Array.from({ length: 7 }, () => "step"),
+            },
+          ],
+        },
+      ],
     })
     expect(result.success).toBe(false)
   })
@@ -143,21 +200,63 @@ describe("aiJobInputSchema", () => {
     })
     expect(result.success).toBe(false)
   })
+
+  it("defaults the training place to home and the gym level to intermediate", () => {
+    const parsed = aiJobInputSchema.parse({
+      goal: "build_muscle",
+      experience: "beginner",
+      daysPerWeek: 3,
+    })
+    expect(parsed.location).toBe("home")
+    expect(parsed.gymProfile).toBe("intermediate")
+    expect(parsed.equipment).toEqual([])
+  })
+
+  it("accepts a gym with a fully equipped profile", () => {
+    const result = aiJobInputSchema.safeParse({
+      goal: "get_stronger",
+      experience: "advanced",
+      location: "gym",
+      gymProfile: "fully_equipped",
+      daysPerWeek: 4,
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it("rejects an unknown gym profile", () => {
+    const result = aiJobInputSchema.safeParse({
+      goal: "build_muscle",
+      experience: "beginner",
+      location: "gym",
+      gymProfile: "elite",
+      daysPerWeek: 3,
+    })
+    expect(result.success).toBe(false)
+  })
 })
 
 describe("aiJobInputSchema.personalize", () => {
-  const base = { goal: "build_muscle", experience: "beginner", equipment: [], daysPerWeek: 3 }
+  const base = {
+    goal: "build_muscle",
+    experience: "beginner",
+    equipment: [],
+    daysPerWeek: 3,
+  }
 
   it("defaults personalize to true", () => {
     expect(aiJobInputSchema.parse(base).personalize).toBe(true)
   })
 
   it("accepts an explicit false", () => {
-    expect(aiJobInputSchema.parse({ ...base, personalize: false }).personalize).toBe(false)
+    expect(
+      aiJobInputSchema.parse({ ...base, personalize: false }).personalize,
+    ).toBe(false)
   })
 
   it("rejects a non-boolean", () => {
-    expect(aiJobInputSchema.safeParse({ ...base, personalize: "yes" }).success).toBe(false)
+    expect(
+      aiJobInputSchema.safeParse({ ...base, personalize: "yes" }).success,
+    ).toBe(false)
   })
 })
 
@@ -195,11 +294,57 @@ describe("aiJobResultSchema", () => {
     expect(result.personalizedCount).toBe(0)
     expect(result.personalizationVersion).toBe("0")
   })
+
+  it("keeps custom exercise instructions in stored results", () => {
+    const result = aiJobResultSchema.parse({
+      source: "ai",
+      customNames: ["Zercher Lift"],
+      routine: {
+        name: "Strength",
+        goal: "get_stronger",
+        days: [
+          {
+            weekday: 0,
+            label: null,
+            exercises: [
+              {
+                sourceId: null,
+                name: "Zercher Lift",
+                sets: 3,
+                reps: "5",
+                restSeconds: 120,
+                timerType: "none",
+                exerciseId: null,
+                customName: "Zercher Lift",
+                instructions: [
+                  "Cradle the bar in your elbows.",
+                  "Stand up tall.",
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    })
+
+    expect(result.routine.days[0]?.exercises[0]?.instructions).toEqual([
+      "Cradle the bar in your elbows.",
+      "Stand up tall.",
+    ])
+  })
 })
 
 describe("contractJsonSchema", () => {
   it("is a plain serializable object", () => {
-    expect(JSON.parse(JSON.stringify(contractJsonSchema))).toEqual(contractJsonSchema)
+    expect(JSON.parse(JSON.stringify(contractJsonSchema))).toEqual(
+      contractJsonSchema,
+    )
+  })
+
+  it("documents the instructions property for custom exercises", () => {
+    const exercises =
+      contractJsonSchema.properties.days.items.properties.exercises.items
+    expect(exercises.properties.instructions).toBeDefined()
   })
 })
 
@@ -216,11 +361,20 @@ describe("formatValidationError", () => {
   it("labels nested array paths with indices", () => {
     const result = generatedRoutineSchema.safeParse({
       name: "x",
-      days: [{ weekday: 0, exercises: [{ sets: 0, reps: "5", restSeconds: 60, timerType: "none" }] }],
+      days: [
+        {
+          weekday: 0,
+          exercises: [
+            { sets: 0, reps: "5", restSeconds: 60, timerType: "none" },
+          ],
+        },
+      ],
     })
     expect(result.success).toBe(false)
     if (result.success) return
-    expect(formatValidationError(result.error)).toContain("days.0.exercises.0.sets")
+    expect(formatValidationError(result.error)).toContain(
+      "days.0.exercises.0.sets",
+    )
   })
 })
 
@@ -233,14 +387,26 @@ describe("normalizeGeneratedRoutine", () => {
           weekday: 0,
           label: "  Day A  ",
           exercises: [
-            { name: "  Squat  ", sets: 3, reps: "5", restSeconds: 60, timerType: "none" },
+            {
+              name: "  Squat  ",
+              sets: 3,
+              reps: "5",
+              restSeconds: 60,
+              timerType: "none",
+            },
           ],
         },
         {
           weekday: 1,
           label: "  Day B  ",
           exercises: [
-            { name: "  Bench  ", sets: 3, reps: "5", restSeconds: 60, timerType: "none" },
+            {
+              name: "  Bench  ",
+              sets: 3,
+              reps: "5",
+              restSeconds: 60,
+              timerType: "none",
+            },
           ],
         },
       ],
@@ -265,10 +431,36 @@ describe("normalizeGeneratedRoutine", () => {
         {
           weekday: 0,
           exercises: [
-            { sourceId: "Squat", name: "Squat", sets: 3, reps: "5", restSeconds: 60, timerType: "none" },
-            { sourceId: " squat ", name: "Back Squat", sets: 3, reps: "5", restSeconds: 60, timerType: "none" },
-            { name: "Lunge", sets: 3, reps: "10", restSeconds: 60, timerType: "none" },
-            { name: " lunge ", sets: 3, reps: "10", restSeconds: 60, timerType: "none" },
+            {
+              sourceId: "Squat",
+              name: "Squat",
+              sets: 3,
+              reps: "5",
+              restSeconds: 60,
+              timerType: "none",
+            },
+            {
+              sourceId: " squat ",
+              name: "Back Squat",
+              sets: 3,
+              reps: "5",
+              restSeconds: 60,
+              timerType: "none",
+            },
+            {
+              name: "Lunge",
+              sets: 3,
+              reps: "10",
+              restSeconds: 60,
+              timerType: "none",
+            },
+            {
+              name: " lunge ",
+              sets: 3,
+              reps: "10",
+              restSeconds: 60,
+              timerType: "none",
+            },
           ],
         },
       ],

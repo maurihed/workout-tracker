@@ -90,6 +90,28 @@ const session: RunnerSessionInput = {
   ],
 }
 
+const customSession: RunnerSessionInput = {
+  id: "s1",
+  exercises: [
+    {
+      exerciseId: "e1",
+      timerType: "none",
+      workSeconds: null,
+      restSeconds: 60,
+      rounds: null,
+      exercise: {
+        id: "e1",
+        name: "Squat",
+        nameEs: null,
+        images: [],
+        isCustom: true,
+        instructions: ["Cradle the bar in your elbows.", "Stand up tall."],
+      },
+      lastPerformance: null,
+    },
+  ],
+}
+
 beforeEach(() => {
   useSessionStore.getState().reset()
   useSessionStore.getState().hydrate(storeSession, {
@@ -121,6 +143,16 @@ describe("WorkoutRunner store ownership", () => {
     expect(useSessionStore.getState().sessionId).toBe("s1")
     expect(useSessionStore.getState().exercises).toHaveLength(1)
     expect(screen.getByText("Squat")).toBeInTheDocument()
+  })
+
+  it("shows how-to steps for a custom exercise", () => {
+    render(<WorkoutRunner session={customSession} />)
+
+    expect(screen.getByText("customExercise")).toBeInTheDocument()
+    expect(
+      screen.getByText("Cradle the bar in your elbows."),
+    ).toBeInTheDocument()
+    expect(screen.getByText("Stand up tall.")).toBeInTheDocument()
   })
 
   it("resets the store on unmount so the page can re-hydrate", () => {

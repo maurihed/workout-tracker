@@ -39,7 +39,16 @@ export const routineSelect = {
           workSeconds: true,
           rounds: true,
           notes: true,
-          exercise: { select: { id: true, name: true, nameEs: true, images: true } },
+          exercise: {
+            select: {
+              id: true,
+              name: true,
+              nameEs: true,
+              images: true,
+              instructions: true,
+              isCustom: true,
+            },
+          },
         },
       },
     },

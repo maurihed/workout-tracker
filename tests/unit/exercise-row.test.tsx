@@ -19,4 +19,18 @@ describe("ExerciseRow", () => {
       expect.objectContaining({ targetSets: 1, setTargets: [{ reps: 5, weightKg: null, rpe: null }] }),
     )
   })
+
+  it("shows a how-to section for custom exercises", () => {
+    render(
+      <ExerciseRow
+        exercise={{ ...exercise, isCustom: true, instructions: ["Brace your core.", "Press up."] }}
+        onChange={vi.fn()}
+        onRemove={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText("customExercise")).toBeInTheDocument()
+    expect(screen.getByText("howTo")).toBeInTheDocument()
+    expect(screen.getByText("Brace your core.")).toBeInTheDocument()
+  })
 })

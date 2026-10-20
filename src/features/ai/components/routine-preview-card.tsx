@@ -2,12 +2,14 @@
 
 import { ArrowsClockwise, Check, Sparkle, Trash } from "@phosphor-icons/react"
 import { useLocale, useTranslations } from "next-intl"
+import Image from "next/image"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Disclaimer } from "@/features/ai/components/disclaimer"
 import type { AiJobResult } from "@/features/ai/lib/contract"
 import { weekdayLabel } from "@/features/routines/lib/weekdays"
+import { exerciseImageUrl } from "@/lib/exercise-images"
 
 type RoutinePreviewCardProps = {
   result: AiJobResult
@@ -47,7 +49,11 @@ export function RoutinePreviewCard({
           <div className="flex flex-wrap items-center gap-2">
             {result.source === "template" ? (
               <span className="bg-warning text-warning-foreground inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold">
-                <Sparkle className="size-3.5" weight="fill" aria-hidden="true" />
+                <Sparkle
+                  className="size-3.5"
+                  weight="fill"
+                  aria-hidden="true"
+                />
                 {t("preview.template")}
               </span>
             ) : null}
@@ -88,23 +94,53 @@ export function RoutinePreviewCard({
                     return (
                       <li
                         key={`${exercise.sourceId ?? name}-${exerciseIndex}`}
-                        className="bg-muted/40 flex flex-col gap-1 rounded-2xl p-3"
+                        className="bg-muted/40 flex items-start gap-3 rounded-2xl p-3"
                       >
-                        <div className="flex items-baseline justify-between gap-3">
-                          <span className="font-medium">{name}</span>
-                          <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold tabular-nums">
-                            {tRunner("targetWithRest", {
-                              sets: exercise.sets,
-                              reps: exercise.reps,
-                              rest: exercise.restSeconds,
-                            })}
-                          </span>
-                        </div>
                         {exercise.exerciseId === null ? (
-                          <span className="text-muted-foreground text-xs">
-                            {t("preview.customNote")}
-                          </span>
+                          <Image
+                            src={exerciseImageUrl(undefined)}
+                            alt=""
+                            width={48}
+                            height={48}
+                            unoptimized
+                            className="bg-muted size-12 shrink-0 rounded-xl object-cover"
+                          />
                         ) : null}
+                        <div className="flex min-w-0 flex-1 flex-col gap-1">
+                          <div className="flex items-baseline justify-between gap-3">
+                            <span className="font-medium">{name}</span>
+                            <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold tabular-nums">
+                              {tRunner("targetWithRest", {
+                                sets: exercise.sets,
+                                reps: exercise.reps,
+                                rest: exercise.restSeconds,
+                              })}
+                            </span>
+                          </div>
+                          {exercise.exerciseId === null ? (
+                            <>
+                              <span className="text-muted-foreground text-xs">
+                                {t("preview.customNote")}
+                              </span>
+                              {(exercise.instructions?.length ?? 0) > 0 ? (
+                                <details>
+                                  <summary className="text-primary flex min-h-11 cursor-pointer items-center text-xs font-semibold">
+                                    {t("preview.howTo")}
+                                  </summary>
+                                  <ol className="text-muted-foreground flex list-decimal flex-col gap-1 pl-5 text-xs">
+                                    {exercise.instructions?.map(
+                                      (step, stepIndex) => (
+                                        <li key={`${stepIndex}-${step}`}>
+                                          {step}
+                                        </li>
+                                      ),
+                                    )}
+                                  </ol>
+                                </details>
+                              ) : null}
+                            </>
+                          ) : null}
+                        </div>
                       </li>
                     )
                   })}

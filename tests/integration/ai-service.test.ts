@@ -32,7 +32,9 @@ import {
 const INPUT = {
   goal: "build_muscle" as const,
   experience: "beginner" as const,
+  location: "gym" as const,
   equipment: [] as string[],
+  gymProfile: "intermediate" as const,
   daysPerWeek: 1,
 }
 
@@ -95,6 +97,10 @@ function buildGeneratedRoutine() {
             timerType: "interval",
             workSeconds: 40,
             rounds: 5,
+            instructions: [
+              "Set up with your hands shoulder-width apart.",
+              "Press up while keeping a straight line from head to heels.",
+            ],
           },
         ],
       },
@@ -244,7 +250,9 @@ describe("ai service", () => {
     await runJob(job.id, provider)
     const { routineId } = await acceptJob(user.id, job.id)
 
-    const routine = await prisma.routine.findUniqueOrThrow({ where: { id: routineId } })
+    const routine = await prisma.routine.findUniqueOrThrow({
+      where: { id: routineId },
+    })
     expect(routine.source).toBe("template")
     expect(routine.aiJobId).toBe(job.id)
   })
@@ -263,7 +271,9 @@ describe("ai service", () => {
     const provider = providerReturning(buildGeneratedRoutine())
     await runJob(job.id, provider)
 
-    const stored = await prisma.aiJob.findUniqueOrThrow({ where: { id: job.id } })
+    const stored = await prisma.aiJob.findUniqueOrThrow({
+      where: { id: job.id },
+    })
     expect(stored.status).toBe("succeeded")
     expect(stored.attempts).toBeGreaterThanOrEqual(1)
     expect(provider.generateJson).toHaveBeenCalled()
@@ -285,7 +295,9 @@ describe("ai service", () => {
     await runJob(job.id, provider)
 
     expect(provider.generateJson).not.toHaveBeenCalled()
-    const stored = await prisma.aiJob.findUniqueOrThrow({ where: { id: job.id } })
+    const stored = await prisma.aiJob.findUniqueOrThrow({
+      where: { id: job.id },
+    })
     expect(stored.status).toBe("failed")
   })
 
@@ -301,7 +313,9 @@ describe("ai service", () => {
     await runJob(job.id, provider)
 
     expect(provider.generateJson).not.toHaveBeenCalled()
-    const stored = await prisma.aiJob.findUniqueOrThrow({ where: { id: job.id } })
+    const stored = await prisma.aiJob.findUniqueOrThrow({
+      where: { id: job.id },
+    })
     expect(stored.status).toBe("running")
   })
 
@@ -310,13 +324,22 @@ describe("ai service", () => {
     const job = await createJob(user.id, INPUT)
     await runJob(job.id, providerReturning(buildGeneratedRoutine()))
 
-    const stored = await prisma.aiJob.findUniqueOrThrow({ where: { id: job.id } })
+    const stored = await prisma.aiJob.findUniqueOrThrow({
+      where: { id: job.id },
+    })
     const result = stored.result as unknown as AiJobResult
     result.routine.days.push({ ...result.routine.days[0]!, label: "Duplicate" })
-    await prisma.aiJob.update({ where: { id: job.id }, data: { result: result as never } })
+    await prisma.aiJob.update({
+      where: { id: job.id },
+      data: { result: result as never },
+    })
 
-    await expect(acceptJob(user.id, job.id)).rejects.toMatchObject({ code: "P2002" })
-    const count = await prisma.routine.count({ where: { userId: user.id, aiJobId: job.id } })
+    await expect(acceptJob(user.id, job.id)).rejects.toMatchObject({
+      code: "P2002",
+    })
+    const count = await prisma.routine.count({
+      where: { userId: user.id, aiJobId: job.id },
+    })
     expect(count).toBe(0)
   })
 
@@ -348,7 +371,14 @@ describe("ai service", () => {
     const routines = await prisma.routine.findMany({
       where: { userId: user.id, aiJobId: job.id },
       include: {
-        days: { include: { exercises: { orderBy: { order: "asc" } } } },
+        days: {
+          include: {
+            exercises: {
+              orderBy: { order: "asc" },
+              include: { exercise: true },
+            },
+          },
+        },
       },
     })
     expect(routines).toHaveLength(1)
@@ -363,12 +393,20 @@ describe("ai service", () => {
     expect(exercises).toHaveLength(2)
     expect(exercises[0]!.exerciseId).toBe(catalogEntry.id)
     expect(exercises[1]).toMatchObject({
-      exerciseId: null,
       customName: "Zzqx Wibbleflarp",
       timerType: "interval",
       workSeconds: 40,
       rounds: 5,
+      exercise: {
+        name: "Zzqx Wibbleflarp",
+        isCustom: true,
+        instructions: [
+          "Set up with your hands shoulder-width apart.",
+          "Press up while keeping a straight line from head to heels.",
+        ],
+      },
     })
+    expect(exercises[1]!.exerciseId).not.toBeNull()
   })
 
   it("enforces a unique routine link per (userId, aiJobId)", async () => {
@@ -420,8 +458,12 @@ describe("ai service", () => {
     const stranger = await makeUser()
     const job = await createJob(owner.id, INPUT)
 
-    await expect(getJob(stranger.id, job.id)).rejects.toBeInstanceOf(NotFoundError)
-    await expect(acceptJob(stranger.id, job.id)).rejects.toBeInstanceOf(NotFoundError)
+    await expect(getJob(stranger.id, job.id)).rejects.toBeInstanceOf(
+      NotFoundError,
+    )
+    await expect(acceptJob(stranger.id, job.id)).rejects.toBeInstanceOf(
+      NotFoundError,
+    )
   })
 
   it("lists the user's jobs newest first", async () => {
@@ -443,7 +485,9 @@ describe("ai service", () => {
       })),
     })
 
-    await expect(createJob(user.id, INPUT)).rejects.toBeInstanceOf(RateLimitError)
+    await expect(createJob(user.id, INPUT)).rejects.toBeInstanceOf(
+      RateLimitError,
+    )
     expect(queueMock.enqueueAiJob).not.toHaveBeenCalled()
   })
 
@@ -499,7 +543,9 @@ describe("ai service", () => {
       daysPerWeek: 3,
     })
     await runJob(job.id, providerReturning(buildGeneratedRoutine()))
-    const stored = await prisma.aiJob.findUniqueOrThrow({ where: { id: job.id } })
+    const stored = await prisma.aiJob.findUniqueOrThrow({
+      where: { id: job.id },
+    })
     const result = stored.result as {
       personalized: boolean
       personalizedCount: number
@@ -549,8 +595,12 @@ describe("ai service", () => {
       personalize: false,
     })
     await runJob(job.id, providerReturning(buildGeneratedRoutine()))
-    const stored = await prisma.aiJob.findUniqueOrThrow({ where: { id: job.id } })
-    expect((stored.result as { personalized: boolean }).personalized).toBe(false)
+    const stored = await prisma.aiJob.findUniqueOrThrow({
+      where: { id: job.id },
+    })
+    expect((stored.result as { personalized: boolean }).personalized).toBe(
+      false,
+    )
   })
 
   it("keeps the provider's load byte-identical when personalize is false", async () => {
@@ -605,7 +655,9 @@ describe("ai service", () => {
       personalize: false,
     })
     await runJob(job.id, providerReturning(routine))
-    const stored = await prisma.aiJob.findUniqueOrThrow({ where: { id: job.id } })
+    const stored = await prisma.aiJob.findUniqueOrThrow({
+      where: { id: job.id },
+    })
     const result = stored.result as unknown as AiJobResult
     expect(result.personalized).toBe(false)
     expect(result.routine.days[0]!.exercises[0]!.targetWeightKg).toBe(60)
@@ -620,8 +672,12 @@ describe("ai service", () => {
       daysPerWeek: 3,
     })
     await runJob(job.id, providerReturning(buildGeneratedRoutine()))
-    const stored = await prisma.aiJob.findUniqueOrThrow({ where: { id: job.id } })
-    expect((stored.result as { personalized: boolean }).personalized).toBe(false)
+    const stored = await prisma.aiJob.findUniqueOrThrow({
+      where: { id: job.id },
+    })
+    expect((stored.result as { personalized: boolean }).personalized).toBe(
+      false,
+    )
   })
 
   it("personalizes the template fallback from recent history", async () => {
@@ -663,7 +719,9 @@ describe("ai service", () => {
     })
     await runJob(job.id, unavailableProvider())
 
-    const stored = await prisma.aiJob.findUniqueOrThrow({ where: { id: job.id } })
+    const stored = await prisma.aiJob.findUniqueOrThrow({
+      where: { id: job.id },
+    })
     const result = stored.result as unknown as AiJobResult
     expect(result.source).toBe("template")
     expect(result.personalized).toBe(true)

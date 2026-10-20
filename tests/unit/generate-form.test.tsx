@@ -38,14 +38,14 @@ describe("GenerateForm", () => {
       "intermediate",
     )
     await user.click(
+      screen.getByRole("button", { name: en.ai.form.locations.home }),
+    )
+    await user.click(
       screen.getByRole("button", {
         name: en.onboarding.equipment.items.dumbbell,
       }),
     )
-    await user.selectOptions(
-      screen.getByLabelText(en.ai.form.daysPerWeek),
-      "4",
-    )
+    await user.selectOptions(screen.getByLabelText(en.ai.form.daysPerWeek), "4")
     await user.type(screen.getByLabelText(en.ai.form.focus), "upper body")
     await user.click(screen.getByRole("button", { name: en.ai.form.submit }))
 
@@ -53,17 +53,84 @@ describe("GenerateForm", () => {
     expect(onSubmit).toHaveBeenCalledWith({
       goal: "build_muscle",
       experience: "intermediate",
+      location: "home",
       equipment: ["dumbbell"],
+      gymProfile: "intermediate",
       daysPerWeek: 4,
       focus: "upper body",
       personalize: true,
     })
   })
 
+  it("shows gym equipment levels by default and hides the equipment picker", () => {
+    renderForm()
+
+    expect(
+      screen.getByRole("button", {
+        name: new RegExp(en.ai.form.gymProfiles.basic),
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: en.onboarding.equipment.items.dumbbell,
+      }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("swaps gym levels for the equipment picker at a home or park", async () => {
+    const user = userEvent.setup()
+    renderForm()
+
+    await user.click(
+      screen.getByRole("button", { name: en.ai.form.locations.home }),
+    )
+
+    expect(
+      screen.getByRole("button", {
+        name: en.onboarding.equipment.items.dumbbell,
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: new RegExp(en.ai.form.gymProfiles.basic),
+      }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("submits the selected gym equipment level", async () => {
+    const user = userEvent.setup()
+    const { onSubmit } = renderForm()
+
+    await user.selectOptions(
+      screen.getByLabelText(en.ai.form.goal),
+      "get_stronger",
+    )
+    await user.selectOptions(
+      screen.getByLabelText(en.ai.form.experience),
+      "advanced",
+    )
+    await user.click(
+      screen.getByRole("button", {
+        name: new RegExp(en.ai.form.gymProfiles.fully_equipped),
+      }),
+    )
+    await user.click(screen.getByRole("button", { name: en.ai.form.submit }))
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        location: "gym",
+        gymProfile: "fully_equipped",
+      }),
+    )
+  })
+
   it("toggles an equipment selection on and off", async () => {
     const user = userEvent.setup()
     renderForm()
 
+    await user.click(
+      screen.getByRole("button", { name: en.ai.form.locations.home }),
+    )
     const dumbbell = screen.getByRole("button", {
       name: en.onboarding.equipment.items.dumbbell,
     })
@@ -91,10 +158,7 @@ describe("GenerateForm", () => {
       screen.getByLabelText(en.ai.form.experience),
       "beginner",
     )
-    await user.selectOptions(
-      screen.getByLabelText(en.ai.form.daysPerWeek),
-      "3",
-    )
+    await user.selectOptions(screen.getByLabelText(en.ai.form.daysPerWeek), "3")
     await user.click(screen.getByRole("button", { name: en.ai.form.submit }))
 
     expect(onSubmit).toHaveBeenCalledWith(
@@ -115,10 +179,7 @@ describe("GenerateForm", () => {
       screen.getByLabelText(en.ai.form.experience),
       "beginner",
     )
-    await user.selectOptions(
-      screen.getByLabelText(en.ai.form.daysPerWeek),
-      "3",
-    )
+    await user.selectOptions(screen.getByLabelText(en.ai.form.daysPerWeek), "3")
     await user.click(screen.getByRole("button", { name: en.ai.form.submit }))
 
     expect(onSubmit).toHaveBeenCalledWith(

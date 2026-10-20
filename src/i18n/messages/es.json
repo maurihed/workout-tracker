@@ -166,6 +166,8 @@
     "addExercise": "Añadir ejercicio",
     "removeExercise": "Quitar ejercicio",
     "reorderExercise": "Reordenar ejercicio",
+    "customExercise": "Ejercicio personalizado",
+    "howTo": "Cómo se hace",
     "sets": "Series",
     "reps": "Repeticiones",
     "weight": "Peso",
@@ -194,7 +196,22 @@
     "form": {
       "goal": "Objetivo",
       "experience": "Experiencia",
+      "location": "Lugar de entrenamiento",
+      "locations": {
+        "home": "Casa / parque",
+        "gym": "Gimnasio"
+      },
       "equipment": "Equipo",
+      "equipmentHint": "Selecciona todo lo que puedas usar. El peso corporal siempre está disponible.",
+      "gymProfile": "Nivel de equipamiento del gym",
+      "gymProfiles": {
+        "basic": "Básico",
+        "basicHint": "Peso libre y bancos; puede que falten máquinas específicas.",
+        "intermediate": "Intermedio",
+        "intermediateHint": "Todo lo necesario para variaciones estándar, incluidos cables y máquinas.",
+        "fully_equipped": "Completamente equipado",
+        "fully_equippedHint": "Barras especiales, máquinas y accesorios para cualquier variación."
+      },
       "daysPerWeek": "Días por semana",
       "focus": "Enfoque (opcional)",
       "submit": "Generar rutina",
@@ -213,6 +230,7 @@
       "regenerate": "Volver a generar",
       "discard": "Descartar",
       "customNote": "Este ejercicio aún no está en nuestro catálogo y se añadirá como ejercicio personalizado.",
+      "howTo": "Cómo se hace",
       "provenance": "Generada por IA ({model})",
       "template": "Creada a partir de una plantilla porque la generación con IA no estaba disponible.",
       "personalized": "Ajustada a tus últimas 3 sesiones"
@@ -407,6 +425,8 @@
     "resumeSession": "Reanudar",
     "progress": "Progreso del entrenamiento",
     "lastPerformance": "La última vez: {reps} repeticiones · {weight}",
+    "customExercise": "Ejercicio personalizado",
+    "customExerciseNoInstructions": "Aún no hay instrucciones. Consulta a un entrenador antes de probarlo.",
     "exerciseOf": "Ejercicio {index} de {total}",
     "addSet": "Añadir serie",
     "target": "{sets} × {reps}",
@@ -440,8 +460,8 @@
       "notes": "Notas",
       "complete": "Marcar serie como completada",
       "completed": "Completada",
-    "setNumber": "Serie {number}",
-    "perSetTargets": "Objetivos por serie",
+      "setNumber": "Serie {number}",
+      "perSetTargets": "Objetivos por serie",
       "number": "Serie {number}",
       "addSet": "Añadir serie"
     }
@@ -495,9 +515,22 @@
     "continue": "Continuar"
   },
   "offline": {
-    "status": { "offline": "Sin conexión", "syncing": "Sincronizando ({count})", "synced": "Sincronizado", "pending": "{count} por sincronizar" },
+    "status": {
+      "offline": "Sin conexión",
+      "syncing": "Sincronizando ({count})",
+      "synced": "Sincronizado",
+      "pending": "{count} por sincronizar"
+    },
     "retry": "Reintentar sincronización",
-    "install": { "title": "Instala la app", "body": "Añade Gym Tracker a tu pantalla de inicio para entrenar sin conexión.", "action": "Instalar", "dismiss": "Ahora no" },
-    "page": { "title": "Estás sin conexión", "body": "Esta página aún no está disponible sin conexión. Tu entrenamiento está guardado y se sincronizará cuando vuelvas a estar en línea." }
+    "install": {
+      "title": "Instala la app",
+      "body": "Añade Gym Tracker a tu pantalla de inicio para entrenar sin conexión.",
+      "action": "Instalar",
+      "dismiss": "Ahora no"
+    },
+    "page": {
+      "title": "Estás sin conexión",
+      "body": "Esta página aún no está disponible sin conexión. Tu entrenamiento está guardado y se sincronizará cuando vuelvas a estar en línea."
+    }
   }
 }

@@ -66,6 +66,25 @@ export function ExerciseRow({
           <Trash className="size-4" aria-hidden="true" />
         </Button>
       </div>
+      {exercise.isCustom ? (
+        <div className="flex flex-col gap-1">
+          <span className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+            {t("customExercise")}
+          </span>
+          {(exercise.instructions?.length ?? 0) > 0 ? (
+            <details>
+              <summary className="text-primary flex min-h-11 cursor-pointer items-center text-sm font-semibold">
+                {t("howTo")}
+              </summary>
+              <ol className="text-muted-foreground flex list-decimal flex-col gap-1 pl-5 text-sm">
+                {exercise.instructions?.map((step, index) => (
+                  <li key={`${index}-${step}`}>{step}</li>
+                ))}
+              </ol>
+            </details>
+          ) : null}
+        </div>
+      ) : null}
       <ExerciseFields exercise={exercise} onChange={onChange} />
     </li>
   )

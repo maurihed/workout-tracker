@@ -29,6 +29,8 @@ export type DraftExercise = {
   workSeconds: number | null
   rounds: number | null
   notes: string | null
+  isCustom?: boolean
+  instructions?: string[]
 }
 
 export type DraftDay = {
@@ -60,7 +62,12 @@ export type RoutineDraftSource = {
       workSeconds: number | null
       rounds: number | null
       notes: string | null
-      exercise?: { name: string; nameEs?: string | null } | null
+      exercise?: {
+        name: string
+        nameEs?: string | null
+        isCustom?: boolean
+        instructions?: string[]
+      } | null
     }[]
   }[]
 }
@@ -137,19 +144,29 @@ export function migrateDraftState(
   version: number,
 ): PersistedDraft {
   const state = (persisted ?? {}) as Partial<PersistedDraft>
-  if (version >= 1) return state as PersistedDraft
+  if (version >= 2) return state as PersistedDraft
   const days = (state.days ?? []).map((day) => ({
     ...day,
     exercises: (day.exercises ?? []).map((exercise) => ({
       ...exercise,
-      setTargets:
-        exercise.setTargets?.length
-          ? exercise.setTargets
-          : legacyTargetsToSetTargets(
-          exercise.targetSets,
-          exercise.targetReps,
-          exercise.targetWeightKg,
-        ),
+      ...(version < 1
+        ? {
+            setTargets:
+              exercise.setTargets?.length
+                ? exercise.setTargets
+                : legacyTargetsToSetTargets(
+                    exercise.targetSets,
+                    exercise.targetReps,
+                    exercise.targetWeightKg,
+                  ),
+          }
+        : {}),
+      ...(version < 2
+        ? {
+            isCustom: exercise.isCustom ?? false,
+            instructions: exercise.instructions ?? [],
+          }
+        : {}),
     })),
   }))
   return { ...state, days } as PersistedDraft
@@ -187,6 +204,8 @@ function toDraftDay(day: RoutineDraftSource["days"][number]): DraftDay {
       workSeconds: exercise.workSeconds,
       rounds: exercise.rounds,
       notes: exercise.notes,
+      isCustom: exercise.exercise?.isCustom ?? false,
+      instructions: exercise.exercise?.instructions ?? [],
     })),
   }
 }
@@ -258,6 +277,8 @@ export const useRoutineDraftStore = create<DraftState>()(
                       workSeconds: null,
                       rounds: null,
                       notes: null,
+                      isCustom: false,
+                      instructions: [],
                     })),
                   ],
                 }
@@ -364,7 +385,7 @@ export const useRoutineDraftStore = create<DraftState>()(
       name: "gym-routine-draft",
       storage: createJSONStorage(() => sessionStorage),
       skipHydration: true,
-      version: 1,
+      version: 2,
       migrate: migrateDraftState,
       partialize: (state) => ({
         routineId: state.routineId,

@@ -1,4 +1,5 @@
 import type { AiJobInput, GeneratedRoutine } from "@/features/ai/lib/contract"
+import { equipmentForInput } from "@/features/ai/lib/gym-profile"
 import { normalizeCatalogKey, type CatalogIndex } from "@/features/ai/lib/resolve-exercises"
 import { recommendTemplates } from "@/features/onboarding/lib/recommend-templates"
 import { ROUTINE_TEMPLATES } from "@/features/onboarding/templates/routine-templates"
@@ -92,9 +93,9 @@ export function buildFallbackRoutine(input: AiJobInput, catalog: CatalogIndex): 
     {
       goal: input.goal,
       experience: input.experience,
-      location: null,
+      location: input.location === "gym" ? "gym" : "home",
       daysPerWeek: input.daysPerWeek,
-      equipment: input.equipment,
+      equipment: equipmentForInput(input),
     },
     ROUTINE_TEMPLATES,
   )

@@ -14,7 +14,7 @@ const routine: RoutineDTO = {
       targetSets: 3, targetReps: "8-12", restSeconds: 90, targetWeightKg: 40,
       setTargets: null,
       timerType: "none", workSeconds: null, rounds: null, notes: null,
-      exercise: { id: "e1", name: "Squat", nameEs: "Sentadilla", images: [] },
+      exercise: { id: "e1", name: "Squat", nameEs: "Sentadilla", images: [], instructions: [], isCustom: false },
     }],
   }],
 }

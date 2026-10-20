@@ -1,7 +1,9 @@
 import "server-only"
 import { prisma } from "@/lib/prisma"
 import type { Prisma } from "@/generated/prisma/client"
+import { createHash } from "node:crypto"
 import type { HistorySession } from "@/features/ai/lib/history"
+import { normalizeCatalogKey } from "@/features/ai/lib/resolve-exercises"
 import { createWithDays, withTransaction } from "@/server/repositories/routine.repository"
 
 export function createJob(userId: string, input: Prisma.InputJsonValue) {
@@ -91,7 +93,7 @@ export function countRecentJobs(userId: string, since: Date) {
 export function listCatalogEntries() {
   return prisma.exercise.findMany({
     where: { isCustom: false },
-    select: { id: true, sourceId: true, name: true, primaryMuscles: true },
+    select: { id: true, sourceId: true, name: true, primaryMuscles: true, equipment: true },
     orderBy: { sourceId: "asc" },
   })
 }
@@ -153,17 +155,70 @@ export function findRoutineByJobId(userId: string, aiJobId: string) {
   })
 }
 
+export type CustomExerciseWrite = {
+  name: string
+  instructions: string[]
+}
+
 export type AiRoutineWriteInput = {
   aiJobId: string
   name: string
   goal: Exclude<Prisma.RoutineUncheckedCreateInput["goal"], undefined>
   source: "ai" | "template"
   days: Prisma.RoutineDayUncheckedCreateWithoutRoutineInput[]
+  customExercises?: CustomExerciseWrite[]
+}
+
+type NestedExerciseInput = Prisma.RoutineExerciseUncheckedCreateWithoutRoutineDayInput
+type NestedDayInput = Omit<Prisma.RoutineDayUncheckedCreateWithoutRoutineInput, "exercises"> & {
+  exercises: { create: NestedExerciseInput[] }
+}
+
+function customExerciseSourceId(userId: string, name: string): string {
+  const slug = normalizeCatalogKey(name).replace(/\s+/g, "-").slice(0, 48) || "exercise"
+  const hash = createHash("sha1").update(name.trim().toLowerCase()).digest("hex").slice(0, 10)
+  return `custom-${userId}-${slug}-${hash}`
 }
 
 export function createRoutineFromJob(userId: string, data: AiRoutineWriteInput) {
-  return withTransaction((tx) =>
-    createWithDays(tx, {
+  return withTransaction(async (tx) => {
+    const customIds = new Map<string, string>()
+
+    for (const custom of data.customExercises ?? []) {
+      const sourceId = customExerciseSourceId(userId, custom.name)
+      const row = await tx.exercise.upsert({
+        where: { sourceId },
+        create: {
+          sourceId,
+          name: custom.name,
+          instructions: custom.instructions,
+          images: [],
+          isCustom: true,
+          createdById: userId,
+        },
+        update: {
+          name: custom.name,
+          ...(custom.instructions.length > 0 ? { instructions: custom.instructions } : {}),
+        },
+        select: { id: true },
+      })
+      customIds.set(normalizeCatalogKey(custom.name), row.id)
+    }
+
+    const days = (data.days as NestedDayInput[]).map((day) => ({
+      ...day,
+      exercises: {
+        ...day.exercises,
+        create: day.exercises.create.map((exercise) => {
+          if (exercise.exerciseId != null) return exercise
+          const customName = exercise.customName?.trim()
+          const exerciseId = customName ? customIds.get(normalizeCatalogKey(customName)) : undefined
+          return exerciseId ? { ...exercise, exerciseId } : exercise
+        }),
+      },
+    }))
+
+    return createWithDays(tx, {
       userId,
       name: data.name,
       description: null,
@@ -171,7 +226,7 @@ export function createRoutineFromJob(userId: string, data: AiRoutineWriteInput) 
       source: data.source,
       aiJobId: data.aiJobId,
       isActive: false,
-      days: { create: data.days },
-    }),
-  )
+      days: { create: days },
+    })
+  })
 }

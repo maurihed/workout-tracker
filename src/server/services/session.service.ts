@@ -43,7 +43,14 @@ export type SessionExerciseDTO = {
   skipped: boolean
   swappedFromId: string | null
   notes: string | null
-  exercise: { id: string; name: string; nameEs: string | null; images: string[] } | null
+  exercise: {
+    id: string
+    name: string
+    nameEs: string | null
+    images: string[]
+    instructions?: string[]
+    isCustom?: boolean
+  } | null
   sets: SessionSetDTO[]
   lastPerformance: repos.LastPerformance | null
 }

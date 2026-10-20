@@ -21,7 +21,9 @@ function input(overrides: Partial<AiJobInput> = {}): AiJobInput {
   return {
     goal: "general_fitness",
     experience: "beginner",
+    location: "home",
     equipment: ["body only"],
+    gymProfile: "intermediate",
     daysPerWeek: 3,
     personalize: true,
     ...overrides,

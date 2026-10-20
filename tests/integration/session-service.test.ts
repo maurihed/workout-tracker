@@ -29,7 +29,7 @@ async function makeUserWithRoutine() {
         targetSets: re.targetSets, targetReps: re.targetReps, restSeconds: re.restSeconds,
         targetWeightKg: re.targetWeightKg, setTargets: null, timerType: re.timerType, workSeconds: re.workSeconds,
         rounds: re.rounds, notes: re.notes,
-        exercise: re.exercise ? { id: re.exercise.id, name: re.exercise.name, nameEs: re.exercise.nameEs, images: re.exercise.images } : null,
+        exercise: re.exercise ? { id: re.exercise.id, name: re.exercise.name, nameEs: re.exercise.nameEs, images: re.exercise.images, instructions: re.exercise.instructions, isCustom: re.exercise.isCustom } : null,
       })),
     })),
   }

@@ -58,6 +58,10 @@ const result: AiJobResult = {
             rounds: null,
             exerciseId: null,
             customName: "Handstand Push-up",
+            instructions: [
+              "Kick up into a handstand with your back to a wall.",
+              "Lower until your head nearly touches the floor, then press back up.",
+            ],
           },
         ],
       },
@@ -104,7 +108,9 @@ describe("JobProgress", () => {
   })
 
   it("shows the unavailable message for a provider outage", () => {
-    withProvider(<JobProgress status="failed" error="AI provider unavailable" />)
+    withProvider(
+      <JobProgress status="failed" error="AI provider unavailable" />,
+    )
     expect(screen.getByText(en.ai.errors.unavailable)).toBeInTheDocument()
   })
 })
@@ -159,6 +165,10 @@ describe("RoutinePreviewCard", () => {
 
     expect(screen.getByText("Handstand Push-up")).toBeInTheDocument()
     expect(screen.getByText(en.ai.preview.customNote)).toBeInTheDocument()
+    expect(screen.getByText(en.ai.preview.howTo)).toBeInTheDocument()
+    expect(
+      screen.getByText("Kick up into a handstand with your back to a wall."),
+    ).toBeInTheDocument()
     expect(screen.getByText(en.ai.disclaimer)).toBeInTheDocument()
   })
 
@@ -235,9 +245,7 @@ describe("RoutinePreviewCard", () => {
       />,
     )
 
-    await user.click(
-      screen.getByRole("button", { name: en.ai.preview.accept }),
-    )
+    await user.click(screen.getByRole("button", { name: en.ai.preview.accept }))
     await user.click(
       screen.getByRole("button", { name: en.ai.preview.regenerate }),
     )

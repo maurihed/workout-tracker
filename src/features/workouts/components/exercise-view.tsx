@@ -8,7 +8,11 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { ExerciseImageModal } from "@/features/workouts/components/exercise-image-modal"
-import { SetRow, type SetRowSet, type UnitSystem } from "@/features/workouts/components/set-row"
+import {
+  SetRow,
+  type SetRowSet,
+  type UnitSystem,
+} from "@/features/workouts/components/set-row"
 import { formatWeight } from "@/features/workouts/lib/units"
 import type { SessionSetPatch } from "@/features/workouts/stores/session-store"
 import { exerciseImageUrl } from "@/lib/exercise-images"
@@ -33,6 +37,8 @@ type ExerciseViewProps = {
   exercise: ExerciseViewExercise
   unitSystem: UnitSystem
   imagePaths?: string[]
+  instructions?: string[]
+  isCustom?: boolean
   lastPerformance?: LastPerformance | null
   onSetChange: (setNumber: number, patch: SessionSetPatch) => void
   onSetComplete: (setNumber: number, completed: boolean) => void
@@ -44,6 +50,8 @@ export function ExerciseView({
   exercise,
   unitSystem,
   imagePaths,
+  instructions = [],
+  isCustom = false,
   lastPerformance,
   onSetChange,
   onSetComplete,
@@ -76,7 +84,7 @@ export function ExerciseView({
 
   return (
     <section className="flex flex-col gap-4" aria-label={exercise.nameSnapshot}>
-      <div className="bg-card flex items-center gap-3 rounded-3xl border border-border p-3 ring-1 ring-(--surface-ring)">
+      <div className="bg-card border-border flex items-center gap-3 rounded-3xl border p-3 ring-1 ring-(--surface-ring)">
         <button
           type="button"
           onClick={() => setImageOpen(true)}
@@ -103,8 +111,27 @@ export function ExerciseView({
         </div>
       </div>
 
+      {isCustom ? (
+        <section className="bg-secondary/50 ring-foreground/10 flex flex-col gap-2 rounded-3xl p-4 ring-1 ring-inset">
+          <h3 className="font-heading text-base font-semibold">
+            {t("customExercise")}
+          </h3>
+          {instructions.length > 0 ? (
+            <ol className="text-muted-foreground flex list-decimal flex-col gap-1.5 pl-5 text-sm">
+              {instructions.map((step, index) => (
+                <li key={`${index}-${step}`}>{step}</li>
+              ))}
+            </ol>
+          ) : (
+            <p className="text-muted-foreground text-sm">
+              {t("customExerciseNoInstructions")}
+            </p>
+          )}
+        </section>
+      ) : null}
+
       {lastPerformance ? (
-        <p className="bg-secondary text-secondary-foreground flex items-center gap-2 rounded-2xl px-3.5 py-2.5 text-sm font-medium ring-1 ring-inset ring-foreground/10">
+        <p className="bg-secondary text-secondary-foreground ring-foreground/10 flex items-center gap-2 rounded-2xl px-3.5 py-2.5 text-sm font-medium ring-1 ring-inset">
           <ClockCounterClockwise
             className="size-4 shrink-0"
             weight="bold"
@@ -133,7 +160,12 @@ export function ExerciseView({
         ))}
       </ul>
 
-      <Button type="button" variant="outline" className="h-12 w-full" onClick={onAddSet}>
+      <Button
+        type="button"
+        variant="outline"
+        className="h-12 w-full"
+        onClick={onAddSet}
+      >
         <Plus className="size-4" weight="bold" aria-hidden="true" />
         {t("sets.addSet")}
       </Button>

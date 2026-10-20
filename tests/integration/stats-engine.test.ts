@@ -17,7 +17,7 @@ async function makeUser(routineWeekdays: number[] = [1]) {
   })
   const dto: RoutineDTO = {
     id: routine.id, name: "Push", nameEs: null, description: null, descriptionEs: null, goal: null, source: "manual", isActive: true,
-    days: routine.days.map((d) => ({ id: d.id, weekday: d.weekday, label: d.label, order: d.order, exercises: d.exercises.map((re) => ({ id: re.id, order: re.order, exerciseId: re.exerciseId, customName: re.customName, targetSets: re.targetSets, targetReps: re.targetReps, restSeconds: re.restSeconds, targetWeightKg: re.targetWeightKg, setTargets: null, timerType: re.timerType, workSeconds: re.workSeconds, rounds: re.rounds, notes: re.notes, exercise: re.exercise ? { id: re.exercise.id, name: re.exercise.name, nameEs: re.exercise.nameEs, images: re.exercise.images } : null })) })),
+    days: routine.days.map((d) => ({ id: d.id, weekday: d.weekday, label: d.label, order: d.order, exercises: d.exercises.map((re) => ({ id: re.id, order: re.order, exerciseId: re.exerciseId, customName: re.customName, targetSets: re.targetSets, targetReps: re.targetReps, restSeconds: re.restSeconds, targetWeightKg: re.targetWeightKg, setTargets: null, timerType: re.timerType, workSeconds: re.workSeconds, rounds: re.rounds, notes: re.notes, exercise: re.exercise ? { id: re.exercise.id, name: re.exercise.name, nameEs: re.exercise.nameEs, images: re.exercise.images, instructions: re.exercise.instructions, isCustom: re.exercise.isCustom } : null })) })),
   }
   return { user, routine: dto, day: dto.days[0]!, exercise }
 }

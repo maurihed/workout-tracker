@@ -98,7 +98,14 @@ export type RunnerSessionInput = {
     workSeconds: number | null
     restSeconds: number | null
     rounds: number | null
-    exercise: { id: string; name: string; nameEs: string | null; images: string[] } | null
+    exercise: {
+      id: string
+      name: string
+      nameEs: string | null
+      images: string[]
+      instructions?: string[]
+      isCustom?: boolean
+    } | null
     lastPerformance: { reps: number | null; weightKg: number | null; date: string } | null
   }[]
 }
@@ -632,6 +639,8 @@ export function WorkoutRunner({
           }}
           unitSystem={unitSystem}
           imagePaths={currentMedia?.images ?? []}
+          instructions={currentMedia?.instructions ?? []}
+          isCustom={currentMedia?.isCustom ?? false}
           lastPerformance={currentLastPerformance}
           onSetChange={(setNumber, patch) => {
             toggleSet(currentExercise.id, setNumber, patch)

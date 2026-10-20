@@ -22,6 +22,7 @@ import {
   buildHistorySummary,
   type HistoryIndex,
 } from "@/features/ai/lib/history"
+import { filterCatalogEntriesForInput } from "@/features/ai/lib/gym-profile"
 import { PERSONALIZATION_VERSION, personalizeRoutine } from "@/features/ai/lib/personalize"
 import { PROMPT_VERSION, buildPrompt, type PromptCatalogEntry } from "@/features/ai/lib/prompt"
 import { AiUnavailableError, getProvider, type AiProvider } from "@/features/ai/lib/provider"
@@ -51,12 +52,18 @@ export type {
 } from "@/features/ai/lib/contract"
 
 function toPromptCatalog(
-  entries: readonly { sourceId: string; name: string; primaryMuscles: string[] }[],
+  entries: readonly {
+    sourceId: string
+    name: string
+    primaryMuscles: string[]
+    equipment: string | null
+  }[],
 ): PromptCatalogEntry[] {
   return entries.map((entry) => ({
     sourceId: entry.sourceId,
     name: entry.name,
     primaryMuscles: entry.primaryMuscles,
+    equipment: entry.equipment,
   }))
 }
 
@@ -245,7 +252,9 @@ export async function runJob(jobId: string, provider?: AiProvider): Promise<void
     const input = aiJobInputSchema.parse(job.input)
     const catalogEntries = await repo.listCatalogEntries()
     const catalog = buildCatalogIndex(catalogEntries)
-    const promptCatalog = toPromptCatalog(catalogEntries)
+    const eligibleEntries = filterCatalogEntriesForInput(catalogEntries, input)
+    const promptCatalog = toPromptCatalog(eligibleEntries)
+    const fallbackCatalog = buildCatalogIndex(eligibleEntries)
 
     let historyIndex: HistoryIndex | null = null
     let historySummary: string | undefined
@@ -292,7 +301,7 @@ export async function runJob(jobId: string, provider?: AiProvider): Promise<void
         },
         "AI generation failed; using the template fallback",
       )
-      const fallback = buildFallbackRoutine(input, catalog)
+      const fallback = buildFallbackRoutine(input, fallbackCatalog)
       const resolved = resolveExercises(fallback, catalog)
       result = buildJobResult("template", fallback, resolved, historyIndex)
       model = null
@@ -380,6 +389,20 @@ export async function acceptJob(userId: string, jobId: string): Promise<{ routin
     }),
   )
 
+  const customExercises: repo.CustomExerciseWrite[] = []
+  const seenCustom = new Set<string>()
+  for (const day of parsed.data.routine.days) {
+    for (const exercise of day.exercises) {
+      if (exercise.exerciseId != null) continue
+      const name = exercise.customName?.trim() ?? exercise.name?.trim()
+      if (!name) continue
+      const key = name.toLowerCase()
+      if (seenCustom.has(key)) continue
+      seenCustom.add(key)
+      customExercises.push({ name, instructions: exercise.instructions ?? [] })
+    }
+  }
+
   let routineId: string
   try {
     const routine = await repo.createRoutineFromJob(userId, {
@@ -388,6 +411,7 @@ export async function acceptJob(userId: string, jobId: string): Promise<{ routin
       goal: parsed.data.routine.goal,
       source: parsed.data.source === "template" ? "template" : "ai",
       days,
+      customExercises,
     })
     routineId = routine.id
   } catch (error) {

@@ -50,6 +50,8 @@ const routine: RoutineDTO = {
             name: "Barbell Squat",
             nameEs: "Sentadilla con barra",
             images: [],
+            instructions: [],
+            isCustom: false,
           },
         },
       ],

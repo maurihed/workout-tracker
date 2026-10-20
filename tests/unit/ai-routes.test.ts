@@ -37,7 +37,9 @@ const FINISHED_AT = new Date("2026-09-25T10:00:05.000Z")
 const INPUT = {
   goal: "build_muscle",
   experience: "beginner",
+  location: "home",
   equipment: [],
+  gymProfile: "intermediate",
   daysPerWeek: 3,
   focus: null,
   personalize: true,

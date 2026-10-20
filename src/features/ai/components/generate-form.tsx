@@ -1,7 +1,7 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Check, Sparkle } from "@phosphor-icons/react"
+import { Barbell, Check, House, Sparkle } from "@phosphor-icons/react"
 import { useTranslations } from "next-intl"
 import { useForm, useWatch } from "react-hook-form"
 import type { z } from "zod"
@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label"
 import {
   EXPERIENCES,
   GOALS,
+  GYM_PROFILES,
+  TRAINING_LOCATIONS,
   aiJobInputSchema,
   type AiJobInput,
 } from "@/features/ai/lib/contract"
@@ -22,6 +24,11 @@ type FormInput = z.input<typeof aiJobInputSchema>
 type FormOutput = z.output<typeof aiJobInputSchema>
 
 const DAYS_PER_WEEK = [1, 2, 3, 4, 5, 6, 7] as const
+
+const LOCATION_ICONS = {
+  home: House,
+  gym: Barbell,
+} as const
 
 const selectClass =
   "border-input bg-muted/40 focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full min-w-0 rounded-2xl border px-3 py-1 text-base outline-none focus-visible:ring-3 md:text-sm"
@@ -37,10 +44,14 @@ export function GenerateForm({
   const tGoals = useTranslations("onboarding.goals")
   const tExperience = useTranslations("onboarding.experience")
   const tEquipment = useTranslations("onboarding.equipment.items")
+  const tLocations = useTranslations("ai.form.locations")
+  const tGymProfiles = useTranslations("ai.form.gymProfiles")
 
   const form = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(aiJobInputSchema),
     defaultValues: {
+      location: "gym",
+      gymProfile: "intermediate",
       equipment: [],
       daysPerWeek: 3,
       focus: null,
@@ -48,14 +59,31 @@ export function GenerateForm({
     },
   })
 
-  const equipment =
-    useWatch({ control: form.control, name: "equipment" }) ?? []
+  const location =
+    useWatch({ control: form.control, name: "location" }) ?? "gym"
+  const gymProfile =
+    useWatch({ control: form.control, name: "gymProfile" }) ?? "intermediate"
+  const equipment = useWatch({ control: form.control, name: "equipment" }) ?? []
+
+  function chooseLocation(next: (typeof TRAINING_LOCATIONS)[number]) {
+    form.setValue("location", next, { shouldValidate: true, shouldDirty: true })
+  }
+
+  function chooseGymProfile(next: (typeof GYM_PROFILES)[number]) {
+    form.setValue("gymProfile", next, {
+      shouldValidate: true,
+      shouldDirty: true,
+    })
+  }
 
   function toggleEquipment(item: (typeof EQUIPMENT)[number]) {
     const next = equipment.includes(item)
       ? equipment.filter((value) => value !== item)
       : [...equipment, item]
-    form.setValue("equipment", next, { shouldValidate: true, shouldDirty: true })
+    form.setValue("equipment", next, {
+      shouldValidate: true,
+      shouldDirty: true,
+    })
   }
 
   const submit = form.handleSubmit((values) => onSubmit(values))
@@ -97,51 +125,143 @@ export function GenerateForm({
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label>{t("equipment")}</Label>
+        <Label>{t("location")}</Label>
         <div
           role="group"
-          aria-label={t("equipment")}
+          aria-label={t("location")}
           className="grid grid-cols-2 gap-2"
         >
-          {EQUIPMENT.map((item) => {
-            const selected = equipment.includes(item)
+          {TRAINING_LOCATIONS.map((value) => {
+            const selected = location === value
+            const Icon = LOCATION_ICONS[value]
             return (
               <Button
-                key={item}
+                key={value}
                 type="button"
                 variant="outline"
                 aria-pressed={selected}
                 className={cn(
                   "h-14 justify-start gap-2 rounded-2xl px-3",
                   selected &&
-                    "border-primary bg-primary/15 ring-2 ring-primary/40 hover:bg-primary/20",
+                    "border-primary bg-primary/15 ring-primary/40 hover:bg-primary/20 ring-2",
                 )}
-                onClick={() => toggleEquipment(item)}
+                onClick={() => chooseLocation(value)}
               >
-                <span
-                  className={cn(
-                    "flex size-6 shrink-0 items-center justify-center rounded-full border-2",
-                    selected
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border",
-                  )}
-                >
-                  {selected ? (
-                    <Check
-                      className="size-3.5"
-                      weight="bold"
-                      aria-hidden="true"
-                    />
-                  ) : null}
-                </span>
+                <Icon
+                  className="size-5 shrink-0"
+                  weight={selected ? "fill" : "regular"}
+                  aria-hidden="true"
+                />
                 <span className="text-left text-sm font-medium">
-                  {tEquipment(item)}
+                  {tLocations(value)}
                 </span>
               </Button>
             )
           })}
         </div>
       </div>
+
+      {location === "home" ? (
+        <div className="flex flex-col gap-2">
+          <Label>{t("equipment")}</Label>
+          <p className="text-muted-foreground text-sm">{t("equipmentHint")}</p>
+          <div
+            role="group"
+            aria-label={t("equipment")}
+            className="grid grid-cols-2 gap-2"
+          >
+            {EQUIPMENT.map((item) => {
+              const selected = equipment.includes(item)
+              return (
+                <Button
+                  key={item}
+                  type="button"
+                  variant="outline"
+                  aria-pressed={selected}
+                  className={cn(
+                    "h-14 justify-start gap-2 rounded-2xl px-3",
+                    selected &&
+                      "border-primary bg-primary/15 ring-primary/40 hover:bg-primary/20 ring-2",
+                  )}
+                  onClick={() => toggleEquipment(item)}
+                >
+                  <span
+                    className={cn(
+                      "flex size-6 shrink-0 items-center justify-center rounded-full border-2",
+                      selected
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border",
+                    )}
+                  >
+                    {selected ? (
+                      <Check
+                        className="size-3.5"
+                        weight="bold"
+                        aria-hidden="true"
+                      />
+                    ) : null}
+                  </span>
+                  <span className="text-left text-sm font-medium">
+                    {tEquipment(item)}
+                  </span>
+                </Button>
+              )
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <Label>{t("gymProfile")}</Label>
+          <div
+            role="group"
+            aria-label={t("gymProfile")}
+            className="flex flex-col gap-2"
+          >
+            {GYM_PROFILES.map((value) => {
+              const selected = gymProfile === value
+              return (
+                <Button
+                  key={value}
+                  type="button"
+                  variant="outline"
+                  aria-pressed={selected}
+                  className={cn(
+                    "h-auto min-h-16 justify-start gap-3 rounded-2xl px-3 py-3",
+                    selected &&
+                      "border-primary bg-primary/15 ring-primary/40 hover:bg-primary/20 ring-2",
+                  )}
+                  onClick={() => chooseGymProfile(value)}
+                >
+                  <span
+                    className={cn(
+                      "flex size-6 shrink-0 items-center justify-center rounded-full border-2",
+                      selected
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border",
+                    )}
+                  >
+                    {selected ? (
+                      <Check
+                        className="size-3.5"
+                        weight="bold"
+                        aria-hidden="true"
+                      />
+                    ) : null}
+                  </span>
+                  <span className="flex min-w-0 flex-col text-left">
+                    <span className="text-sm font-semibold">
+                      {tGymProfiles(value)}
+                    </span>
+                    <span className="text-muted-foreground text-xs font-normal">
+                      {tGymProfiles(`${value}Hint`)}
+                    </span>
+                  </span>
+                </Button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="ai-days">{t("daysPerWeek")}</Label>
