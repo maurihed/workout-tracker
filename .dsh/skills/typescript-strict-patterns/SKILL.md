@@ -2,7 +2,7 @@
 name: typescript-strict-patterns
 description: "Use when writing or reviewing any TypeScript code. Covers discriminated unions, branded types, Zod at boundaries, const arrays over enums, and safe access patterns."
 license: MIT
-compatibility: opencode
+compatibility: dsh
 metadata:
   version: "1.0.0"
   source: "Adopted from eins78/agent-skills (author: eins78)"

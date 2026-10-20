@@ -1361,6 +1361,6 @@ No spec section is untasked. Runner/timers (2B), offline (2C), and custom exerci
 - **Data prerequisite:** seed the catalog (`pnpm db:seed`) before Tasks 1, 3, 5, 12.
 - **dnd-kit:** add `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/modifiers` (and `@dnd-kit/utilities`) in Task 8.
 - **2B/2C/2D:** runner+timers, offline, and custom exercises are separate sub-phases.
-- **Skills:** consult `.opencode/skills/` (`nextjs-app-router`, `typescript-strict-patterns`, `prisma-postgres-optimization`, `tailwind-theme-builder`, `shadcn-ui`, `vercel-react-best-practices`); this plan and the spec win over RSC-first guidance (client-first app).
+- **Skills:** consult `.dsh/skills/` (`nextjs-app-router`, `typescript-strict-patterns`, `prisma-postgres-optimization`, `tailwind-theme-builder`, `shadcn-ui`, `vercel-react-best-practices`); this plan and the spec win over RSC-first guidance (client-first app).
 
 **Compliance note on the plan header:** this plan follows the same header/Global-Constraints/Review-Focus contract as Phases 1 and 1.5.

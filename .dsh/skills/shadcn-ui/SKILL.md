@@ -2,7 +2,7 @@
 name: shadcn-ui
 description: "Install and configure shadcn/ui components for React projects. Guides component selection, installation order, dependency management, customisation with semantic tokens, and common UI recipes (forms, data tables, navigation, modals). Use after tailwind-theme-builder has set up the theme infrastructure, when adding components, building forms, creating data tables, or setting up navigation."
 license: MIT
-compatibility: opencode
+compatibility: dsh
 metadata:
   source: "jezweb/claude-skills (shadcn-ui)"
 ---

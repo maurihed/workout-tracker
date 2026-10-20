@@ -1171,4 +1171,4 @@ No spec section is untasked. Streaks/XP/dashboard/history (Phase 3) and offline/
 - **Data prerequisite:** seed the catalog before Tasks 1, 3, 12.
 - **Timer/alert:** sound + vibration are owned by the runner (Task 9); components render visuals only.
 - **2C:** offline queue, background/lock-screen timers, and PWA wiring build on the coarse `PUT` introduced here.
-- **Skills:** consult `.opencode/skills/` (`nextjs-app-router`, `typescript-strict-patterns`, `prisma-postgres-optimization`, `tailwind-theme-builder`, `shadcn-ui`, `vercel-react-best-practices`); this plan and the spec win over RSC-first guidance.
+- **Skills:** consult `.dsh/skills/` (`nextjs-app-router`, `typescript-strict-patterns`, `prisma-postgres-optimization`, `tailwind-theme-builder`, `shadcn-ui`, `vercel-react-best-practices`); this plan and the spec win over RSC-first guidance.

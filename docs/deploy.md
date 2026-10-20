@@ -50,6 +50,12 @@ the equivalent source-level scripts for local development.
    - `SENTRY_DSN` is server-side only. Client-side error tracking additionally
      requires `NEXT_PUBLIC_SENTRY_DSN`; without it client instrumentation is a
      no-op (see `instrumentation-client.ts`).
+   - AI routine generation uses DeepSeek: set
+     `AI_BASE_URL="https://api.deepseek.com"`, `AI_MODEL="deepseek-flash"`, and
+     `AI_API_KEY` (the app and the worker both need them). DeepSeek's JSON
+     output mode is used with the schema embedded in the prompt. Leaving
+     `AI_BASE_URL` or `AI_MODEL` empty disables the provider and generation
+     falls back to the deterministic template.
 
 4. **Deploy flow**
    - Push to `main` → Coolify builds `runner` → starts the `runner` container,

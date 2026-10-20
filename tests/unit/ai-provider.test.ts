@@ -4,6 +4,7 @@ import { setupServer } from "msw/node"
 import { contractJsonSchema } from "@/features/ai/lib/contract"
 import {
   AiUnavailableError,
+  createDeepSeekProvider,
   createOllamaProvider,
   createOpenAiProvider,
   getProvider,
@@ -30,6 +31,13 @@ const openAiConfig = {
 const ollamaConfig = {
   baseUrl: "http://localhost:11434",
   model: "qwen2.5",
+  timeoutMs: 1_000,
+}
+
+const deepSeekConfig = {
+  baseUrl: "https://api.deepseek.com",
+  model: "deepseek-flash",
+  apiKey: "test-key",
   timeoutMs: 1_000,
 }
 
@@ -152,6 +160,47 @@ describe("createOpenAiProvider", () => {
   })
 })
 
+describe("createDeepSeekProvider", () => {
+  it("POSTs a DeepSeek chat completion with a json_object response format and parses the content", async () => {
+    let captured: CapturedRequest | undefined
+    server.use(
+      http.post("https://api.deepseek.com/chat/completions", async ({ request }) => {
+        captured = await captureRequest(request)
+        return HttpResponse.json({
+          choices: [{ message: { content: JSON.stringify({ name: "Full Body", days: [] }) } }],
+        })
+      }),
+    )
+
+    const result = await createDeepSeekProvider(deepSeekConfig).generateJson(
+      "build me a routine in json",
+      contractJsonSchema,
+    )
+
+    expect(captured?.url).toBe("https://api.deepseek.com/chat/completions")
+    expect(captured?.authorization).toBe("Bearer test-key")
+    expect(captured?.body.model).toBe("deepseek-flash")
+    expect(captured?.body.messages).toEqual([
+      { role: "user", content: "build me a routine in json" },
+    ])
+    expect(captured?.body.temperature).toBe(0)
+    expect(captured?.body.response_format).toEqual({ type: "json_object" })
+    expect(result).toEqual({ name: "Full Body", days: [] })
+  })
+
+  it("throws a clear error when DeepSeek returns empty content", async () => {
+    server.use(
+      http.post("https://api.deepseek.com/chat/completions", () =>
+        HttpResponse.json({ choices: [{ message: { content: "" } }] }),
+      ),
+    )
+
+    await expect(createDeepSeekProvider(deepSeekConfig).generateJson("prompt", {})).rejects.toThrow(
+      /DeepSeek response shape/i,
+    )
+  })
+})
+
 describe("createOllamaProvider", () => {
   it("POSTs to /api/chat with the schema format and temperature 0 and parses message.content", async () => {
     let captured: CapturedRequest | undefined
@@ -237,6 +286,26 @@ describe("getProvider", () => {
 
     expect(url).toBe("http://ollama:11434/api/chat")
     expect(url).not.toContain("/v1")
+  })
+
+  it("selects the DeepSeek provider for the DeepSeek base URL and strips a trailing /v1", async () => {
+    vi.stubEnv("AI_BASE_URL", "https://api.deepseek.com/v1")
+    vi.stubEnv("AI_MODEL", "deepseek-flash")
+    let url = ""
+    let body: Record<string, unknown> | undefined
+    server.use(
+      http.post("https://api.deepseek.com/chat/completions", async ({ request }) => {
+        url = request.url
+        body = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({ choices: [{ message: { content: "{}" } }] })
+      }),
+    )
+
+    await getProvider().generateJson("prompt", {})
+
+    expect(url).toBe("https://api.deepseek.com/chat/completions")
+    expect(body?.model).toBe("deepseek-flash")
+    expect(body?.response_format).toEqual({ type: "json_object" })
   })
 
   it("selects the OpenAI-compatible provider otherwise and honors AI_TIMEOUT_MS", async () => {

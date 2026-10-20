@@ -4,7 +4,7 @@
 
 **Goal:** Stand up the Gym Tracker foundation — a deployable Next.js app with the design system, i18n, database schema, OAuth auth, user profiles, the exercise catalog, and the conventions/CI every later phase builds on.
 
-**Architecture:** Single Next.js 16 (App Router) app, **client-first**: RSC renders static shells; all data flows through `app/api/*` Route Handlers consumed by axios + TanStack Query. Server logic is layered thin-handler → service → repository. Prisma/Postgres on Coolify. Auth.js v5 (database sessions, Google + Facebook). Reusable skills `nextjs-app-router`, `typescript-strict-patterns`, `prisma-postgres-optimization`, `tailwind-theme-builder`, `shadcn-ui`, and `vercel-react-best-practices` are installed in `.opencode/skills/` and must be consulted for their domains.
+**Architecture:** Single Next.js 16 (App Router) app, **client-first**: RSC renders static shells; all data flows through `app/api/*` Route Handlers consumed by axios + TanStack Query. Server logic is layered thin-handler → service → repository. Prisma/Postgres on Coolify. Auth.js v5 (database sessions, Google + Facebook). Reusable skills `nextjs-app-router`, `typescript-strict-patterns`, `prisma-postgres-optimization`, `tailwind-theme-builder`, `shadcn-ui`, and `vercel-react-best-practices` are installed in `.dsh/skills/` and must be consulted for their domains.
 
 **Tech Stack:** Next.js 16, React 19, TypeScript (strict), Tailwind v4, shadcn/ui, Prisma + PostgreSQL, Auth.js v5, next-intl, axios, TanStack Query v5, Zustand, Zod, react-hook-form, Vitest + React Testing Library + Playwright, ESLint + Prettier, pnpm, Docker.
 
@@ -56,7 +56,7 @@ Run (from repo root `gym/`):
 pnpm dlx create-next-app@latest . --ts --tailwind --eslint --app --src-dir --import-alias "@/*" --turbopack --use-pnpm
 ```
 
-Expected: files created; `docs/`, `.opencode/`, and `.git/` are left intact. If create-next-app refuses because the directory is non-empty, scaffold in a temp dir and move `app/ src/ public/ package.json next.config.* tsconfig.json postcss.config.* eslint.config.*` into the repo, then re-run `pnpm install`.
+Expected: files created; `docs/`, `.dsh/`, and `.git/` are left intact. If create-next-app refuses because the directory is non-empty, scaffold in a temp dir and move `app/ src/ public/ package.json next.config.* tsconfig.json postcss.config.* eslint.config.*` into the repo, then re-run `pnpm install`.
 
 - [ ] **Step 2: Pin the toolchain**
 
@@ -254,7 +254,7 @@ git commit -m "chore: scaffold next.js app with strict ts, vitest, and quality s
 
 - [ ] **Step 1: Consult the installed skills**
 
-Read `.opencode/skills/tailwind-theme-builder/SKILL.md` and follow its four-step CSS architecture (`:root` + `.dark` outside `@layer`, `@theme inline`, base layer, ThemeProvider). Read `.opencode/skills/shadcn-ui/SKILL.md` for component install order.
+Read `.dsh/skills/tailwind-theme-builder/SKILL.md` and follow its four-step CSS architecture (`:root` + `.dark` outside `@layer`, `@theme inline`, base layer, ThemeProvider). Read `.dsh/skills/shadcn-ui/SKILL.md` for component install order.
 
 - [ ] **Step 2: Initialize shadcn/ui**
 
@@ -835,7 +835,7 @@ git commit -m "feat: add api error/envelope conventions, axios client, and react
 
 - [ ] **Step 1: Consult the optimization skill and add the local database**
 
-Read `.opencode/skills/prisma-postgres-optimization/SKILL.md`. Create `docker-compose.yml`:
+Read `.dsh/skills/prisma-postgres-optimization/SKILL.md`. Create `docker-compose.yml`:
 
 ```yaml
 services:
@@ -2955,4 +2955,4 @@ No Phase 1 requirement is untasked. Phase 1.5+ items (onboarding wizard, routine
 - **Ordering:** Tasks 1→16 are sequential (each builds on the last). Tasks 8, 9, 10, 14 each add a Prisma migration, so run `pnpm db:migrate --name <name> && pnpm db:generate` as written.
 - **Local prerequisites:** Docker Desktop (for the compose Postgres) and `pnpm`. The dev database is the local compose instance; production is a **separate** database on Coolify (spec §17.2).
 - **Not in Phase 1:** Playwright has one runnable config but no e2e specs yet; the first specs (login, onboarding) arrive with Phase 1.5/2. CI runs `pnpm e2e`, which passes with zero specs — replace with real specs as phases land.
-- **Skills:** consult `.opencode/skills/` (`nextjs-app-router`, `vercel-react-best-practices`, `typescript-strict-patterns`, `prisma-postgres-optimization`, `tailwind-theme-builder`, `shadcn-ui`) in their domains. Where Vercel's RSC-first guidance conflicts with our client-first data flow, **this plan and the spec win** (spec §5.1).
+- **Skills:** consult `.dsh/skills/` (`nextjs-app-router`, `vercel-react-best-practices`, `typescript-strict-patterns`, `prisma-postgres-optimization`, `tailwind-theme-builder`, `shadcn-ui`) in their domains. Where Vercel's RSC-first guidance conflicts with our client-first data flow, **this plan and the spec win** (spec §5.1).

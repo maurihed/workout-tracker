@@ -2,7 +2,7 @@
 name: tailwind-theme-builder
 description: "Set up Tailwind v4 + shadcn/ui themed UI with dark mode. Install deps, configure CSS variables via @theme inline, wire dark mode toggle, verify. Use whenever the user mentions Tailwind v4, setting up Tailwind theming, shadcn/ui colours, dark mode, or troubleshooting colours not working, tw-animate-css errors, @theme inline conflicts, @apply breaking after upgrade, or v3 → v4 migration issues."
 license: MIT
-compatibility: opencode
+compatibility: dsh
 metadata:
   source: "jezweb/claude-skills (tailwind-theme-builder)"
 ---

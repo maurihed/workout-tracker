@@ -2,7 +2,7 @@
 name: nextjs-app-router
 description: Use when building, reviewing, or refactoring a Next.js App Router codebase (v15/v16) — pages, layouts, route handlers, server/client components, data fetching, caching, metadata, proxy/middleware, or migrating from the Pages Router. Covers async request APIs, the server/client boundary, Cache Components, typed route helpers, and Next.js 16 breaking changes.
 license: MIT
-compatibility: opencode
+compatibility: dsh
 metadata:
   version: "1.0.0"
   source: "Derived from nextjs.org/docs (Next.js 16.x)"

@@ -8,6 +8,11 @@ Gym Tracker — a mobile-first, gamified PWA for logging workouts.
 
 Next.js 16 (App Router) · TypeScript (strict) · Tailwind v4 · shadcn/ui · Prisma 7 · PostgreSQL · Auth.js v5 · TanStack Query + axios · Coolify deploy.
 
+## Tooling
+
+- **Coding agent:** DeepSeek Harness (DSH) running the `deepseek-flash` model. Project skills live in `.dsh/skills/` and are discovered automatically; consult them for their domains.
+- **App AI provider:** DeepSeek at `https://api.deepseek.com` with `deepseek-flash`, configured through `AI_BASE_URL` / `AI_API_KEY` / `AI_MODEL`. The worker uses DeepSeek's JSON output mode (`response_format: { type: "json_object" }`); the prompt embeds the JSON schema. With `AI_BASE_URL` or `AI_MODEL` unset, generation falls back to the deterministic template.
+
 ## Conventions
 
 - **Client-first:** Server Components render static shells; all data flows through `app/api/*` Route Handlers consumed by axios + TanStack Query.

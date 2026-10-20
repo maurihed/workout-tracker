@@ -45,6 +45,14 @@ function isOllamaBaseUrl(baseUrl: string): boolean {
   return lower.includes("ollama") || /:11434(?:\/|$)/.test(lower)
 }
 
+function isDeepSeekBaseUrl(baseUrl: string): boolean {
+  try {
+    return /(^|\.)deepseek\.com$/i.test(new URL(baseUrl).hostname)
+  } catch {
+    return false
+  }
+}
+
 function stripCodeFence(content: string): string {
   const match = /```(?:json)?\s*([\s\S]*?)```/i.exec(content)
   return (match?.[1] ?? content).trim()
@@ -141,6 +149,34 @@ export function createOpenAiProvider(config: ProviderConfig): AiProvider {
   }
 }
 
+export function createDeepSeekProvider(config: ProviderConfig): AiProvider {
+  const endpoint = `${normalizeBaseUrl(config.baseUrl)}/chat/completions`
+  const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS
+
+  return {
+    async generateJson(prompt) {
+      const data = await postJson(
+        endpoint,
+        {
+          model: config.model,
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0,
+          response_format: { type: "json_object" },
+        },
+        buildHeaders(config.apiKey),
+        timeoutMs,
+      )
+
+      const content = (data as { choices?: { message?: { content?: unknown } }[] })?.choices?.[0]
+        ?.message?.content
+      if (typeof content !== "string" || content.trim().length === 0) {
+        throw new Error("AI provider returned an unexpected DeepSeek response shape")
+      }
+      return parseJsonContent(content)
+    },
+  }
+}
+
 export function createOllamaProvider(config: ProviderConfig): AiProvider {
   const endpoint = `${normalizeBaseUrl(config.baseUrl)}/api/chat`
   const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS
@@ -186,5 +222,7 @@ export function getProvider(): AiProvider {
     ...(timeoutMs ? { timeoutMs } : {}),
   }
 
-  return isOllamaBaseUrl(baseUrl) ? createOllamaProvider(config) : createOpenAiProvider(config)
+  if (isOllamaBaseUrl(baseUrl)) return createOllamaProvider(config)
+  if (isDeepSeekBaseUrl(baseUrl)) return createDeepSeekProvider(config)
+  return createOpenAiProvider(config)
 }

@@ -1854,4 +1854,4 @@ No spec section is untasked. Manual routine editing, the runner, and timers rema
 - **Ordering:** Tasks 1→13 are sequential. Tasks 1 and 7 change the Prisma schema (run `pnpm db:migrate` as written).
 - **Data prerequisites:** the exercise catalog must be seeded (`pnpm db:seed`) before Tasks 1, 3, 5, and 12.
 - **Auth in e2e:** the specs bypass OAuth by inserting a database `Session` row and setting the Auth.js cookie; adjust the cookie name if Auth.js changes it.
-- **Skills:** consult `.opencode/skills/` (`nextjs-app-router`, `typescript-strict-patterns`, `prisma-postgres-optimization`, `tailwind-theme-builder`, `shadcn-ui`, `vercel-react-best-practices`). Where Vercel's RSC-first guidance conflicts with the client-first data flow, this plan and the spec win.
+- **Skills:** consult `.dsh/skills/` (`nextjs-app-router`, `typescript-strict-patterns`, `prisma-postgres-optimization`, `tailwind-theme-builder`, `shadcn-ui`, `vercel-react-best-practices`). Where Vercel's RSC-first guidance conflicts with the client-first data flow, this plan and the spec win.

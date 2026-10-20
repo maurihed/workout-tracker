@@ -17,7 +17,7 @@ const eslintConfig = defineConfig([
     // Generated Serwist service worker bundle.
     "public/sw.js",
     // Tooling/scratch workspaces are not application source.
-    ".opencode/**",
+    ".dsh/**",
     ".superpowers/**",
     ".worktrees/**",
   ]),
