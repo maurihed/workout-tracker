@@ -23,7 +23,7 @@ jobs:
       AUTH_SECRET: ci-secret
       AUTH_URL: http://localhost:3000
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
         with: { version: 12.5.1 }
       - uses: actions/setup-node@v4
