@@ -1,6 +1,12 @@
 import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
 
+import {
+  DEFAULT_ROUTINE_REPS,
+  DEFAULT_ROUTINE_REST_SECONDS,
+  DEFAULT_ROUTINE_SETS,
+  withDefaultPrescription,
+} from "@/features/routines/lib/prescription"
 import { legacyTargetsToSetTargets } from "@/features/routines/lib/set-targets"
 import { moveItem } from "@/features/routines/lib/reorder"
 import type {
@@ -45,6 +51,7 @@ export type RoutineDraftSource = {
   name: string
   description?: string | null
   goal?: Goal | null
+  source?: "manual" | "ai" | "template"
   days: {
     id: string
     weekday: number
@@ -176,37 +183,40 @@ function createId(): string {
   return crypto.randomUUID()
 }
 
-const DEFAULT_SET_COUNT = 3
-const DEFAULT_REPS = "10"
-
-function toDraftDay(day: RoutineDraftSource["days"][number]): DraftDay {
+function toDraftDay(
+  day: RoutineDraftSource["days"][number],
+  useDefaults: boolean,
+): DraftDay {
   return {
     id: createId(),
     weekday: day.weekday,
     label: day.label,
-    exercises: day.exercises.map((exercise) => ({
-      id: createId(),
-      exerciseId: exercise.exerciseId ?? "",
-      name: exercise.exercise?.name ?? exercise.customName ?? "",
-      targetSets: exercise.targetSets,
-      targetReps: exercise.targetReps,
-      restSeconds: exercise.restSeconds,
-      targetWeightKg: exercise.targetWeightKg,
-      setTargets:
-        exercise.setTargets?.length
-          ? exercise.setTargets
-          : legacyTargetsToSetTargets(
-          exercise.targetSets,
-          exercise.targetReps,
-          exercise.targetWeightKg,
-        ),
-      timerType: exercise.timerType,
-      workSeconds: exercise.workSeconds,
-      rounds: exercise.rounds,
-      notes: exercise.notes,
-      isCustom: exercise.exercise?.isCustom ?? false,
-      instructions: exercise.exercise?.instructions ?? [],
-    })),
+    exercises: day.exercises.map((raw) => {
+      const exercise = useDefaults ? withDefaultPrescription(raw) : raw
+      return {
+        id: createId(),
+        exerciseId: exercise.exerciseId ?? "",
+        name: exercise.exercise?.name ?? exercise.customName ?? "",
+        targetSets: exercise.targetSets,
+        targetReps: exercise.targetReps,
+        restSeconds: exercise.restSeconds,
+        targetWeightKg: exercise.targetWeightKg,
+        setTargets:
+          exercise.setTargets?.length
+            ? exercise.setTargets
+            : legacyTargetsToSetTargets(
+                exercise.targetSets,
+                exercise.targetReps,
+                exercise.targetWeightKg,
+              ),
+        timerType: exercise.timerType,
+        workSeconds: exercise.workSeconds,
+        rounds: exercise.rounds,
+        notes: exercise.notes,
+        isCustom: exercise.exercise?.isCustom ?? false,
+        instructions: exercise.exercise?.instructions ?? [],
+      }
+    }),
   }
 }
 
@@ -217,12 +227,13 @@ export const useRoutineDraftStore = create<DraftState>()(
 
       hydrate: (routine) => {
         if (routine.id === get().routineId) return
+        const useDefaults = routine.source !== "ai"
         set({
           routineId: routine.id,
           name: routine.name,
           description: routine.description ?? null,
           goal: routine.goal ?? null,
-          days: routine.days.map(toDraftDay),
+          days: routine.days.map((day) => toDraftDay(day, useDefaults)),
           isDirty: false,
         })
       },
@@ -268,11 +279,15 @@ export const useRoutineDraftStore = create<DraftState>()(
                       id: createId(),
                       exerciseId: item.exerciseId,
                       name: item.name,
-                      targetSets: DEFAULT_SET_COUNT,
-                      targetReps: DEFAULT_REPS,
-                      restSeconds: 60,
+                      targetSets: DEFAULT_ROUTINE_SETS,
+                      targetReps: DEFAULT_ROUTINE_REPS,
+                      restSeconds: DEFAULT_ROUTINE_REST_SECONDS,
                       targetWeightKg: null,
-                      setTargets: legacyTargetsToSetTargets(DEFAULT_SET_COUNT, DEFAULT_REPS, null),
+                      setTargets: legacyTargetsToSetTargets(
+                        DEFAULT_ROUTINE_SETS,
+                        DEFAULT_ROUTINE_REPS,
+                        null,
+                      ),
                       timerType: "none" as const,
                       workSeconds: null,
                       rounds: null,

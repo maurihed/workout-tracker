@@ -462,6 +462,7 @@
       "completed": "Completada",
       "setNumber": "Serie {number}",
       "perSetTargets": "Objetivos por serie",
+      "prescription": "Recomendado: {sets} × {reps}",
       "number": "Serie {number}",
       "addSet": "Añadir serie"
     }

@@ -21,6 +21,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import type { RoutineDTO } from "@/features/routines/hooks/use-active-routine"
+import { withDefaultPrescription } from "@/features/routines/lib/prescription"
 import { repsSummary } from "@/features/routines/lib/set-targets"
 import { weekdayLabel } from "@/features/routines/lib/weekdays"
 
@@ -270,9 +271,17 @@ export function RoutinePreview({ routine }: { routine: RoutineDTO }) {
               <CardContent>
                 <ul className="flex flex-col gap-2">
                   {day.exercises.map((item) => {
-                    const reps =
-                      repsSummary(item.setTargets) ??
-                      (item.targetReps.trim() === "" ? null : item.targetReps)
+                    const prescription =
+                      routine.source === "ai" ? item : withDefaultPrescription(item)
+                    const prescribedRange = /\d\s*[-–—]\s*\d/.test(
+                      prescription.targetReps,
+                    )
+                    const reps = prescribedRange
+                      ? prescription.targetReps.trim()
+                      : repsSummary(prescription.setTargets) ??
+                        (prescription.targetReps.trim() === ""
+                          ? null
+                          : prescription.targetReps)
                     return (
                       <li
                         key={item.id}
@@ -284,7 +293,9 @@ export function RoutinePreview({ routine }: { routine: RoutineDTO }) {
                             : (item.customName ?? "")}
                         </span>
                         <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold tabular-nums">
-                          {reps ? `${item.targetSets} × ${reps}` : item.targetSets}
+                          {reps
+                            ? `${prescription.targetSets} × ${reps}`
+                            : prescription.targetSets}
                         </span>
                       </li>
                     )

@@ -20,10 +20,14 @@ const routine: RoutineDTO = {
 }
 
 describe("session snapshot", () => {
-  it("parses only exact integer prescriptions", () => {
+  it("parses integer and ranged prescriptions, but not timed work", () => {
     expect(parseTargetReps("10")).toBe(10)
     expect(parseTargetReps(" 12 ")).toBe(12)
-    expect(parseTargetReps("8-12")).toBeNull()
+    expect(parseTargetReps("8-12")).toBe(8)
+    expect(parseTargetReps("12-8")).toBe(8)
+    expect(parseTargetReps("8-12 reps")).toBe(8)
+    expect(parseTargetReps("30s")).toBeNull()
+    expect(parseTargetReps("45 seconds")).toBeNull()
     expect(parseTargetReps("AMRAP")).toBeNull()
     expect(parseTargetReps(null)).toBeNull()
   })
@@ -68,9 +72,10 @@ describe("session snapshot", () => {
     ])
   })
 
-  it("caps seeded sets and tolerates ranges/zero sets", () => {
+  it("caps seeded sets and autofills the low end of a range", () => {
     expect(seedSets({ ...routine.days[0]!.exercises[0]!, targetSets: 999 }).length).toBe(50)
     expect(seedSets({ ...routine.days[0]!.exercises[0]!, targetSets: 0 })).toEqual([])
-    expect(seedSets({ ...routine.days[0]!.exercises[0]!, targetReps: "8-12" })[0]?.reps).toBeNull()
+    expect(seedSets({ ...routine.days[0]!.exercises[0]!, targetReps: "8-12" })[0]?.reps).toBe(8)
+    expect(seedSets({ ...routine.days[0]!.exercises[0]!, targetReps: "30s" })[0]?.reps).toBeNull()
   })
 })

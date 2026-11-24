@@ -1,4 +1,5 @@
 import type { RoutineDTO } from "@/features/routines/hooks/use-active-routine"
+import { withDefaultPrescription } from "@/features/routines/lib/prescription"
 import type { SessionStateInput } from "@/features/workouts/schemas/session"
 import type { SessionStoreSource } from "@/features/workouts/stores/session-store"
 import {
@@ -37,10 +38,19 @@ export function buildLocalSession(
   const now = deps.now ?? (() => new Date())
   const startedAt = now().toISOString()
   const name = day.label ?? routine.name
-  const snapshot = buildSessionSnapshot(routine, day)
+  const normalizedDay: RoutineDay =
+    routine.source === "ai"
+      ? day
+      : {
+          ...day,
+          exercises: day.exercises.map((exercise) =>
+            withDefaultPrescription(exercise),
+          ),
+        }
+  const snapshot = buildSessionSnapshot(routine, normalizedDay)
   const id = newId()
 
-  const exercises: SessionStoreSource["exercises"] = day.exercises.map((exercise) => ({
+  const exercises: SessionStoreSource["exercises"] = normalizedDay.exercises.map((exercise) => ({
     id: newId(),
     exerciseId: exercise.exerciseId,
     nameSnapshot: exercise.customName ?? exercise.exercise?.name ?? "Unknown exercise",

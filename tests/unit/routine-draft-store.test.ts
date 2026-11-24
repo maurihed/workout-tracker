@@ -130,6 +130,74 @@ describe("routine draft store", () => {
     ])
   })
 
+  it("defaults an empty manual prescription to 3 × 10", () => {
+    useRoutineDraftStore.getState().hydrate({
+      ...routine,
+      days: [
+        {
+          id: "d1",
+          weekday: 1,
+          label: "Push",
+          exercises: [
+            {
+              id: "x1",
+              exerciseId: "c1",
+              customName: null,
+              targetSets: 0,
+              targetReps: "",
+              restSeconds: 60,
+              targetWeightKg: 40,
+              timerType: "none",
+              workSeconds: null,
+              rounds: null,
+              notes: null,
+            },
+          ],
+        },
+      ],
+    })
+    const ex = useRoutineDraftStore.getState().days[0]!.exercises[0]!
+    expect(ex.targetSets).toBe(3)
+    expect(ex.targetReps).toBe("10")
+    expect(ex.setTargets).toEqual([
+      { reps: 10, weightKg: 40, rpe: null },
+      { reps: 10, weightKg: 40, rpe: null },
+      { reps: 10, weightKg: 40, rpe: null },
+    ])
+  })
+
+  it("does not apply the manual default to an AI routine", () => {
+    useRoutineDraftStore.getState().hydrate({
+      ...routine,
+      source: "ai",
+      days: [
+        {
+          id: "d1",
+          weekday: 1,
+          label: "Push",
+          exercises: [
+            {
+              id: "x1",
+              exerciseId: "c1",
+              customName: null,
+              targetSets: 0,
+              targetReps: "",
+              restSeconds: 60,
+              targetWeightKg: null,
+              timerType: "none",
+              workSeconds: null,
+              rounds: null,
+              notes: null,
+            },
+          ],
+        },
+      ],
+    })
+    const ex = useRoutineDraftStore.getState().days[0]!.exercises[0]!
+    expect(ex.targetSets).toBe(0)
+    expect(ex.targetReps).toBe("")
+  })
+
   it("emits setTargets in toRoutineInput", () => {
     useRoutineDraftStore.getState().hydrate({
       ...routine,

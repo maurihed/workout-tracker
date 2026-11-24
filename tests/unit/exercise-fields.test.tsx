@@ -51,6 +51,16 @@ describe("ExerciseFields", () => {
     profileState.unitSystem = "metric"
   })
 
+  it("shows the prescribed sets and reps above the per-set fields", () => {
+    render(
+      <ExerciseFields
+        exercise={{ ...exercise, targetSets: 3, targetReps: "8-12" }}
+        onChange={vi.fn()}
+      />,
+    )
+    expect(screen.getByText("prescription")).toBeInTheDocument()
+  })
+
   it("edits a single set's reps and keeps the set count in sync", () => {
     const onChange = vi.fn()
     render(<ExerciseFields exercise={exercise} onChange={onChange} />)

@@ -3,6 +3,7 @@ import {
   routineSetTargetsSchema,
   type RoutineSetTarget,
 } from "@/features/routines/schemas/routine"
+import { parsePrescribedReps } from "@/lib/reps"
 
 export function parseSetTargets(value: unknown): RoutineSetTarget[] | null {
   const result = routineSetTargetsSchema.safeParse(value)
@@ -15,8 +16,7 @@ export function legacyTargetsToSetTargets(
   targetWeightKg: number | null,
 ): RoutineSetTarget[] {
   const count = Math.min(Math.max(targetSets, 1), 20)
-  const trimmed = targetReps?.trim() ?? ""
-  const parsed = /^\d+$/.test(trimmed) ? Number(trimmed) : null
+  const parsed = parsePrescribedReps(targetReps)
   const reps =
     parsed != null && routineSetTargetSchema.safeParse({ reps: parsed }).success ? parsed : null
   return Array.from({ length: count }, () => ({

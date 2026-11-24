@@ -1,5 +1,6 @@
 import type { RoutineDTO } from "@/features/routines/hooks/use-active-routine"
 import type { RoutineSetTarget } from "@/features/routines/schemas/routine"
+import { parsePrescribedReps } from "@/lib/reps"
 
 export type RoutineDay = RoutineDTO["days"][number]
 export type RoutineExerciseDTO = RoutineDay["exercises"][number]
@@ -33,9 +34,7 @@ export type SessionSnapshot = {
 export const MAX_SEEDED_SETS = 50
 
 export function parseTargetReps(targetReps: string | null): number | null {
-  if (!targetReps) return null
-  const trimmed = targetReps.trim()
-  return /^\d+$/.test(trimmed) ? Number(trimmed) : null
+  return parsePrescribedReps(targetReps)
 }
 
 function exerciseName(exercise: RoutineExerciseDTO): string {

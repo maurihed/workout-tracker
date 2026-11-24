@@ -462,6 +462,7 @@
       "completed": "Completed",
       "setNumber": "Set {number}",
       "perSetTargets": "Per-set targets",
+      "prescription": "Recommended: {sets} × {reps}",
       "number": "Set {number}",
       "addSet": "Add set"
     }

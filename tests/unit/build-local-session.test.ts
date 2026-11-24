@@ -70,4 +70,43 @@ describe("buildLocalSession", () => {
     expect(sets[0]).toMatchObject({ setNumber: 1, reps: 12, weightKg: 40, rpe: 7 })
     expect(sets[1]).toMatchObject({ setNumber: 2, reps: 10, weightKg: 45, rpe: 8 })
   })
+
+  it("autofills a ranged AI prescription onto every seeded set", () => {
+    const day = {
+      ...routine.days[0]!,
+      exercises: [{
+        ...routine.days[0]!.exercises[0]!,
+        targetSets: 3,
+        targetReps: "8-12",
+        targetWeightKg: null,
+        setTargets: null,
+      }],
+    }
+    const local = buildLocalSession(routine, day, { newId: seqIds() })
+    const sets = local.source.exercises[0]?.sets ?? []
+    expect(sets).toHaveLength(3)
+    expect(sets.map((set) => set.reps)).toEqual([8, 8, 8])
+  })
+
+  it("fills a 3 × 10 default for an empty manual prescription", () => {
+    const day = {
+      ...routine.days[0]!,
+      exercises: [{
+        ...routine.days[0]!.exercises[0]!,
+        targetSets: 0,
+        targetReps: "",
+        targetWeightKg: null,
+        setTargets: null,
+      }],
+    }
+    const local = buildLocalSession(routine, day, { newId: seqIds() })
+    const exercise = local.source.exercises[0]!
+    expect(exercise.targetSets).toBe(3)
+    expect(exercise.targetReps).toBe("10")
+    expect(exercise.sets.map((set) => set.reps)).toEqual([10, 10, 10])
+    expect(local.snapshot.exercises[0]).toMatchObject({
+      targetSets: 3,
+      targetReps: "10",
+    })
+  })
 })

@@ -37,13 +37,18 @@ describe("legacyTargetsToSetTargets", () => {
     ])
   })
 
-  it("keeps ranges as null reps and never returns zero rows", () => {
+  it("expands a range to its low end and never returns zero rows", () => {
     expect(legacyTargetsToSetTargets(2, "8-12", null)[0]).toEqual({
-      reps: null,
+      reps: 8,
       weightKg: null,
       rpe: null,
     })
     expect(legacyTargetsToSetTargets(0, "10", null)).toHaveLength(1)
+  })
+
+  it("leaves timed prescriptions without reps", () => {
+    expect(legacyTargetsToSetTargets(1, "30s", null)[0]!.reps).toBeNull()
+    expect(legacyTargetsToSetTargets(1, "45 seconds", null)[0]!.reps).toBeNull()
   })
 
   it("nulls reps outside the schema bounds", () => {

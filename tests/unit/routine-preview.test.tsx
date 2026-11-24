@@ -100,17 +100,50 @@ describe("RoutinePreview", () => {
     expect(screen.getByText("3 × 8-12")).toBeInTheDocument()
   })
 
-  it("omits the reps factor when no set prescribes reps", () => {
+  it("keeps the AI range when per-set targets hold the low end", () => {
     render(
       <RoutinePreview
         routine={withExercise({
-          targetReps: "",
+          targetReps: "8-12",
           setTargets: [
-            { reps: null, weightKg: null, rpe: null },
-            { reps: null, weightKg: null, rpe: null },
-            { reps: null, weightKg: null, rpe: null },
+            { reps: 8, weightKg: null, rpe: null },
+            { reps: 8, weightKg: null, rpe: null },
+            { reps: 8, weightKg: null, rpe: null },
           ],
         })}
+      />,
+    )
+    expect(screen.getByText("3 × 8-12")).toBeInTheDocument()
+    expect(screen.queryByText("3 × 8")).not.toBeInTheDocument()
+  })
+
+  it("fills 3 × 10 for an empty manual prescription", () => {
+    render(
+      <RoutinePreview
+        routine={withExercise({
+          targetSets: 0,
+          targetReps: "",
+          setTargets: null,
+        })}
+      />,
+    )
+    expect(screen.getByText("3 × 10")).toBeInTheDocument()
+  })
+
+  it("omits the reps factor for an empty AI prescription", () => {
+    render(
+      <RoutinePreview
+        routine={{
+          ...withExercise({
+            targetReps: "",
+            setTargets: [
+              { reps: null, weightKg: null, rpe: null },
+              { reps: null, weightKg: null, rpe: null },
+              { reps: null, weightKg: null, rpe: null },
+            ],
+          }),
+          source: "ai",
+        }}
       />,
     )
     expect(screen.queryByText(/×/)).not.toBeInTheDocument()
